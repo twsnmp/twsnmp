@@ -1,0 +1,12 @@
+{
+  "app_name": "TWSNMP",
+  "icon_path_darwin": "resources/twsnmp.icns",
+  "icon_path_linux": "resources/twsnmp.png",
+  "icon_path_windows": "resources/twsnmp.ico",
+  "environments": [
+    {
+      "arch": "amd64",
+      "os": "darwin"
+    }
+  ]
+}

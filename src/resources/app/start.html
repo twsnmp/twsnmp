@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TWSNMP Manager</title>
+  <link rel="stylesheet" href="./css/photon.css">
+  <link rel="stylesheet" href="./css/all.css">
+  <style>
+    header {
+      -webkit-app-region: drag;
+      -webkit-user-select: none;
+    }
+    .hidden{
+      display: none;
+    }
+    .window-content {
+      overflow: hidden;
+      padding: 0;
+      margin: 0 auto;
+    }
+</style>
+  <script>
+    window.jQuery = window.$ = require('./js/jquery-3.4.1.js');
+  </script>
+</head>
+
+<body>
+  <div class="window">
+    <header class="toolbar toolbar-header">
+      <h1 class="title">TWSNMP Manager</h1>
+    </header>
+    <div class="window-content">
+      <img src="./images/twsnmp.png" width="100%" height="100%">
+    </div>
+    <footer class="toolbar toolbar-footer hidden">
+      <div class="toolbar-actions">
+        <button id="new" class="btn btn-large btn-primary">新規</button>
+        <button id="open" class="btn btn-large btn-primary">開く</button>
+        <button id="exit" class="btn btn-large btn-default">終了</button>
+      </div>
+    </footer>
+  </div>
+  <script>
+    'use strict';
+    document.addEventListener('astilectron-ready', function () {
+      astilectron.onMessage(function (message) {
+        switch (message.name) {
+          case "selectDB":
+            $("footer.toolbar-footer").removeClass("hidden");
+            return { name: "selectDB", payload: "ok" };
+          case "error":
+            setTimeout(() => {
+              astilectron.showErrorBox("エラー", message.payload);
+            }, 100);
+            return { name: "error", payload: "ok" };
+        }
+      });
+      $('#exit').click(()=>{
+        astilectron.sendMessage({ name: "exit", payload: "" }, message => {
+        });
+      });
+      $('#new').click(()=>{
+        astilectron.showSaveDialog({title: "TWSNMP DB File"}, function(filename) {
+          astilectron.sendMessage({ name: "start", payload: filename }, message => {
+            if(message.payload != "") {
+              astilectron.showErrorBox("エラー", message.payload);
+            }
+          });
+        });
+      });
+      $('#open').click(()=>{
+        astilectron.showOpenDialog({ properties: ['openFile'], title: "TWSNMP DB File" }, function (paths) {
+          astilectron.sendMessage({ name: "start", payload: paths[0] }, message => {
+            if(message.payload != "") {
+              astilectron.showErrorBox("エラー", message.payload);
+            }
+          });
+        });
+      });
+    });
+ </script>
+</body>
+
+</html>

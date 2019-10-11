@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TWSNMP</title>
+  <link rel="stylesheet" href="./css/photon.css">
+  <link rel="stylesheet" href="./css/all.css">
+  <link rel="stylesheet" href="./css/main.css">
+  <link rel="stylesheet" href="./css/datatables.css"/>
+  <script src="./js/p5.js"></script>
+  <script src="./js/p5.dom.js"></script>
+  <script src="./js/moment.js"></script>
+  <script>
+    window.jQuery = window.$ = require('./js/jquery-3.4.1.js');
+  </script>
+  <script src="./js/Chart.js"></script>
+  <script src="./js/chartjs-plugin-colorschemes.js"></script>
+ 
+  <script src="./js/datatables.js"></script>
+  
+</head>
+
+<body>
+  <div class="window">
+    <header class="toolbar toolbar-header">
+      <h1 class="title">TWSNMP</h1>
+      <div class="toolbar-actions">
+        <div class="btn-group">
+          <button class="btn btn-default">
+            <i class="fas fa-search"></i>
+          </button>
+          <button class="btn btn-default">
+            <i class="far fa-list-alt"></i>
+          </button>
+          <button class="btn btn-default">
+              <i class="fas fa-cog"></i>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <div class="window-content">
+      <div class="pane-group">
+        <div class="pane-sm sidebar">
+            <ul class="list-group" id="nodeList">
+              <li class="list-group-header">
+                <input id="nodeFilter" class="form-control" type="text" placeholder="フィルター">
+              </li>
+            </ul>
+        </div>
+        <div class="pane" id="mapLogPane" >
+          <div id="mapDiv" width="100%"></div>
+          <div id="logDiv">
+            <table id="log_table"  class="display compact">
+              <thead>
+                <tr>
+                  <th>状態</th>
+                  <th>発生日時</th>
+                  <th>種別</th>
+                  <th>関連ノード</th>
+                  <th>イベント</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="toolbar toolbar-footer">
+      <h1 class="title">Footer</h1>
+    </footer>
+  </div>
+
+  <script src="./js/main.js"></script>
+</body>
+
+</html>
