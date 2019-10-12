@@ -20,10 +20,10 @@ var (
 	BuiltAt   string
 	dbPath    string
 	debug     = flag.Bool("d", false, "enables the debug mode")
-	startWindow     *astilectron.Window
+	startWindow    *astilectron.Window
 	mainWindow     *astilectron.Window
+	nodeWindow     *astilectron.Window
 	mib 	*mibdb.MIBDB
-	dialogWindow     *astilectron.Window
 	app        *astilectron.Astilectron
 	aboutText = `TWSNMP Manager
 Version 5.0.0
@@ -83,7 +83,7 @@ func main() {
 		OnWait: func(a *astilectron.Astilectron, ws []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 			startWindow = ws[0]
 			mainWindow = ws[1]
-			dialogWindow = ws[2]
+			nodeWindow = ws[2]
 			app = a
 			mibpath := filepath.Join(app.Paths().DataDirectory(), "resources","mib.txt")
 			var err error
@@ -108,7 +108,7 @@ func main() {
 					Maximizable:          astilectron.PtrBool(false),
 					Minimizable:          astilectron.PtrBool(false),
 					Width:         astilectron.PtrInt(550),
-					Height:        astilectron.PtrInt(550),
+					Height:        astilectron.PtrInt(500),
 					TitleBarStyle: astilectron.TitleBarStyleHidden,
 				},
 			},
@@ -124,8 +124,8 @@ func main() {
 				},
 			},
 			{
-				Homepage:       "dialog.html",
-				MessageHandler: dialogMessageHandler,
+				Homepage:       "node.html",
+				MessageHandler: nodeMessageHandler,
 				Options: &astilectron.WindowOptions{
 					Center:        astilectron.PtrBool(true),
 					Modal:        astilectron.PtrBool(true),
@@ -133,8 +133,8 @@ func main() {
 					Fullscreenable:          astilectron.PtrBool(false),
 					Maximizable:          astilectron.PtrBool(false),
 					Minimizable:          astilectron.PtrBool(false),
-					Width:         astilectron.PtrInt(500),
-					Height:        astilectron.PtrInt(600),
+					Width:         astilectron.PtrInt(800),
+					Height:        astilectron.PtrInt(500),
 					TitleBarStyle: astilectron.TitleBarStyleHidden,
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),

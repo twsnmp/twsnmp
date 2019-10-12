@@ -16,7 +16,9 @@ const iconArray =[
   ["network-wired",0xf6ff],
   ["wifi",0xf1eb],
   ["cloud",0xf0c2],
-  ["print",0xf02f]
+  ["print",0xf02f],
+  ["sync",0xf021],
+  ["mobile-alt",0xf3cd],
 ];
 const iconMap = new Map(iconArray);
 
@@ -112,7 +114,7 @@ function draw() {
   }
 }
 
-function seletcNode() {
+function setSelectNode() {
   for(let k in nodes) {
     if (nodes[k].X + 32 > mouseX &&
       nodes[k].X - 32 < mouseX &&
@@ -168,17 +170,16 @@ function mousePressed() {
   }
 
   const selectNodeBack = selectNode;
-  seletcNode();
+  setSelectNode();
   if(keyIsDown(SHIFT) && 
     selectNodeBack != "" &&
     selectNode != "" && 
-    selectNodeBack != seletcNode) {
-    astilectron.sendMessage({ name: "editLine", payload: {NodeID1:selectNodeBack,NodeID2:selectNode} }, function (message) {
-    });
+    selectNodeBack != selectNode) {
+    createEditLinePane(selectNodeBack,selectNode);
     selectNode = "";
     return true;
   }
-  if (selectNodeBack != seletcNode) {
+  if (selectNodeBack != selectNode) {
     updateNodeList();
     redraw();
   }
@@ -216,7 +217,7 @@ function mousePressed() {
           <i class="fas fa-plus-circle"></i>
           新規ノード
         </span>
-        <span class="nav-group-item configMap">
+        <span class="nav-group-item mapConf">
           <i class="fas fa-cog"></i>
           マップ設定
         </span>
@@ -234,27 +235,23 @@ function mousePressed() {
     });  
     $("#ctxMenu span.showNodeInfo").on("click",()=>{
       if(selectNode != "") {
-        astilectron.sendMessage({ name: "editNode", payload: selectNode }, function (message) {
+        astilectron.sendMessage({ name: "showNodeInfo", payload: selectNode }, function (message) {
         });
       }
     });  
     $("#ctxMenu span.editNode").on("click",()=>{
       if(selectNode != "") {
-        astilectron.sendMessage({ name: "editNode", payload: selectNode }, function (message) {
-        });
+        createEditNodePane(lastMouseX,lastMouseX,selectNode);
       }
     });  
     $("#ctxMenu span.startDiscover").on("click",()=>{
-      astilectron.sendMessage({ name: "startDiscover", payload: {X:lastMouseX,Y:lastMouseY} }, function (message) {
-      });
+      createStartDiscoverPane(lastMouseX,lastMouseY);
     });  
     $("#ctxMenu span.addNode").on("click",()=>{
-      astilectron.sendMessage({ name: "addNode", payload: {X:lastMouseX,Y:lastMouseY} }, function (message) {
-      });
+      createEditNodePane(lastMouseX,lastMouseX,selectNode);
     });  
-    $("#ctxMenu span.configMap").on("click",()=>{
-      astilectron.sendMessage({ name: "configMap", payload: "" }, function (message) {
-      });
+    $("#ctxMenu span.mapConf").on("click",()=>{
+      createMapConfPane();
     });  
   }
   lastMouseX = mouseX;
