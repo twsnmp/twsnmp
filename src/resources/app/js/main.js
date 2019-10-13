@@ -6,59 +6,14 @@ let mapConf;
 let nodes = {};
 let lines = {};
 
-// ICONS
-const iconArray =[
-  ["desktop",0xf108],
-  ["tablet",0xf3fa],
-  ["server",0xf233],
-  ["hdd",0xf0a0],
-  ["laptop",0xf109],
-  ["network-wired",0xf6ff],
-  ["wifi",0xf1eb],
-  ["cloud",0xf0c2],
-  ["print",0xf02f],
-  ["sync",0xf021],
-  ["mobile-alt",0xf3cd],
-];
-const iconMap = new Map(iconArray);
-
-// State Colors
-const stateColorArray = [
-    ["high","#e31a1c"],
-    ["low","#fb9a99"],
-    ["warn","#dfdf22"],
-    ["normal","#33a02c"],
-    ["info","#1f78b4"],
-    ["repair","#1f78b4"]
-];
-const  stateColorMap = new Map(stateColorArray);
-
-// State Html
-const stateHtmlArray = [
-  ["high",'<i class="fas fa-exclamation-circle state state_high"></i>重度'],
-  ["low",'<i class="fas fa-exclamation-circle state state_low"></i>軽度'],
-  ["warn",'<i class="fas fa-exclamation-triangle state state_warn"></i>注意'],
-  ["normal",'<i class="fas fa-check-circle state state_normal"></i>正常'],
-  ["info",'<i class="fas fa-info-circle state state_info"></i>情報'],
-  ["repair",'<i class="fas fa-check-circle state state_repair"></i>復帰']
-];
-
-const  stateHtmlMap = new Map(stateHtmlArray);
-
-function getIcon(icon) {
-  const ret = iconMap.get(icon);
-  return  ret  ? char(ret) : char(0xf059);
- }
-
-function getStateColor(state) {
-  const ret = stateColorMap.get(state);
-  return  ret ? color(ret) : color("#999");
-}
-
-function getStateHtml(state) {
-  const ret = stateHtmlMap.get(state);
-  return  ret ? ret : '<i class="fas fa-check-circle state state_unkown"></i>不明';
-}
+const status = {
+  High: 0,
+  Low: 0,
+  Warn: 0,
+  Normal: 0,
+  Repair: 0,
+  Unkown: 0
+};
 
 function preload() {
   myFont = loadFont('./webfonts/fa-solid-900.ttf');
@@ -72,8 +27,8 @@ function setup() {
 
 function draw() {
   background(250);
-  for(let k in lines) {
-    if (!nodes[lines[k].NodeID1] || !nodes[lines[k].NodeID2] ) {
+  for (let k in lines) {
+    if (!nodes[lines[k].NodeID1] || !nodes[lines[k].NodeID2]) {
       continue;
     }
     const x1 = nodes[lines[k].NodeID1].X;
@@ -90,7 +45,7 @@ function draw() {
     line(xm, ym, x2, y2);
     pop();
   }
-  for(let k in nodes){
+  for (let k in nodes) {
     const icon = getIcon(nodes[k].Icon);
     push();
     translate(nodes[k].X, nodes[k].Y);
@@ -98,6 +53,10 @@ function draw() {
       fill("aliceblue");
       stroke(getStateColor(nodes[k].State));
       rect(-24, -24, 48, 48);
+    } else {
+      fill(250);
+      stroke(250);
+      rect(-18, -18, 36, 36);
     }
     textFont(myFont);
     textSize(32);
@@ -115,7 +74,7 @@ function draw() {
 }
 
 function setSelectNode() {
-  for(let k in nodes) {
+  for (let k in nodes) {
     if (nodes[k].X + 32 > mouseX &&
       nodes[k].X - 32 < mouseX &&
       nodes[k].Y + 32 > mouseY &&
@@ -135,17 +94,17 @@ let draggedNode = "";
 
 function mouseDragged() {
   if (winMouseX < 200 ||
-    winMouseY < 55 ||
+    winMouseY < 32 ||
     winMouseY > windowHeight * 0.75) {
     return true;
   }
-  if ( nodes[selectNode] && lastMouseX) {
+  if (nodes[selectNode] && lastMouseX) {
     nodes[selectNode].X += mouseX - lastMouseX;
     nodes[selectNode].Y += mouseY - lastMouseY;
-    if( nodes[selectNode].X < 16){
+    if (nodes[selectNode].X < 16) {
       nodes[selectNode].X = 16;
     }
-    if( nodes[selectNode].Y < 16){
+    if (nodes[selectNode].Y < 16) {
       nodes[selectNode].Y = 16;
     }
     draggedNode = selectNode;
@@ -161,21 +120,21 @@ let ctxMenu;
 function mousePressed() {
   // クリックした位置がマップ以外は、処理しない。
   if (winMouseX < 200 ||
-    winMouseY < 55 ||
+    winMouseY < 32 ||
     winMouseY > windowHeight * 0.75) {
     return true;
   }
-  if(ctxMenu){
+  if (ctxMenu) {
     return true;
   }
 
   const selectNodeBack = selectNode;
   setSelectNode();
-  if(keyIsDown(SHIFT) && 
+  if (keyIsDown(SHIFT) &&
     selectNodeBack != "" &&
-    selectNode != "" && 
+    selectNode != "" &&
     selectNodeBack != selectNode) {
-    createEditLinePane(selectNodeBack,selectNode);
+    createEditLinePane(selectNodeBack, selectNode);
     selectNode = "";
     return true;
   }
@@ -186,7 +145,7 @@ function mousePressed() {
   if (mouseButton === RIGHT) {
     let div;
     if (nodes[selectNode]) {
-      div =`
+      div = `
       <nav class="nav-group">
         <span class="nav-group-item showNodeInfo">
           <i class="fas fa-info-circle"></i>    
@@ -207,7 +166,7 @@ function mousePressed() {
       </nav>
       `;
     } else {
-      div =`
+      div = `
       <nav class="nav-group">
         <span class="nav-group-item startDiscover">
           <i class="fas fa-search"></i>
@@ -222,45 +181,45 @@ function mousePressed() {
           マップ設定
         </span>
       </nav>
-      `;    
+      `;
     }
     ctxMenu = createDiv(div);
     ctxMenu.id("ctxMenu");
-    ctxMenu.position(winMouseX,winMouseY + 10);
-    $("#ctxMenu span.deleteNode").on("click",()=>{
+    ctxMenu.position(winMouseX, winMouseY + 10);
+    $("#ctxMenu span.deleteNode").on("click", () => {
       deleteNode();
-    });  
-    $("#ctxMenu span.dupNode").on("click",()=>{
+    });
+    $("#ctxMenu span.dupNode").on("click", () => {
       dupNode();
-    });  
-    $("#ctxMenu span.showNodeInfo").on("click",()=>{
-      if(selectNode != "") {
+    });
+    $("#ctxMenu span.showNodeInfo").on("click", () => {
+      if (selectNode != "") {
         astilectron.sendMessage({ name: "showNodeInfo", payload: selectNode }, function (message) {
         });
       }
-    });  
-    $("#ctxMenu span.editNode").on("click",()=>{
-      if(selectNode != "") {
-        createEditNodePane(lastMouseX,lastMouseX,selectNode);
+    });
+    $("#ctxMenu span.editNode").on("click", () => {
+      if (selectNode != "") {
+        createEditNodePane(lastMouseX, lastMouseX, selectNode);
       }
-    });  
-    $("#ctxMenu span.startDiscover").on("click",()=>{
-      createStartDiscoverPane(lastMouseX,lastMouseY);
-    });  
-    $("#ctxMenu span.addNode").on("click",()=>{
-      createEditNodePane(lastMouseX,lastMouseX,selectNode);
-    });  
-    $("#ctxMenu span.mapConf").on("click",()=>{
+    });
+    $("#ctxMenu span.startDiscover").on("click", () => {
+      createStartDiscoverPane(lastMouseX, lastMouseY);
+    });
+    $("#ctxMenu span.addNode").on("click", () => {
+      createEditNodePane(lastMouseX, lastMouseX, selectNode);
+    });
+    $("#ctxMenu span.mapConf").on("click", () => {
       createMapConfPane();
-    });  
+    });
   }
   lastMouseX = mouseX;
   lastMouseY = mouseY;
   return true;
 }
 
-function mouseClicked(){
-  if(ctxMenu){
+function mouseClicked() {
+  if (ctxMenu) {
     ctxMenu.remove();
     ctxMenu = undefined;
     return true;
@@ -269,7 +228,7 @@ function mouseClicked(){
 }
 
 function mouseReleased() {
-  if( draggedNode == "" || !nodes[draggedNode]) {
+  if (draggedNode == "" || !nodes[draggedNode]) {
     draggedNode = "";
     return
   }
@@ -279,10 +238,10 @@ function mouseReleased() {
 }
 
 function keyReleased() {
-  if(!focused){
+  if (!focused) {
     return false;
   }
-  if(keyCode == DELETE ) {
+  if (keyCode == DELETE) {
     // Delete
     deleteNode();
   }
@@ -297,11 +256,11 @@ function deleteNode() {
     return;
   }
   astilectron.sendMessage({ name: "deleteNode", payload: selectNode }, function (message) {
-    if( message.payload != "ok") {
+    if (message.payload != "ok") {
       return;
     }
-    for(let k in lines){
-      if(lines[k].Node1 == selectNode || lines[k].Node2 == selectNode){
+    for (let k in lines) {
+      if (lines[k].Node1 == selectNode || lines[k].Node2 == selectNode) {
         delete lines[k];
       }
     }
@@ -317,7 +276,7 @@ function dupNode() {
     return;
   }
   astilectron.sendMessage({ name: "dupNode", payload: selectNode }, function (message) {
-    if( message.payload == "ng") {
+    if (message.payload == "ng") {
       return;
     }
     nodes[message.payload.ID] = message.payload;
@@ -352,7 +311,7 @@ function addOrUpdateNode(n) {
 
 function updateNodeList() {
   $('#nodeList li.list-group-item').each((i, e) => {
-    const id = $(e).data('id') +'';
+    const id = $(e).data('id') + '';
     if (!nodes[id]) {
       $(e).remove();
     } else if (id == selectNode) {
@@ -385,10 +344,10 @@ document.addEventListener('astilectron-ready', function () {
   }
   $('#nodeFilter').keyup(function () {
     nodeFilter();
-    return(false);
+    return (false);
   });
   log = $('#log_table').DataTable({
-    "order": [[1,"desc"]],
+    "order": [[1, "desc"]],
     "paging": false,
     "info": false,
     "autoWidth": true,
@@ -402,16 +361,20 @@ document.addEventListener('astilectron-ready', function () {
     switch (message.name) {
       case "mapConf": {
         mapConf = message.payload;
+        setWindowTitle();
         return { name: "mapConf", payload: "ok" };
       }
       case "nodes": {
         nodes = message.payload;
         setTimeout(() => {
-          for(let k in nodes) {
+          clearStatus();
+          for (let k in nodes) {
+            updateStatus(nodes[k]);
             addOrUpdateNode(nodes[k]);
           }
           updateNodeList();
           redraw();
+          showStatus();
         }, 100);
         return { name: "nodes", payload: "ok" };
       }
@@ -422,23 +385,23 @@ document.addEventListener('astilectron-ready', function () {
         }, 100);
         return { name: "nodes", payload: "ok" };
       }
-      case "logs":{
-        for(let i= message.payload.length-1 ; i >= 0 ;i--){
+      case "logs": {
+        for (let i = message.payload.length - 1; i >= 0; i--) {
           const l = message.payload[i]
-          const ts = moment(l.Time/(1000*1000)).format("MM/DD HH:mm:ss.SSS");
+          const ts = moment(l.Time / (1000 * 1000)).format("YY/MM/DD HH:mm:ss.SSS");
           const lvl = getStateHtml(l.Level)
-          log.row.add([lvl,ts,l.Type,l.NodeName,l.Event]);
+          log.row.add([lvl, ts, l.Type, l.NodeName, l.Event]);
         }
         log.draw();
         return { name: "logs", payload: "ok" };
       }
-      case "about":{
+      case "about": {
         setTimeout(() => {
           astilectron.showMessageBox({ message: message.payload, title: "TWSNMPについて" });
         }, 100);
         return { name: "about", payload: "ok" };
       }
-      case "error":{
+      case "error": {
         setTimeout(() => {
           astilectron.showErrorBox("エラー", message.payload);
         }, 100);
@@ -450,3 +413,45 @@ document.addEventListener('astilectron-ready', function () {
     }
   });
 });
+
+function setWindowTitle() {
+  const t = "TWSNMP - " + mapConf.MapName;
+  $("title").html(t);
+  $("h1.title").html(t);
+}
+
+function clearStatus() {
+  status.High = 0;
+  status.Low = 0;
+  status.Warn = 0;
+  status.Normal = 0;
+  status.Unkown = 0;
+  status.Repair = 0;
+}
+
+function updateStatus(n) {
+  switch (n.State) {
+    case "high":
+      status.High++;
+      break;
+    case "low":
+      status.Low++;
+      break;
+    case "warn":
+      status.Warn++;
+      break;
+    case "normal":
+      status.Normal++;
+      break;
+    case "repair":
+      status.Repair++;
+      break;
+    default:
+      status.Unkown++;
+  }
+}
+function showStatus() {
+  const s = "重度=" + status.High + " 軽度=" + status.Low + " 注意=" + status.Warn +
+            " 正常=" + status.Normal + " 復帰=" + status.Repair + " 不明="+ status.Unkown;
+  $("#status").html(s);
+}

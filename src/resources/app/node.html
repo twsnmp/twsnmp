@@ -7,14 +7,16 @@
   <title>TWSNMP</title>
   <link rel="stylesheet" href="./css/photon.css">
   <link rel="stylesheet" href="./css/all.css">
-  <link rel="stylesheet" href="./css/dialog.css">
+  <link rel="stylesheet" href="./css/common.css">
+  <link rel="stylesheet" href="./css/node.css">
+  <link rel="stylesheet" href="./css/datatables.css" />
+  <script src="./js/moment.js"></script>
   <script>
     window.jQuery = window.$ = require('./js/jquery-3.4.1.js');
   </script>
-  <script src="./js/Chart.js"></script>
-  <script src="./js/chartjs-plugin-colorschemes.js"></script>
 
   <script src="./js/datatables.js"></script>
+  <script src="./js/tweakpane-1.0.5.js"></script>
 
 </head>
 
@@ -23,224 +25,116 @@
     <header class="toolbar toolbar-header">
       <h1 class="title">TWSNMP</h1>
     </header>
-    <div id="configMap_page" class="window-content hidden">
-      <form id="configMap_form">
-        <div class="form-group">
-          <label>MAP名</label>
-          <input name="mapname"" class="form-control" type="text" placeholder="MAP Name">
-        </div>
-        <div class="form-group">
-          <label>ポーリング設定</label><br>
-          <label>
-            周期:
-            <input name="pollint" type="number" min="10" max="3600" value="60">
-            秒
-          </label>
-          <label>
-            タイムアウト:
-            <input name="timeout" type="number" min="1" max="300" value="3">
-            秒
-          </label>
-          <label>
-            リトライ:
-            <input name="retry" type="number" min="0" max="10" value="3">
-            回
-          </label>
-        </div>
-        <div class="form-group">
-          <label>Community名</label>
-          <input name="community" class="form-control" type="text" placeholder="Community Name">
-        </div>
-        <div class="form-group">
-          <label>受信設定</label><br>
-          <label>
-            <input name="syslog" type="checkbox">
-            syslog
-          </label>
-          <label>
-            <input name="trap" type="checkbox">
-            SNMP TRAP
-          </label>
-          <label>
-            <input name="netflow" type="checkbox">
-            Netflow/IPFIX
-          </label>
-        </div>
-        <div class="form-group">
-          <label>ログ設定</label><br>
-          <label>
-            表示数:
-            <input name="logdispsize" type="number" min="1000" max="50000" value="10000">
-            件
-          </label>
-          <label>
-            保存日数:
-            <input name="logdays" type="number" min="2" max="365" value="14">
-            日
-          </label>
-        </div>
-        <div class="form-group">
-          <label>背景画像ファイル
-          </label>
-          <button id="select_backimg" class="btn btn-mini btn-default pull-right" type="button">
-            <span class="icon icon-doc"></span>
-          </button>
-          <input name="backimg" id="backimg" class="form-control" type="text"
-            placeholder="Select File or Drop File Here" readonly>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-form btn-primary save_btn">
-            適用
-          </button>
-          <button type="button" class="btn btn-form btn-default cancel_btn">
-            キャンセル
-          </button>
-        </div>
-      </form>
+    <div class="tab-group">
+      <div class="tab-item active" id="basic">
+        <i class="fas fa-info-circle"></i>
+        基本情報
+      </div>
+      <div class="tab-item" id="polling">
+        <i class="fas fa-exchange-alt"></i>
+        ポーリング
+      </div>
+      <!-- <div class="tab-item" id="chart">
+        <i class="fas fa-chart-area"></i>
+        グラフ
+      </div> -->
+      <div class="tab-item" id="log">
+        <i class="fas fa-warehouse"></i>
+        ログ
+      </div>
     </div>
-    <div id="startDiscover_page" class="window-content hidden">
-      <form id="startDiscover_form">
-        <div class="form-group">
-          <label>開始IP</label>
-          <input name="startip"" class="form-control" type="text" placeholder="Start IP">
-        </div>
-        <div class="form-group">
-          <label>終了IP</label>
-          <input name="endip"" class="form-control" type="text" placeholder="End IP">
-        </div>
-        <div class="form-group">
-          <label>
-            タイムアウト:
-            <input name="timeout" type="number" min="1" max="300" value="3">
-            秒
-          </label>
-          <label>
-            リトライ:
-            <input name="retry" type="number" min="0" max="10" value="3">
-            回
-          </label>
-        </div>
-        <div class="form-group">
-          <label>Community名</label>
-          <input name="community" class="form-control" type="text" placeholder="Community Name">
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-form btn-primary startDiscover_btn">
-            開始
-          </button>
-          <button type="button" class="btn btn-form btn-default cancel_btn">
-            キャンセル
-          </button>
-        </div>
-      </form>
+    <div class="window-content" id="basic_page">
+      <div class="table_base">
+        <table id="basic_table" class="display">
+          <thead>
+            <tr>
+              <th>項目</th>
+              <th>内容</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div id="discoverStat_page" class="window-content hidden">
-      <h2>発見状況</h2>
-      <progress id="progress_total" value="0" max="100">0%</progress>
-      <button type="button" class="btn btn-form btn-primary stopDiscover_btn">
-        停止
-      </button>
-      <button type="button" class="btn btn-form btn-default cancel_btn">
-        閉じる
-      </button>
+    <div class="window-content hidden" id="polling_page">
+      <div class="table_base">
+        <table id="polling_table" class="display compact">
+          <thead>
+            <tr>
+              <th>状態</th>
+              <th>名前</th>
+              <th>レベル</th>
+              <th>種別</th>
+              <th>ポーリング</th>
+              <th>最終実施</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div id="editNode_page" class="window-content hidden">
-      <form id="editNode_form">
-        <div class="form-group">
-          <label>ノード名</label>
-          <input name="name" class="form-control" type="text" placeholder="ノード名">
-        </div>
-        <div class="form-group">
-          <label>アイコン</label><br>
-          <div class="btn-group">
-            <button type="button" class="btn btn-default" data-icon="desktop">
-              <i class="fas fa-desktop"></i>
-            </button>
-            <button type="button" class="btn btn-default" data-icon="tablet">
-              <i class="fas fa-tablet"></i>
-            </button>
-            <button type="button" class="btn btn-default" data-icon="server">
-              <i class="fas fa-server"></i>
-            </button>
-            <button type="button" class="btn btn-default" data-icon="hdd">
-              <i class="fas fa-hdd"></i>
-            </button>
-            <button type="button" class="btn btn-default" data-icon="laptop">
-              <i class="fas fa-laptop"></i>
-            </button>
-            <button type="button" class="btn btn-default" data-icon="network-wired">
-              <i class="fas fa-network-wired"></i>
-            </button>
-            <button type="button" class="btn btn-default" data-icon="wifi">
-              <i class="fas fa-wifi"></i>
-            </button>
-            <button type="button" class="btn btn-default" data-icon="cloud">
-              <i class="fas fa-desktop"></i>
-            </button>
-            <button type="button" class="btn btn-default" data-icon="print">
-              <i class="fas fa-print"></i>
-            </button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>IPアドレス</label>
-          <input name="ip" class="form-control" type="text" placeholder="IP Address">
-        </div>
-        <div class="form-group">
-          <label>Community名</label>
-          <input name="community" class="form-control" type="text" placeholder="Community Name">
-        </div>
-        <div class="form-group">
-          <label>説明</label>
-          <input name="descr" class="form-control" type="text" placeholder="説明">
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-form btn-primary save_btn">
-            適用
-          </button>
-          <button type="button" class="btn btn-form btn-default cancel_btn">
-            キャンセル
-          </button>
-        </div>
-        <input type="hidden" name="x" value="0">
-        <input type="hidden" name="y" value="0">
-        <input type="hidden" name="id" value="">
-      </form>
+    <div class="window-content hidden" id="log_page">
+      <div class="table_base">
+        <table id="log_table" class="display compact">
+          <thead>
+            <tr>
+              <th>状態</th>
+              <th>発生日時</th>
+              <th>種別</th>
+              <th>イベント</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div id="editLine_page" class="window-content hidden">
-      <form id="editLine_form">
-        <div class="form-group">
-          <label>ノード1</label>
-          <input name="node1" class="form-control" type="text" readonly>
-        </div>
-        <div class="form-group">
-          <select name="polling1" class="form-control">
-          </select>
-        </div>
-        <div class="form-group">
-          <label>ノード2</label>
-          <input name="node2" class="form-control" type="text" readonly>
-        </div>
-        <div class="form-group">
-          <select name="polling2" class="form-control">
-          </select>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-form btn-primary save_btn">
-            適用
-          </button>
-          <button type="button" class="btn btn-form btn-negative del_btn">
-            削除
-          </button>
-          <button type="button" class="btn btn-form btn-default cancel_btn">
-            キャンセル
-          </button>
-        </div>
-        <input type="hidden" name="id" value="">
-      </form>
-    </div>
+    <footer class="toolbar toolbar-footer">
+      <div class="toolbar-actions basic_btns">
+        <button class="btn btn-default pull-right close">
+          <i class="fas fa-times"></i>
+          閉じる
+        </button>
+      </div>
+      <div class="toolbar-actions polling_btns hidden">
+        <button class="btn btn-primary add">
+          <i class="fas fa-plus-circle"></i>
+          新規
+        </button>
+        <button class="btn btn-primary edit">
+          <i class="fas fa-edit"></i>
+          編集
+        </button>
+        <button class="btn btn-negative delete">
+          <i class="fas fa-trash-alt"></i>
+          削除
+        </button>
+        <button class="btn btn-positive poll">
+          <i class="fas fa-sync"></i>
+          確認
+        </button>
+        <button class="btn btn-positive show">
+          <i class="fas fa-chart-area"></i>
+          状況
+        </button>
+        <button class="btn btn-default pull-right close">
+          <i class="fas fa-times"></i>
+          閉じる
+        </button>
+      </div>
+      <div class="toolbar-actions log_btns hidden">
+        <button class="btn btn-default pull-right close">
+          <i class="fas fa-times"></i>
+          閉じる
+        </button>
+      </div>
+    </footer>
   </div>
-  <script src="./js/dialog.js"></script>
+  <script src="./js/common.js"></script>
+  <script src="./js/node.js"></script>
 </body>
 
 </html>

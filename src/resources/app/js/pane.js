@@ -100,6 +100,7 @@ function createMapConfPane() {
         return;
       }
       mapConf = mapConfTmp;
+      setWindowTitle();
     });
     pane.dispose();
   });
@@ -107,12 +108,17 @@ function createMapConfPane() {
 }
 
 function createStartDiscoverPane(x,y) {
-  astilectron.sendMessage({ name: "getDiscoverConf", payload: "" }, message => {
-    if(!message.payload) {
+  astilectron.sendMessage({ name: "getDiscover", payload: "" }, message => {
+    if(!message.payload.Conf) {
       astilectron.showErrorBox("自動発見", "設定を取得できません。");
       return;
     }
-    const discoverConf= message.payload;
+    const discoverConf = message.payload.Conf;
+    const discoverStat = message.payload.Stat;
+    if (discoverStat.Running ){
+      createDiscoverStatPane(discoverStat);
+      return;
+    }
     discoverConf.X= x;
     discoverConf.Y= y;
     const pane = new Tweakpane({
@@ -156,6 +162,71 @@ function createStartDiscoverPane(x,y) {
     });  
   });
 }
+
+function createDiscoverStatPane(ds){
+  let dt = new Date();
+  let st = new Date(ds.StartTime/(1000*1000));
+  let stats = ds;
+  stats.Time = dt.toLocaleTimeString();
+  stats.Start = st.toLocaleTimeString();
+  stats.End = "";
+  const pane = new Tweakpane({
+    title: '自動発見の状況',
+  });
+  pane.addMonitor(stats, 'Start');
+  pane.addMonitor(stats, 'Time');
+  pane.addMonitor(stats, 'End');
+  pane.addMonitor(stats, 'Total');
+  pane.addMonitor(stats, 'Sent');
+  pane.addMonitor(stats, 'Progress');
+  pane.addMonitor(stats, 'Found');
+  pane.addMonitor(stats, 'Snmp');
+  pane.addMonitor(stats, 'Progress', {
+    type: 'graph',
+    min: 0,
+    max: 100,
+  });
+  pane.addButton({
+    title: 'Close',
+  }).on('click', (value) => {
+    pane.dispose();
+  });
+  pane.addButton({
+    title: 'Stop',
+  }).on('click', (value) => {
+    astilectron.sendMessage({ name: "stopDiscover", payload: "" }, message => {
+      if(message.payload !== "ok") {
+        astilectron.showErrorBox("自動発見", "停止できません。");
+        return;
+      }
+    });
+    pane.dispose();
+  });  
+  function updateStat() {
+    astilectron.sendMessage({ name: "getDiscover", payload: "" }, message => {
+      dt = new Date();
+      stats.Time = dt.toLocaleTimeString();
+      if(message.payload.Stat) {
+        const s = message.payload.Stat;
+        stats.Sent = s.Sent;
+        stats.Fond = s.Found;
+        stats.Snmp = s.Snmp;
+        stats.Progress = s.Progress;
+        if (s.EndTime){
+          const et = new Date(ds.EndTime/(1000*1000));
+          stats.End = et.toLocaleTimeString();
+        }
+        if (!s.Running) {
+          astilectron.showMessageBox({message: "自動発見完了しました。", title: "自動発見完了"});
+          return;
+        }
+      }
+      setTimeout(updateStat,5000);
+    });
+  }
+  updateStat();
+}
+
 
 function createEditNodePane(x,y,nodeID) {
   let node;

@@ -22,9 +22,9 @@ type discoverStatEnt struct {
 	Sent  uint32
 	Found uint32 
 	Snmp  uint32
-	Proggress uint32
-	StartTime time.Time
-	EndTime time.Time
+	Progress uint32
+	StartTime int64
+	EndTime  int64
 	X int
 	Y int
 }
@@ -62,19 +62,27 @@ func startDiscover() error {
 		return fmt.Errorf("Discover StartIP > EndIP")
 	}
 	astilog.Debug("Start doDiscover")
+	addEventLog(eventLogEnt{
+		Type: "system",
+		Level:"info",
+		Event: fmt.Sprintf("自動発見開始 %s - %s",discoverConf.StartIP,discoverConf.EndIP),
+	})
 	discoverStat.Stop = false
 	discoverStat.Total = eip - sip
 	discoverStat.Sent  = 0
 	discoverStat.Found = 0 
 	discoverStat.Snmp  = 0
 	discoverStat.Running = true
-	discoverStat.StartTime = time.Now()
+	discoverStat.StartTime = time.Now().UnixNano()
+	discoverStat.EndTime = 0
+	discoverStat.X = discoverConf.X
+	discoverStat.Y = discoverConf.Y
 	sem := make(chan bool, 10)
 	go func() {
 		for ; sip < eip && !discoverStat.Stop ;sip++ {
 			sem <- true
 			discoverStat.Sent++
-			discoverStat.Proggress = (100 * discoverStat.Sent)/discoverStat.Total
+			discoverStat.Progress = (100 * discoverStat.Sent)/discoverStat.Total
 			go func(ip uint32) {
 				defer func() {
 					<-sem
@@ -110,7 +118,12 @@ func startDiscover() error {
 			time.Sleep(time.Millisecond * 10)
 		}
 		discoverStat.Running = false
-		discoverStat.EndTime = time.Now()
+		discoverStat.EndTime = time.Now().UnixNano()
+		addEventLog(eventLogEnt{
+			Type: "system",
+			Level:"info",
+			Event: fmt.Sprintf("自動発見終了 %s - %s",discoverConf.StartIP,discoverConf.EndIP),
+		})	
 	}()
 	return nil
 }
@@ -174,7 +187,7 @@ func addFoundNode(dent discoverInfoEnt) {
 		Icon: "desktop",
 		X: discoverStat.X,
 		Y: discoverStat.Y,
-		Descr: "Discovered at " + time.Now().Format(time.RFC3339),
+		Descr: "自動登録:" + time.Now().Format(time.RFC3339),
 	}
 	if n.Name == "" {
 		if dent.SysName != "" {
@@ -185,6 +198,7 @@ func addFoundNode(dent discoverInfoEnt) {
 	}
 	if dent.SysObjectID != ""{
 		n.Community = discoverConf.Community
+		n.Icon = "hdd"
 	}
 	if err := addNode(&n); err != nil{
 		astilog.Error(err)

@@ -6,6 +6,7 @@
   <title>TWSNMP</title>
   <link rel="stylesheet" href="./css/photon.css">
   <link rel="stylesheet" href="./css/all.css">
+  <link rel="stylesheet" href="./css/common.css">
   <link rel="stylesheet" href="./css/main.css">
   <link rel="stylesheet" href="./css/datatables.css"/>
   <script src="./js/p5.js"></script>
@@ -22,22 +23,7 @@
   <div class="window">
     <header class="toolbar toolbar-header">
       <h1 class="title">TWSNMP</h1>
-      <div class="toolbar-actions">
-        <div class="btn-group">
-          <button class="btn btn-default">
-            <i class="fas fa-search"></i>
-          </button>
-          <button class="btn btn-default">
-            <i class="far fa-list-alt"></i>
-          </button>
-          <button class="btn btn-default">
-              <i class="fas fa-cog"></i>
-          </button>
-        </div>
-
-      </div>
     </header>
-
     <div class="window-content">
       <div class="pane-group">
         <div class="pane-sm sidebar">
@@ -68,10 +54,10 @@
       </div>
     </div>
     <footer class="toolbar toolbar-footer">
-      <h1 class="title">Footer</h1>
+      <div class="pull-right" id="status" ></div>
     </footer>
   </div>
-
+  <script src="./js/common.js"></script>
   <script src="./js/main.js"></script>
   <script src="./js/pane.js"></script>
 </body>

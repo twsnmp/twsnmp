@@ -92,6 +92,11 @@ func main() {
 				astilog.Fatalf("NewMIBDB failed err=%v", err)
 			}
 			startBackend(ctx)
+			mainWindow.On(astilectron.EventNameWindowEventClosed, func(e astilectron.Event) (deleteListener bool) {
+				astilog.Debug("Main Window Closed")
+				app.Stop()
+				return
+			})
 			return nil
 		},
 		RestoreAssets: RestoreAssets,
@@ -107,7 +112,7 @@ func main() {
 					Fullscreenable:          astilectron.PtrBool(false),
 					Maximizable:          astilectron.PtrBool(false),
 					Minimizable:          astilectron.PtrBool(false),
-					Width:         astilectron.PtrInt(550),
+					Width:         astilectron.PtrInt(450),
 					Height:        astilectron.PtrInt(500),
 					TitleBarStyle: astilectron.TitleBarStyleHidden,
 				},
@@ -128,11 +133,11 @@ func main() {
 				MessageHandler: nodeMessageHandler,
 				Options: &astilectron.WindowOptions{
 					Center:        astilectron.PtrBool(true),
-					Modal:        astilectron.PtrBool(true),
+					Modal:        astilectron.PtrBool(false),
 					Show:          astilectron.PtrBool(false),
 					Fullscreenable:          astilectron.PtrBool(false),
 					Maximizable:          astilectron.PtrBool(false),
-					Minimizable:          astilectron.PtrBool(false),
+					Minimizable:          astilectron.PtrBool(true),
 					Width:         astilectron.PtrInt(800),
 					Height:        astilectron.PtrInt(500),
 					TitleBarStyle: astilectron.TitleBarStyleHidden,
@@ -205,7 +210,7 @@ func startBackend(ctx context.Context) {
 		addEventLog(eventLogEnt{
 			Type: "system",
 			Level:"info",
-			Event: fmt.Sprintf("TWSNMP Manager Started. dbPath='%s'",dbPath),
+			Event: fmt.Sprintf("TWSNMP起動 データベース='%s'",dbPath),
 		})
 		go pollingBackend(ctx)
 		go logger(ctx)

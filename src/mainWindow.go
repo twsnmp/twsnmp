@@ -51,8 +51,19 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			}
 			return "ok", nil
 		}
-	case "getDiscoverConf":
-		return discoverConf, nil
+	case "getDiscover":
+		return struct {
+			Conf discoverConfEnt
+			Stat discoverStatEnt
+		} {
+			Conf: discoverConf,
+			Stat: discoverStat,
+		}, nil
+	case "stopDiscover":
+		{
+			go stopDiscover()
+			return "ok", nil
+		}
 	case "saveNode":
 		{
 			if len(m.Payload) > 0 {
@@ -250,6 +261,23 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				}
 			}
 			return dlgParam, nil
+		}
+	case"showNodeInfo":
+		{
+			var nodeID string
+			if len(m.Payload) < 1 {
+				return "ng", errNoPayload
+			}
+			if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
+				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				return "ng", err
+			}
+			if err := bootstrap.SendMessage(nodeWindow, "setNodeID",nodeID); err != nil {
+				astilog.Error(fmt.Sprintf("sendSendMessage %s error=%v",m.Name, err))
+				return "ng",err
+			}	
+			nodeWindow.Show()
+			return "ok", nil
 		}
 	}
 	return "ok", nil

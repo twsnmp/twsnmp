@@ -1,0 +1,50 @@
+header {
+  -webkit-app-region: drag;
+  -webkit-user-select: none;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper label,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+  font-size: 10px;
+}
+
+i.state_high {
+  color: #e31a1c;
+}
+
+i.state_low {
+  color: #fb9a99;
+}
+
+i.state_warn {
+  color: #dfdf22;
+}
+
+i.state_normal {
+  color: #33a02c;
+}
+
+i.state_info {
+  color: #a6cee3;
+}
+
+i.state_repair {
+  color: #1f78b4;
+}
+
+i.state_unkown {
+  color: #999;
+}
+
+i.state {
+  margin-right: 2px;
+  font-size: 120%
+}
+
+.hidden {
+  display: none;
+}

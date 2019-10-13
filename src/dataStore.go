@@ -97,6 +97,8 @@ type discoverConfEnt struct {
 	Community string
 	Timeout   int
 	Retry     int
+	X         int
+	Y         int
 }
 
 func checkDB(path string) error {
@@ -492,6 +494,37 @@ func getEventLogList(startID string,n int) []eventLogEnt{
 	return ret
 }
 
+func getNodeEventLogList(nodeID string) []eventLogEnt{
+	ret := []eventLogEnt{}
+	if db == nil {
+		return ret
+	}
+	db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("logs"))
+		if b == nil {
+			return nil
+		}
+		c := b.Cursor()
+		i := 0
+		for k,v := c.Last(); k != nil && i < 100000; k,v = c.Prev(){
+			var e eventLogEnt
+			err := json.Unmarshal(v,&e)
+			if err != nil {
+				astilog.Errorf("getNodeEventLogList err=%v",err)
+				continue
+			}
+			if nodeID != e.NodeID {
+				continue
+			}
+			ret = append(ret,e)
+			i++
+		}
+		return nil
+	})
+	return ret
+}
+
+
 func deleteOldLog(bucket string,days int) error {
 	st := fmt.Sprintf("%016x",time.Now().AddDate(0,0,-days))
 	return db.Batch(func(tx *bbolt.Tx) error {
@@ -531,7 +564,7 @@ func closeDB() {
 		Type:"system",
 		Level:"info",
 		Time: time.Now().UnixNano(),
-		Event: "Terminate TWSNMP Manager",
+		Event: "TWSNMP終了",
 	}})
 	db.Close()
 	db = nil
