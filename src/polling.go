@@ -128,11 +128,17 @@ func doPollingPing(p *pollingEnt){
 	}	else {
 		setPollingState(p,p.Level)
 	}
-	if js,err := json.Marshal(&s); err != nil {
-		p.LastResult = string(js)
-		astilog.Debugf("ping=%s",p.LastResult)
+	js,err := json.Marshal(&s)
+	if err != nil {
+		astilog.Errorf("ping Marshal err=%",err)
+		return
 	}
+	p.LastVal = s.AvgRtt.Nanoseconds()
+	p.LastResult = string(js)
 	updatePolling(p)
+	if strings.Contains(p.Polling,"log"){
+		addPollingLog(p)
+	}
 }
 
 func doPollingSnmp(p *pollingEnt){
@@ -158,15 +164,47 @@ func doPollingSnmp(p *pollingEnt){
 		return
 	}
 	defer agent.Conn.Close()
-	if p.Polling == "sysUpTime" {
-		doSnmpPollingSysUpTime(p,agent)
-	} else if strings.HasPrefix(p.Polling,"ifOperStatus.") {
-		doSnmpPollingIF(p,agent)
+	ps,mode,log := parseSnmpPolling(p.Polling)
+	if ps == "" {
+		astilog.Errorf("Empty SNMP Polling %s",p.Name)
+		return
+	}
+	if ps == "sysUpTime" {
+		doPollingSnmpSysUpTime(p,agent)
+	} else if strings.HasPrefix(ps,"ifOperStatus.") {
+		doPollingSnmpIF(p,ps,agent)
+	} else {
+		doPollingSnmpOther(p,ps,mode,agent)
 	}
 	updatePolling(p)
+	if log {
+		addPollingLog(p)
+	}
 }
 
-func doSnmpPollingSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){
+func parseSnmpPolling(s string) (string,string,bool) {
+	a :=  strings.Split(s,"|")
+	if len(a) < 1 {
+		return "","",false
+	}
+	ps := strings.TrimSpace(a[0])
+	if len(a) < 2 {
+		return ps,"",false
+	}
+	mode := strings.TrimSpace(a[1])
+	if len(a) < 3 {
+		if mode == "log" {
+			return ps,"",true
+		}
+		return ps,mode,false
+	}
+	if strings.TrimSpace(a[1]) == "log"{
+		return ps,mode, true
+	}
+	return ps,mode, false
+}
+
+func doPollingSnmpSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){
 	oids := []string{mib.NameToOID("sysUpTime.0")}
 	result, err := agent.Get(oids)
 	if err != nil {
@@ -184,6 +222,7 @@ func doSnmpPollingSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){
 		setPollingState(p,"unkown")
 		return
 	}
+	p.LastVal = uptime
 	if p.LastResult == "" {
 		p.LastResult = fmt.Sprintf("%d",uptime)
 		return
@@ -201,8 +240,8 @@ func doSnmpPollingSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){
 	}
 }
 
-func doSnmpPollingIF(p *pollingEnt,agent *gosnmp.GoSNMP) {
-	a := strings.Split(p.Polling,".")
+func doPollingSnmpIF(p *pollingEnt,ps string,agent *gosnmp.GoSNMP) {
+	a := strings.Split(ps,".")
 	if len(a) < 2 {
 		setPollingState(p,"unkown")
 		return
@@ -222,16 +261,154 @@ func doSnmpPollingIF(p *pollingEnt,agent *gosnmp.GoSNMP) {
 			admin = gosnmp.ToBigInt(variable.Value).Int64()
 		}
 	}
+	p.LastVal = oper
+	p.LastResult = fmt.Sprintf("{oper:%d, admin:%d}",oper,admin)
 	if oper == 1 {
 		setPollingState(p,"normal")
 		return
 	} else if admin == 2 {
 		setPollingState(p,"normal")
 		return
-	} else if oper == 2 {
+	} else if oper == 2 && admin == 1 {
 		setPollingState(p,p.Level)
 		return
 	}
+	astilog.Debugf("SNMP IF Polling admin=%d oper=%d",admin,oper)
 	setPollingState(p,"unkown")
 	return
+}
+
+func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
+	a := strings.Split(ps," ")
+	if len(a) < 3 {
+		setPollingState(p,"unkown")
+		return
+	}
+	m := strings.TrimSpace(a[0])
+	op := strings.TrimSpace(a[1])
+	cv := strings.TrimSpace(a[2])
+	oids := []string{mib.NameToOID(m)}
+	if mode == "ps" {
+		oids = append(oids,mib.NameToOID("sysUpTime.0"))
+	}
+	result, err := agent.Get(oids)
+	if err != nil {
+		setPollingState(p,"unkown")
+		return
+	}
+	var iv int64
+	var sut int64
+	var sv string
+	hitIv := false
+	hitSv := false
+	for _, variable := range result.Variables {
+		if variable.Name == mib.NameToOID(ps) {
+			if variable.Type == gosnmp.OctetString {
+				sv = string(variable.Value.([]byte))
+				hitSv = true
+			} else if variable.Type == gosnmp.ObjectIdentifier {
+				sv = mib.OIDToName(variable.Value.(string))
+				hitSv = true
+			} else {
+				iv = gosnmp.ToBigInt(variable.Value).Int64()
+				hitIv = true
+			}
+		} else if variable.Name == mib.NameToOID("sysUpTime.0"){
+			sut = gosnmp.ToBigInt(variable.Value).Int64()
+		}
+	}
+	if !hitIv && !hitSv {
+		setPollingState(p,"unkown")
+		return
+	}
+	if hitIv {
+		sv = fmt.Sprintf("%d,%d",iv,sut)
+	}
+	if mode == "ps" || mode == "delta" {
+		if p.LastResult == "" {
+			p.LastResult =  sv
+			return
+		}
+	}
+	r := false
+	if hitSv {
+		switch op {
+		case "=","==":
+			r = sv == cv 
+		case "~=":
+			r = strings.Contains(sv,cv)
+		case "<":
+			r = strings.Compare(sv,cv) < 0
+		case ">":
+			r = strings.Compare(sv,cv) > 0
+		default:
+			setPollingState(p,"unkown")
+			return
+		}
+		p.LastResult = sv 
+	} else {
+		civ,err :=  strconv.ParseInt(cv,10,64)
+		if err != nil {
+			p.LastResult = fmt.Sprintf("%d,%d",iv,sut)
+			setPollingState(p,"unkown")
+			return
+		}
+		var liv int64
+		var lsut int64
+		n,err :=  fmt.Sscanf(p.LastResult,"%d,%d",&liv,lsut)
+		if err != nil || n != 2 {
+			p.LastResult = fmt.Sprintf("%d,%d",iv,sut)
+			setPollingState(p,"unkown")
+			return
+		}
+		if mode == "ps" {
+			dsut := sut -  lsut
+			if dsut <= 0 {
+				p.LastResult = fmt.Sprintf("%d,%d",iv,sut)
+				setPollingState(p,"unkown")
+				return
+			}
+			iv = (100*(iv-liv))/dsut
+		} else if mode == "delta" {
+			iv -= liv
+		}
+		switch op {
+		case "=","==":
+			r = iv == civ 
+		case "!=":
+			r = iv != civ 
+		case "<":
+			r =  iv < civ
+		case ">":
+			r = iv > civ
+		case "<=":
+			r =  iv < civ
+		case ">=":
+			r = iv >= civ
+		default:
+			setPollingState(p,"unkown")
+			return
+		}
+		p.LastVal = iv
+	}
+	if r {
+		setPollingState(p,"normal")
+		return
+	}
+	setPollingState(p,p.Level)
+	return
+}
+
+
+func addPollingLog(p *pollingEnt) {
+	s, err := json.Marshal(p)
+	if err != nil {
+		astilog.Errorf("polling Marshal err=%v",err)
+		return
+	}
+	logCh <- logEnt{
+		Time: time.Now().UnixNano(),
+		Type: "pollingLogs",
+		Log:  string(s),
+	}
 }

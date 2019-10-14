@@ -58,6 +58,7 @@ type pollingEnt struct {
 	Retry      int
 	LastTime   int64
 	LastResult string
+	LastVal    int64
 	State      string
 }
 
@@ -136,7 +137,7 @@ func openDB(path string) error {
 }
 
 func initDB() error {
-	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "polllogs","syslog","trap","netflow5","ipfix"}
+	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs","syslog","trap","netflow5","ipfix"}
 	mapConf.Community = "public"
 	mapConf.PollInt = 60
 	mapConf.Retry = 1
@@ -548,7 +549,7 @@ func deleteOldLogs() {
 		astilog.Error("mapConf.LogDays < 1 ")
 		return
 	}
-	buckets := []string{"logs", "polllogs","syslog","trap","netflow5","ipfix"}
+	buckets := []string{"logs", "pollingLogs","syslog","trap","netflow5","ipfix"}
 	for _,b := range buckets {
 		if err := deleteOldLog(b,mapConf.LogDays); err != nil {
 			astilog.Errorf("deleteOldLog err=%v")

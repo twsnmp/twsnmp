@@ -58,7 +58,7 @@ func logger(ctx context.Context) {
 					trapdRunning = false
 					close(stopTrapd)
 				}
-				astilog.Debug("start logger")
+				astilog.Debug("Stop logger")
 				return
 			}
 		case l := <-logCh:
