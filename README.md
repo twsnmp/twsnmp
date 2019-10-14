@@ -16,9 +16,21 @@ This project is to revive the TWSNMP Manager that was developed in 1999 and is s
 
 ## Status
 
-アプリケーションのビルドができて、画面の操作イメージがわかるレベルです。
+以下の機能を実装しました。
 
-![TWSNMP](https://d2l930y2yx77uc.cloudfront.net/production/uploads/images/14555554/picture_pc_b92f0d0955e7d448a1f2151d6e16920f.png)
+* マップ表示、編集
+* 自動発見
+* ノードの追加、編集
+* ポーリングの追加、編集
+* ノード情報の表示
+* PING監視
+* SNNP監視
+* Syslog受信
+* Netflow受信
+* Trap受信
+
+
+![TWSNMP](https://assets.st-note.com/production/uploads/images/15118776/picture_pc_9d8f9c01141ab53f0c72ec1384cb36c4.png)
 
 ## Build
 
