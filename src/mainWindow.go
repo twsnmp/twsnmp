@@ -11,11 +11,6 @@ import (
 	astilog "github.com/asticode/go-astilog"
 )
 
-var (
-	errNoPayload   = fmt.Errorf("No Payload")
-	errInvalidNode = fmt.Errorf("Invalid Node")
-)
-
 // mainWindowMessageHandler handles messages
 func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
@@ -279,6 +274,12 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			nodeWindow.Show()
 			return "ok", nil
 		}
+	case"logDisp":
+		{
+			logWindow.Show()
+			logWindow.OpenDevTools()
+			return "ok", nil
+		}
 	}
 	return "ok", nil
 }
@@ -316,7 +317,7 @@ func mainWindowBackend(ctx context.Context) {
 			return
 		case p := <-pollingStateChangeCh:
 			stateCheckNodes[p.NodeID] = true
-		case <-time.Tick(time.Second * 5):
+		case <-time.Tick(time.Second * 10):
 			lastLog = sendLogs(lastLog)
 			if len(stateCheckNodes) > 0 {
 				for k := range stateCheckNodes {

@@ -53,3 +53,58 @@ function getStateHtml(state) {
   const ret = stateHtmlMap.get(state);
   return  ret ? ret : '<i class="fas fa-check-circle state state_unkown"></i>不明';
 }
+
+// severity Html
+const severityHtml = [
+  '<i class="fas fa-exclamation-circle state state_high"></i>emerg',
+  '<i class="fas fa-exclamation-circle state state_high"></i>alert',
+  '<i class="fas fa-exclamation-triangle state state_high"></i>crit',
+  '<i class="fas fa-check-circle state state_low"></i>err',
+  '<i class="fas fa-info-circle state state_warn"></i>warning',
+  '<i class="fas fa-check-circle state state_repair"></i>notice',
+  '<i class="fas fa-check-circle state state_info"></i>info',
+  '<i class="fas fa-check-circle state state_unknown"></i>debug',
+];
+
+
+function getSeverityHtml(s) {
+  if( s >= 0 && s < severityHtml.length ){
+    return severityHtml[s];
+  }
+  return  severityHtml[6];
+}
+
+// Facility Name List
+const facilityNames = [
+  "kern",
+  "user",
+  "mail",
+  "daemon",
+  "auth",
+  "syslog",
+  "lpr",
+  "news",
+  "uucp",
+  "cron",
+  "authpriv",
+  "ftp",
+  "ntp",
+  "logaudit",
+  "logalert",
+  "clock",
+  "local0",
+  "local1",
+  "local2",
+  "local3",
+  "local4",
+  "local5",
+  "local6",
+  "local7"
+];
+
+function getFacilityName(f) {
+  if( f >=0 && f < facilityNames.length){
+    return facilityNames[f];
+  }
+  return  "unkown";
+}

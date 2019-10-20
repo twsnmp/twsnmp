@@ -23,11 +23,23 @@ var (
 	startWindow    *astilectron.Window
 	mainWindow     *astilectron.Window
 	nodeWindow     *astilectron.Window
-	mib 	*mibdb.MIBDB
+	logWindow      *astilectron.Window
+	pollingWindow  *astilectron.Window
+	mibWindow      *astilectron.Window
+	mib            *mibdb.MIBDB
 	app        *astilectron.Astilectron
 	aboutText = `TWSNMP Manager
 Version 5.0.0
 Copyright (c) 2019 Masayuki Yamai`
+)
+
+// Define errors 
+var (
+	errNoPayload   = fmt.Errorf("No Payload")
+	errInvalidNode = fmt.Errorf("Invalid Node")
+	errInvalidParams = fmt.Errorf("Invald Params")
+	errDBNotOpen = fmt.Errorf("DB Not Open")
+	errInvalidID = fmt.Errorf("Invalid ID")
 )
 
 func main() {
@@ -84,6 +96,9 @@ func main() {
 			startWindow = ws[0]
 			mainWindow = ws[1]
 			nodeWindow = ws[2]
+			logWindow = ws[3]
+			pollingWindow = ws[4]
+			mibWindow = ws[5]
 			app = a
 			mibpath := filepath.Join(app.Paths().DataDirectory(), "resources","mib.txt")
 			var err error
@@ -131,6 +146,60 @@ func main() {
 			{
 				Homepage:       "node.html",
 				MessageHandler: nodeMessageHandler,
+				Options: &astilectron.WindowOptions{
+					Center:        astilectron.PtrBool(true),
+					Modal:        astilectron.PtrBool(false),
+					Show:          astilectron.PtrBool(false),
+					Fullscreenable:          astilectron.PtrBool(false),
+					Maximizable:          astilectron.PtrBool(false),
+					Minimizable:          astilectron.PtrBool(true),
+					Width:         astilectron.PtrInt(800),
+					Height:        astilectron.PtrInt(500),
+					TitleBarStyle: astilectron.TitleBarStyleHidden,
+					Custom: &astilectron.WindowCustomOptions{
+						HideOnClose: astilectron.PtrBool(true),
+					},
+				},
+			},
+			{
+				Homepage:       "log.html",
+				MessageHandler: logMessageHandler,
+				Options: &astilectron.WindowOptions{
+					Center:        astilectron.PtrBool(true),
+					Modal:        astilectron.PtrBool(false),
+					Show:          astilectron.PtrBool(false),
+					Fullscreenable:          astilectron.PtrBool(false),
+					Maximizable:          astilectron.PtrBool(false),
+					Minimizable:          astilectron.PtrBool(true),
+					Width:         astilectron.PtrInt(1000),
+					Height:        astilectron.PtrInt(700),
+					TitleBarStyle: astilectron.TitleBarStyleHidden,
+					Custom: &astilectron.WindowCustomOptions{
+						HideOnClose: astilectron.PtrBool(true),
+					},
+				},
+			},
+			{
+				Homepage:       "polling.html",
+				MessageHandler: pollingMessageHandler,
+				Options: &astilectron.WindowOptions{
+					Center:        astilectron.PtrBool(true),
+					Modal:        astilectron.PtrBool(false),
+					Show:          astilectron.PtrBool(false),
+					Fullscreenable:          astilectron.PtrBool(false),
+					Maximizable:          astilectron.PtrBool(false),
+					Minimizable:          astilectron.PtrBool(true),
+					Width:         astilectron.PtrInt(800),
+					Height:        astilectron.PtrInt(500),
+					TitleBarStyle: astilectron.TitleBarStyleHidden,
+					Custom: &astilectron.WindowCustomOptions{
+						HideOnClose: astilectron.PtrBool(true),
+					},
+				},
+			},
+			{
+				Homepage:       "mib.html",
+				MessageHandler: mibMessageHandler,
 				Options: &astilectron.WindowOptions{
 					Center:        astilectron.PtrBool(true),
 					Modal:        astilectron.PtrBool(false),

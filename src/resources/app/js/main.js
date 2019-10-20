@@ -180,6 +180,14 @@ function mousePressed() {
           <i class="fas fa-cog"></i>
           マップ設定
         </span>
+        <span class="nav-group-item notifyConf">
+          <i class="fas fa-mail-bulk"></i>
+          通知設定
+        </span>
+        <span class="nav-group-item logDisp">
+          <i class="fas fa-clipboard-list"></i>
+          ログ表示
+        </span>
       </nav>
       `;
     }
@@ -211,6 +219,13 @@ function mousePressed() {
     });
     $("#ctxMenu span.mapConf").on("click", () => {
       createMapConfPane();
+    });
+    $("#ctxMenu span.notifyConf").on("click", () => {
+      createMapConfPane();
+    });
+    $("#ctxMenu span.logDisp").on("click", () => {
+      astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
+      });
     });
   }
   lastMouseX = mouseX;
@@ -346,6 +361,17 @@ document.addEventListener('astilectron-ready', function () {
     nodeFilter();
     return (false);
   });
+  $("header.toolbar-header h1  button.mapConf").on("click", () => {
+    createMapConfPane();
+  });
+  $("header.toolbar-header h1  button.notifyConf").on("click", () => {
+    createMapConfPane();
+  });
+  $("header.toolbar-header h1  button.logDisp").on("click", () => {
+    astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
+    });
+  });
+
   log = $('#log_table').DataTable({
     "order": [[1, "desc"]],
     "paging": false,
@@ -356,7 +382,7 @@ document.addEventListener('astilectron-ready', function () {
     "language": {
       "search": "フィルター:"
     },
-  });
+  });  
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "mapConf": {
@@ -417,7 +443,7 @@ document.addEventListener('astilectron-ready', function () {
 function setWindowTitle() {
   const t = "TWSNMP - " + mapConf.MapName;
   $("title").html(t);
-  $("h1.title").html(t);
+  $("h1.title span").html(t);
 }
 
 function clearStatus() {

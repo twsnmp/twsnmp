@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"time"
@@ -29,7 +28,7 @@ import (
 )
 
 var (
-	logCh = make(chan logEnt, 100)
+	logCh = make(chan *logEnt, 100)
 )
 
 func logger(ctx context.Context) {
@@ -40,12 +39,15 @@ func logger(ctx context.Context) {
 	var stopSyslogd chan bool
 	var stopTrapd  chan bool
 	var stopNetflowd chan bool
-	logBuffer := []logEnt{}
+	logBuffer := []*logEnt{}
 	for {
 		select {
 		case <-ctx.Done():
 			{
-				saveLogBuffer(logBuffer)
+				if len(logBuffer) > 0 {
+					saveLogBuffer(logBuffer)
+					logBuffer = []*logEnt{}
+				}
 				if syslogdRunning {
 					syslogdRunning = false
 					close(stopSyslogd)
@@ -65,9 +67,12 @@ func logger(ctx context.Context) {
 			{
 				logBuffer = append(logBuffer, l)
 			}
-		case <-time.Tick(time.Second * 1):
+		case <-time.Tick(time.Second * 10):
 			{
-				saveLogBuffer(logBuffer)
+				if len(logBuffer) > 0 {
+					saveLogBuffer(logBuffer)
+					logBuffer = []*logEnt{}
+				}
 				if mapConf.EnableSyslogd && !syslogdRunning {
 					stopSyslogd = make(chan bool)
 					syslogdRunning = true
@@ -101,29 +106,31 @@ func logger(ctx context.Context) {
 	}
 }
 
-func saveLogBuffer(logBuffer []logEnt) {
-	if len(logBuffer) < 1 {
-		return
-	}
+func saveLogBuffer(logBuffer []*logEnt) {
 	if db == nil {
+		astilog.Errorf("saveLogBuffer DB Not open")
 		return
 	}
 	db.Batch(func(tx *bbolt.Tx) error {
 		syslog := tx.Bucket([]byte("syslog"))
-		netflow5 := tx.Bucket([]byte("netflow5"))
+		netflow := tx.Bucket([]byte("netflow"))
 		ipfix := tx.Bucket([]byte("ipfix"))
 		trap := tx.Bucket([]byte("trap"))
 		for _, l := range logBuffer {
 			k := fmt.Sprintf("%016x", l.Time)
+			s, err := json.Marshal(l)
+			if err != nil {
+				return err
+			}
 			switch l.Type {
 			case "syslog":
-				syslog.Put([]byte(k), []byte(l.Log))
-			case "netflow5":
-				netflow5.Put([]byte(k), []byte(l.Log))
+				syslog.Put([]byte(k), []byte(s))
+			case "netflow":
+				netflow.Put([]byte(k), []byte(s))
 			case "ipfix":
-				ipfix.Put([]byte(k), []byte(l.Log))
+				ipfix.Put([]byte(k), []byte(s))
 			case "trap":
-				trap.Put([]byte(k), []byte(l.Log))
+				trap.Put([]byte(k), []byte(s))
 			}
 		}
 		return nil
@@ -138,11 +145,12 @@ func syslogd(stopCh chan bool) {
 	server.ListenUDP("0.0.0.0:514")
 	server.ListenTCP("0.0.0.0:514")
 	server.Boot()
-
+	astilog.Debug("syslogd start")
 	for {
 		select {
 		case <-stopCh:
 			{
+				astilog.Debug("syslogd stop")
 				server.Kill()
 				return
 			}
@@ -150,7 +158,7 @@ func syslogd(stopCh chan bool) {
 			{
 				s, err := json.Marshal(l)
 				if err == nil {
-					logCh <- logEnt{
+					logCh <- &logEnt{
 						Time: time.Now().UnixNano(),
 						Type: "syslog",
 						Log:  string(s),
@@ -165,33 +173,38 @@ func netflowd(stopCh chan bool) {
 	var readSize = 2 << 16
 	var addr *net.UDPAddr
 	var err error
+	astilog.Debug("netflowd start")
 	if addr, err = net.ResolveUDPAddr("udp", ":2055"); err != nil {
-		log.Fatal(err)
+		astilog.Errorf("netflowd err=%v",err)
+		return
 	}
 	var server *net.UDPConn
 	if server, err = net.ListenUDP("udp", addr); err != nil {
-		log.Fatal(err)
+		astilog.Errorf("netflowd err=%v",err)
+		return
 	}
 	defer server.Close()
 	if err = server.SetReadBuffer(readSize); err != nil {
-		log.Fatal(err)
+		astilog.Errorf("netflowd err=%v",err)
+		return
 	}
 	decoders := make(map[string]*netflow.Decoder)
+	buf := make([]byte, 8192)
 	for {
 		select {
 		case <-stopCh:
 			{
+				astilog.Debug("netflowd stop")
 				return
 			}
 		default:
 			{
-				server.SetReadDeadline(time.Now().Add(time.Second * 1))
-				buf := make([]byte, 8192)
+				server.SetReadDeadline(time.Now().Add(time.Second * 2))
 				var remote *net.UDPAddr
 				var octets int
 				if octets, remote, err = server.ReadFromUDP(buf); err != nil {
 					if !strings.Contains(err.Error(), "timeout") {
-						astilog.Debug(err)
+						astilog.Errorf("netflowd err=%v",err)
 					}
 					continue
 				}
@@ -203,13 +216,13 @@ func netflowd(stopCh chan bool) {
 				}
 				m, err := d.Read(bytes.NewBuffer(buf[:octets]))
 				if err != nil {
-					astilog.Debug("decoder error:", err)
+					astilog.Errorf("netflowd err=%v",err)
 					continue
 				}
 				switch p := m.(type) {
 				case *netflow5.Packet:
 					{
-						logNetflow5(p)
+						logNetflow(p)
 					}
 				case *ipfix.Message:
 					{
@@ -222,11 +235,6 @@ func netflowd(stopCh chan bool) {
 }
 
 func logIPFIX(p *ipfix.Message) {
-	l := logEnt{
-		Time: time.Now().UnixNano(),
-		Type: "ipfix",
-		Log:  "",
-	}
 	for _, ds := range p.DataSets {
 		if ds.Records == nil {
 			continue
@@ -246,22 +254,20 @@ func logIPFIX(p *ipfix.Message) {
 			}
 			s, err := json.Marshal(record)
 			if err != nil {
-				fmt.Println(err)
+				astilog.Errorf("logIPFIX err=%v",err)
+				continue
 			}
-			l.Log = string(s)
-			logCh <- l
+			logCh <- &logEnt{
+				Time: time.Now().UnixNano(),
+				Type: "ipfix",
+				Log: string(s),
+			}
 		}
 	}
 }
 
-func logNetflow5(p *netflow5.Packet) {
-	l := logEnt{
-		Time: time.Now().UnixNano(),
-		Type: "netflow5",
-		Log:  "",
-	}
+func logNetflow(p *netflow5.Packet) {
 	var record = make(map[string]interface{})
-	record["header"] = p.Header.String()
 	for _, r := range p.Records {
 		record["srcAddr"] = r.SrcAddr
 		record["srcPort"] = r.SrcPort
@@ -285,42 +291,48 @@ func logNetflow5(p *netflow5.Packet) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		l.Log = string(s)
-		logCh <- l
+		logCh <- &logEnt{
+			Time: time.Now().UnixNano(),
+			Type: "netflow",
+			Log:  string(s),
+		}
 	}
 }
 
 func trapd(stopCh chan bool) {
 	tl := gosnmp.NewTrapListener()
 	tl.OnNewTrap = func(s *gosnmp.SnmpPacket, u *net.UDPAddr) {
-		l := logEnt{
-			Time: time.Now().UnixNano(),
-			Type: "trap",
-			Log:  "",
-		}
 		var record = make(map[string]interface{})
 		record["FromAddress"] = u.String()
 		record["Timestamp"] = s.Timestamp
-		record["Timestamp"] = s.Enterprise
-		record["Timestamp"] = s.GenericTrap
-		record["Timestamp"] = s.SpecificTrap
+		record["Enterprise"] = s.Enterprise
+		record["GenericTrap"] = s.GenericTrap
+		record["SpecificTrap"] = s.SpecificTrap
+		record["Variables"] = ""
+		vbs := ""
 		for _, vb := range s.Variables {
 			key := mib.OIDToName(vb.Name)
+			val := ""
 			switch vb.Type {
 			case gosnmp.ObjectIdentifier:
-				record[key] = mib.OIDToName(vb.Value.(string))
+				val = mib.OIDToName(vb.Value.(string))
 			case gosnmp.OctetString:
-				record[key] = vb.Value.(string)
+				val = vb.Value.(string)
 			default:
-				record[key] = gosnmp.ToBigInt(vb.Value).Int64()
+				val = fmt.Sprintf("%d",gosnmp.ToBigInt(vb.Value).Int64())
 			}
+			vbs += fmt.Sprintf("%s=%s\n",key,val)
 		}
+		record["Variables"] = vbs
 		js, err := json.Marshal(record)
 		if err != nil {
 			astilog.Debug(err)
 		}
-		l.Log = string(js)
-		logCh <- l
+		logCh <- &logEnt{
+			Time: time.Now().UnixNano(),
+			Type: "trap",
+			Log:  string(js),
+		}
 	}
 	defer tl.Close()
 	go func() {

@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"strings"
 	"context"
-
+	"regexp"
 	astilog "github.com/asticode/go-astilog"
 	"go.etcd.io/bbolt"
 )
@@ -20,8 +21,6 @@ var (
 	pollings     = make(map[string]*pollingEnt)
 	eventLogCh   = make(chan eventLogEnt,100)
 	stopEventLoggerCh = make(chan bool)
-	errDBNotOpen = fmt.Errorf("DB Not Open")
-	errInvalidID = fmt.Errorf("Invalid ID")
 )
 
 type nodeEnt struct {
@@ -137,7 +136,7 @@ func openDB(path string) error {
 }
 
 func initDB() error {
-	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs","syslog","trap","netflow5","ipfix"}
+	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs","syslog","trap","netflow","ipfix"}
 	mapConf.Community = "public"
 	mapConf.PollInt = 60
 	mapConf.Retry = 1
@@ -463,6 +462,29 @@ func deletePolling(pollingID string) error {
 	return nil
 }
 
+// getNodePollings : ノードを指定してポーリングリストを取得する
+func getNodePollings(nodeID string) []pollingEnt {
+	ret := []pollingEnt{}
+	for _, p := range pollings {
+		if p.NodeID == nodeID {
+			ret = append(ret, *p)
+		}
+	}
+	return ret
+}
+
+// getLogPollings : ログを監視するポーリングリストを取得する
+func getLogPollings() []pollingEnt {
+	ret := []pollingEnt{}
+	for _, p := range pollings {
+		if p.Type == "syslog" || p.Type == "trap" ||  p.Type == "netflow" ||  p.Type == "ipfix" {
+			ret = append(ret, *p)
+		}
+	}
+	return ret
+}
+
+
 func addEventLog(e eventLogEnt){
 	e.Time = time.Now().UnixNano()
 	eventLogCh <- e
@@ -495,7 +517,7 @@ func getEventLogList(startID string,n int) []eventLogEnt{
 	return ret
 }
 
-func getNodeEventLogList(nodeID string) []eventLogEnt{
+func getNodeEventLogs(nodeID string) []eventLogEnt{
 	ret := []eventLogEnt{}
 	if db == nil {
 		return ret
@@ -511,7 +533,7 @@ func getNodeEventLogList(nodeID string) []eventLogEnt{
 			var e eventLogEnt
 			err := json.Unmarshal(v,&e)
 			if err != nil {
-				astilog.Errorf("getNodeEventLogList err=%v",err)
+				astilog.Errorf("getNodeEventLogs err=%v",err)
 				continue
 			}
 			if nodeID != e.NodeID {
@@ -525,6 +547,119 @@ func getNodeEventLogList(nodeID string) []eventLogEnt{
 	return ret
 }
 
+type logFilterParamEnt struct {
+	StartKey  string
+	StartTime int64
+	EndTime   int64
+	RegexFilter    *regexp.Regexp
+}
+
+func getFilterParams(filter *filterEnt) *logFilterParamEnt{
+	var err error
+	var t time.Time
+	ret  := &logFilterParamEnt{} 
+	t,err = time.Parse("2006-01-02T15:04 MST",filter.StartTime + " JST")
+	if err == nil {
+		ret.StartTime = t.UnixNano()
+	} else {
+		astilog.Errorf("getFilterParams err=%v",err)
+		ret.StartTime = time.Now().Add(-time.Hour*24).UnixNano()
+	}
+	t ,err = time.Parse("2006-01-02T15:04 MST",filter.EndTime + " JST")
+	if err == nil {
+		ret.EndTime = t.UnixNano()
+	} else {
+		astilog.Errorf("getFilterParams err=%v",err)
+		ret.EndTime = time.Now().UnixNano()
+	}
+	ret.StartKey = fmt.Sprintf("%016x",ret.StartTime)
+	filter.Filter = strings.TrimSpace(filter.Filter)
+	if filter.Filter == "" {
+		return ret
+	}
+	ret.RegexFilter,err = regexp.Compile(filter.Filter)
+	if err != nil {
+		astilog.Errorf("getFilterParams err=%v",err)
+		ret.RegexFilter = nil
+	}
+	return ret
+}
+
+func getEventLogs(filter *filterEnt) []eventLogEnt{
+	ret := []eventLogEnt{}
+	if db == nil {
+		return ret
+	}
+	f := getFilterParams(filter)
+	db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("logs"))
+		if b == nil {
+			return nil
+		}
+		c := b.Cursor()
+		i := 0
+		for k,v := c.Seek([]byte(f.StartKey)); k != nil && i < 100000; k,v = c.Next(){
+			var e eventLogEnt
+			err := json.Unmarshal(v,&e)
+			if err != nil {
+				astilog.Errorf("getEventLogs err=%v",err)
+				continue
+			}
+			if e.Time < f.StartTime {
+				continue
+			}
+			if e.Time > f.EndTime {
+				break
+			}
+			if f.RegexFilter != nil  && !f.RegexFilter.Match(v){
+					continue
+			}
+			ret = append(ret,e)
+			i++
+		}
+		return nil
+	})
+	return ret
+}
+
+func getLogs(filter *filterEnt) []logEnt{
+	ret := []logEnt{}
+	if db == nil {
+		return ret
+	}
+	f := getFilterParams(filter)
+	db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(filter.LogType))
+		if b == nil {
+			astilog.Errorf("getLogs no Bucket=%s",filter.LogType)
+			return nil
+		}
+		c := b.Cursor()
+		i := 0
+		for k,v := c.Seek([]byte(f.StartKey)); k != nil && i < 100000; k,v = c.Next(){
+			var l logEnt
+			err := json.Unmarshal(v,&l)
+			if err != nil {
+				astilog.Errorf("getLogs err=%v",err)
+				continue
+			}
+			if l.Time < f.StartTime {
+				continue
+			}
+			if l.Time > f.EndTime {
+				break
+			}
+			if f.RegexFilter != nil  && !f.RegexFilter.Match(v){
+					continue
+			}
+			ret = append(ret,l)
+			i++
+		}
+		return nil
+	})
+	astilog.Debugf("getLog len(ret)=%d",len(ret))
+	return ret
+}
 
 func deleteOldLog(bucket string,days int) error {
 	st := fmt.Sprintf("%016x",time.Now().AddDate(0,0,-days))
@@ -549,7 +684,7 @@ func deleteOldLogs() {
 		astilog.Error("mapConf.LogDays < 1 ")
 		return
 	}
-	buckets := []string{"logs", "pollingLogs","syslog","trap","netflow5","ipfix"}
+	buckets := []string{"logs", "pollingLogs","syslog","trap","netflow","ipfix"}
 	for _,b := range buckets {
 		if err := deleteOldLog(b,mapConf.LogDays); err != nil {
 			astilog.Errorf("deleteOldLog err=%v")
@@ -588,10 +723,10 @@ func eventLogger(ctx context.Context) {
 					list =[]eventLogEnt{}
 				}
 			}
-			case <- time.Tick(time.Minute * 1):{
+			case <- time.Tick(time.Minute * 5):{
 				deleteOldLogs()
 			}
-			case <- time.Tick(time.Second * 1):{
+			case <- time.Tick(time.Second * 10):{
 				if len(list) > 0 {
 					saveLogList(list)
 					list =[]eventLogEnt{}

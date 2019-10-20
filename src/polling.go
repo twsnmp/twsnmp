@@ -406,7 +406,7 @@ func addPollingLog(p *pollingEnt) {
 		astilog.Errorf("polling Marshal err=%v",err)
 		return
 	}
-	logCh <- logEnt{
+	logCh <- &logEnt{
 		Time: time.Now().UnixNano(),
 		Type: "pollingLogs",
 		Log:  string(s),

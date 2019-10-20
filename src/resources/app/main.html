@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,13 +9,13 @@
   <link rel="stylesheet" href="./css/all.css">
   <link rel="stylesheet" href="./css/common.css">
   <link rel="stylesheet" href="./css/main.css">
-  <link rel="stylesheet" href="./css/datatables.css"/>
+  <link rel="stylesheet" href="./css/datatables.css" />
   <script src="./js/p5.js"></script>
   <script src="./js/p5.dom.js"></script>
   <script src="./js/moment.js"></script>
   <script>
     window.jQuery = window.$ = require('./js/jquery-3.4.1.js');
-  </script> 
+  </script>
   <script src="./js/datatables.js"></script>
   <script src="./js/tweakpane-1.0.5.js"></script>
 </head>
@@ -22,21 +23,31 @@
 <body>
   <div class="window">
     <header class="toolbar toolbar-header">
-      <h1 class="title">TWSNMP</h1>
+      <h1 class="title"><span></span>
+        <button class="btn btn-default pull-right mapConf">
+          <i class="fas fa-cog"></i>
+        </button>
+        <button class="btn btn-default pull-right notifyConf">
+          <i class="fas fa-mail-bulk"></i>
+        </button>
+        <button class="btn btn-default pull-right logDisp">
+          <i class="fas fa-clipboard-list"></i>
+        </button>
+      </h1>
     </header>
     <div class="window-content">
       <div class="pane-group">
         <div class="pane-sm sidebar">
-            <ul class="list-group" id="nodeList">
-              <li class="list-group-header">
-                <input id="nodeFilter" class="form-control" type="text" placeholder="フィルター">
-              </li>
-            </ul>
+          <ul class="list-group" id="nodeList">
+            <li class="list-group-header">
+              <input id="nodeFilter" class="form-control" type="text" placeholder="フィルター">
+            </li>
+          </ul>
         </div>
-        <div class="pane" id="mapLogPane" >
+        <div class="pane" id="mapLogPane">
           <div id="mapDiv" width="100%"></div>
           <div id="logDiv">
-            <table id="log_table"  class="display compact">
+            <table id="log_table" class="display compact">
               <thead>
                 <tr>
                   <th>状態</th>
@@ -54,7 +65,7 @@
       </div>
     </div>
     <footer class="toolbar toolbar-footer">
-      <div class="pull-right" id="status" ></div>
+      <div class="pull-right" id="status"></div>
     </footer>
   </div>
   <script src="./js/common.js"></script>
