@@ -184,6 +184,10 @@ function mousePressed() {
           <i class="fas fa-mail-bulk"></i>
           通知設定
         </span>
+        <span class="nav-group-item checkAllPoll">
+        <i class="fas fa-check-square"></i>
+          全て確認
+        </span>
         <span class="nav-group-item logDisp">
           <i class="fas fa-clipboard-list"></i>
           ログ表示
@@ -225,6 +229,10 @@ function mousePressed() {
     });
     $("#ctxMenu span.logDisp").on("click", () => {
       astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
+      });
+    });
+    $("#ctxMenu span.checkAllPoll").on("click", () => {
+      astilectron.sendMessage({ name: "checkAllPoll", payload: "" }, function (message) {
       });
     });
   }
@@ -369,6 +377,10 @@ document.addEventListener('astilectron-ready', function () {
   });
   $("header.toolbar-header h1  button.logDisp").on("click", () => {
     astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
+    });
+  });
+  $("header.toolbar-header h1  button.checkAllPoll").on("click", () => {
+    astilectron.sendMessage({ name: "checkAllPoll", payload: "" }, function (message) {
     });
   });
 

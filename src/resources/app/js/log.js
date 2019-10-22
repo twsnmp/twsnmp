@@ -1,6 +1,7 @@
 'use strict';
 
 let currentPage = "";
+let nodes;
 let polling;
 let logTable;
 let syslogTable;
@@ -14,6 +15,7 @@ let netflowChart;
 let ipfixChart;
 let pane;
 let pollingList;
+const searchHistory = [];
 
 function setupPollingPage() {
   astilectron.sendMessage({ name: "getLogPollings", payload: "" }, message => {
@@ -34,13 +36,20 @@ function setupPollingPage() {
     polling.draw();
     setPollingBtns(false);
   });
+  astilectron.sendMessage({ name: "getNodes", payload: "" }, message => {
+    if (message.payload === "ng") {
+      astilectron.showErrorBox("ログ表示", "ノードを取得できません。");
+      return;
+    }
+    nodes = message.payload;
+  });
 }
 
 function searchLog() {
   const filter = {
-    StartTime: $(".log_btns input[name=start").val(),
-    EndTime: $(".log_btns input[name=end").val(),
-    Filter: $(".log_btns input[name=filter").val(),
+    StartTime: $(".log_btns input[name=start]").val(),
+    EndTime: $(".log_btns input[name=end]").val(),
+    Filter: $(".log_btns input[name=filter]").val(),
     LogType: currentPage
   }
   astilectron.sendMessage({ name: "searchLog", payload: filter }, message => {
@@ -48,6 +57,9 @@ function searchLog() {
       astilectron.showErrorBox("ログ表示", "ログを取得できません。");
       return;
     }
+    if(filter.Filter &&  !searchHistory.includes(filter.Filter)){
+      searchHistory.push(filter.Filter);
+    } 
     switch (currentPage) {
       case "log":
         showLog(message.payload);
@@ -89,14 +101,14 @@ function showLog(logList) {
     if (ctm != newCtm) {
       let t = new Date(ctm * 60 * 1000);
       data.push({
-        name: echarts.format.formatTime('yyyy-MM-dd\nhh:mm:ss', t),
+        name: echarts.format.formatTime('yyyy/MM/dd hh:mm:ss', t),
         value: [t,count]
       });
       ctm--;
       for(;ctm > newCtm;ctm--) {
         t = new Date(ctm * 60 * 1000);
         data.push({
-          name: echarts.format.formatTime('yyyy-MM-dd\nhh:mm:ss', t),
+          name: echarts.format.formatTime('yyyy/MM/dd hh:mm:ss', t),
           value: [t,0]
         });
       }
@@ -138,14 +150,14 @@ function showSyslog(logList) {
     if (ctm != newCtm) {
       let t = new Date(ctm * 60 * 1000);
       data.push({
-        name: echarts.format.formatTime('yyyy-MM-dd\nhh:mm:ss', t),
+        name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
         value: [t,count]
       });
       ctm--;
       for(;ctm > newCtm;ctm--) {
         t = new Date(ctm * 60 * 1000);
         data.push({
-          name: echarts.format.formatTime('yyyy-MM-dd\nhh:mm:ss', t),
+          name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
           value: [t,0]
         });
       }
@@ -189,14 +201,14 @@ function showTrap(logList) {
     if (ctm != newCtm) {
       let t = new Date(ctm * 60 * 1000);
       data.push({
-        name: echarts.format.formatTime('yyyy-MM-dd\nhh:mm:ss', t),
+        name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
         value: [t,count]
       });
       ctm--;
       for(;ctm > newCtm;ctm--) {
         t = new Date(ctm * 60 * 1000);
         data.push({
-          name: echarts.format.formatTime('yyyy-MM-dd\nhh:mm:ss', t),
+          name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
           value: [t,0]
         });
       }
@@ -241,14 +253,14 @@ function showNetflow(logList) {
     if (ctm != newCtm) {
       let t = new Date(ctm * 60 * 1000);
       data.push({
-        name: echarts.format.formatTime('yyyy-MM-dd\nhh:mm:ss', t),
+        name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
         value: [t,count]
       });
       ctm--;
       for(;ctm > newCtm;ctm--) {
         t = new Date(ctm * 60 * 1000);
         data.push({
-          name: echarts.format.formatTime('yyyy-MM-dd\nhh:mm:ss', t),
+          name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
           value: [t,0]
         });
       }
@@ -278,7 +290,7 @@ function showIpfix(logList) {
     }
     let srcAddr = ll.sourceIPv4Address || ll.sourceIPv6Address;
     let dstAddr = ll.destinationIPv6Address || ll.destinationIPv4Address;
-    const ts = moment(l.Time / (1000 * 1000)).format("YY/MM/DD HH:mm:ss.SSS");
+    const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
     ipfixTable.row.add([
       ts,
       srcAddr, ll.sourceTransportPort,
@@ -297,14 +309,14 @@ function showIpfix(logList) {
     if (ctm != newCtm) {
       let t = new Date(ctm * 60 * 1000);
       data.push({
-        name: echarts.format.formatTime('yyyy-MM-dd\nhh:mm:ss', t),
+        name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
         value: [t,count]
       });
       ctm--;
       for(;ctm > newCtm;ctm--) {
         t = new Date(ctm * 60 * 1000);
         data.push({
-          name: echarts.format.formatTime('yyyy-MM-dd\nhh:mm:ss', t),
+          name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
           value: [t,0]
         });
       }
@@ -427,8 +439,10 @@ function makePollingTable() {
         astilectron.showErrorBox("ポーリング確認", "ポーリングの再実行に失敗しました。");
         return;
       }
-      setupPollingPage();
-      showPage("polling");
+      setTimeout(()=> {
+        setupPollingPage();
+        showPage("polling");
+      },1000);
     });
   });
   $('.polling_btns button.edit').click(function () {
@@ -513,24 +527,44 @@ function makeLogTables() {
 
 function makeCharts() {
   const option = {
+    title: {
+      show: false,
+    },
     tooltip: {
       trigger: 'axis',
+      formatter: function (params) {
+        const p = params[0];
+        return p.name + ' : ' + p.value[1];
+      },
       axisPointer: {
         type: 'shadow'
       }
     },
+    grid: {
+      left: "5%",
+      right:"5%",
+      top: 40,
+      buttom: 0,
+    },
     xAxis: {
       type: 'time',
+      axisLabel:{
+        fontSize: "8px",
+        formatter: function (value, index) {
+          var date = new Date(value);
+          return echarts.format.formatTime('MM/dd hh:mm', date)
+        }
+      },
       splitLine: {
         show: false
-      }
+      },
     },
     yAxis: {
       type: 'value',
     },
     series: [{
       type: 'bar',
-      color: "#4169e1",
+      color: "#1f78b4",
       large: true,
       data: [],
     }]
@@ -556,11 +590,15 @@ document.addEventListener('astilectron-ready', function () {
   makePollingTable();
   makeLogTables();
   makeCharts();
-  setupTimeVal();
-  setupPollingPage();
-  showPage("polling");
   astilectron.onMessage(function (message) {
     switch (message.name) {
+      case "show":
+        setTimeout(()=>{
+          setupPollingPage();
+          showPage("polling");
+          setupTimeVal();
+        },1000);
+        return { name: "show", payload: "ok" };
       case "error":
         setTimeout(() => {
           astilectron.showErrorBox("エラー", message.payload);
@@ -617,6 +655,33 @@ document.addEventListener('astilectron-ready', function () {
   $('.log_btns button.search').click(function () {
     searchLog();
   });
+  const sh = function() {
+    return function findMatches(q, cb) {
+      let matches, substrRegex;  
+      // an array that will be populated with substring matches
+      matches = [];
+      // regex used to determine if a string contains the substring `q`
+      substrRegex = new RegExp(q, 'i');
+      // iterate through the pool of strings and for any string that
+      // contains the substring `q`, add it to the `matches` array
+      $.each(searchHistory, function(i, str) {
+        if (substrRegex.test(str)) {
+          matches.push(str);
+        }
+      });  
+      cb(matches);
+    };
+  };
+  
+  $('.log_btns input[name=filter]').typeahead({
+    hint: true,
+    highlight: true,
+    minLength: 1
+  },
+  {
+    name: 'SearchHistory',
+    source: sh()
+  });  
 });
 
 function createEditPollingPane(id) {
@@ -631,7 +696,7 @@ function createEditPollingPane(id) {
     p = {
       ID: "",
       Name: "",
-      NodeID: nodeID,
+      NodeID: "",
       Type: "syslog",
       Polling: "",
       Level: "low",
@@ -644,15 +709,21 @@ function createEditPollingPane(id) {
     };
   }
   pane = new Tweakpane({
-    title: id === "" ? "新規ポーリング" : "ポーリング編集",
+    title: id === "" ? "ログ監視" : "ログ監視編集",
   });
   pane.addInput(p, 'Name', { label: "名前" });
   pane.addInput(p, 'Type', {
     label: "種別",
     options: {
-      "SYSLOG": "syslog",
-      "TRAP": "snmp",
+      "SYSLOG":  "syslog",
+      "TRAP":    "trap",
+      "NetFlow": "netflow",
+      "IPFIX":   "ipfix",
     },
+  });
+  pane.addInput(p, 'NodeID', {
+    label: "関連ノード",
+    options: nodes
   });
   pane.addInput(p, 'Level', {
     label: "レベル",

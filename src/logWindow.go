@@ -34,6 +34,8 @@ func logMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{
 			return "ok",nil
 		case "getLogPollings":
 			return getLogPollings(),nil
+		case "getNodes":
+			return getNodes(),nil
 		case "searchLog":
 			return searchLog(&m)
 		case "savePolling":
@@ -60,4 +62,13 @@ func searchLog(m *bootstrap.MessageIn) (interface{}, error) {
 		return getLogs(&filter),nil
 	}
 	return []eventLogEnt{}, errInvalidParams
+}
+
+func getNodes() map[string]string{
+	ret := map[string]string{}
+	ret[""] = ""
+	for k,n := range nodes {
+		ret[n.Name] = k
+	}
+	return ret
 }

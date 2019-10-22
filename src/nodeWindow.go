@@ -84,6 +84,9 @@ func savePolling(m *bootstrap.MessageIn) (interface{}, error) {
 				return "ng", err
 			}
 		} else {
+			p.LastResult = ""
+			p.LastTime = 0
+			p.State ="unkown"	
 			if err := updatePolling(&p); err != nil {
 				astilog.Error(fmt.Sprintf("updatePolling %s error=%v", m.Name, err))
 				return "ng", err

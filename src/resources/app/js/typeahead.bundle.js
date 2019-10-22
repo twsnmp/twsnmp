@@ -1128,16 +1128,16 @@
                 },
                 input: {
                     position: "relative",
-                    verticalAlign: "top",
+                    // verticalAlign: "top",
                     backgroundColor: "transparent"
                 },
                 inputWithNoHint: {
                     position: "relative",
-                    verticalAlign: "top"
+                    // verticalAlign: "top"
                 },
                 menu: {
                     position: "absolute",
-                    top: "100%",
+                    top: "-80px",
                     left: "0",
                     zIndex: "100",
                     display: "none"

@@ -57,7 +57,7 @@ type pollingEnt struct {
 	Retry      int
 	LastTime   int64
 	LastResult string
-	LastVal    int64
+	LastVal    float64
 	State      string
 }
 
@@ -401,7 +401,6 @@ func addPolling(p *pollingEnt) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	astilog.Debugf("addPolling %p : %v ",p,p)
 	for {
 		p.ID = makeKey()
 		if _,ok := pollings[p.ID];!ok {
@@ -437,6 +436,7 @@ func updatePolling(p *pollingEnt) error {
 		b.Put([]byte(p.ID), s)
 		return nil
 	})
+	pollings[p.ID] = p
 	return nil
 }
 
@@ -657,7 +657,6 @@ func getLogs(filter *filterEnt) []logEnt{
 		}
 		return nil
 	})
-	astilog.Debugf("getLog len(ret)=%d",len(ret))
 	return ret
 }
 

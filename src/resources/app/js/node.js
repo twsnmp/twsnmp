@@ -333,6 +333,10 @@ function createEditPollingPane(id){
     options: {
       "PING": "ping",
       "SNMP": "snmp",
+      "SYSLOG": "syslog",
+      "TRAP":   "trap",
+      "NetFlow": "netflow",
+      "IPFIX":  "ipfix",
     },
   });
   pane.addInput(p, 'Level', { 

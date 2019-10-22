@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"strconv"
 	"sort"
+	"regexp"
 
 	gosnmp "github.com/soniah/gosnmp"
 
@@ -105,6 +106,9 @@ func doPolling(p *pollingEnt){
 		doPollingPing(p)
 	case "snmp":
 		doPollingSnmp(p)
+	case "syslog","trap","netflow","ipfix":
+		doPollingLog(p)
+		updatePolling(p)
 	}
 }
 
@@ -133,7 +137,7 @@ func doPollingPing(p *pollingEnt){
 		astilog.Errorf("ping Marshal err=%",err)
 		return
 	}
-	p.LastVal = s.AvgRtt.Nanoseconds()
+	p.LastVal = float64(s.AvgRtt.Nanoseconds())
 	p.LastResult = string(js)
 	updatePolling(p)
 	if strings.Contains(p.Polling,"log"){
@@ -222,7 +226,7 @@ func doPollingSnmpSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){
 		setPollingState(p,"unkown")
 		return
 	}
-	p.LastVal = uptime
+	p.LastVal = float64(uptime)
 	if p.LastResult == "" {
 		p.LastResult = fmt.Sprintf("%d",uptime)
 		return
@@ -261,7 +265,7 @@ func doPollingSnmpIF(p *pollingEnt,ps string,agent *gosnmp.GoSNMP) {
 			admin = gosnmp.ToBigInt(variable.Value).Int64()
 		}
 	}
-	p.LastVal = oper
+	p.LastVal = float64(oper)
 	p.LastResult = fmt.Sprintf("{oper:%d, admin:%d}",oper,admin)
 	if oper == 1 {
 		setPollingState(p,"normal")
@@ -273,7 +277,6 @@ func doPollingSnmpIF(p *pollingEnt,ps string,agent *gosnmp.GoSNMP) {
 		setPollingState(p,p.Level)
 		return
 	}
-	astilog.Debugf("SNMP IF Polling admin=%d oper=%d",admin,oper)
 	setPollingState(p,"unkown")
 	return
 }
@@ -382,14 +385,14 @@ func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
 		case ">":
 			r = iv > civ
 		case "<=":
-			r =  iv < civ
+			r =  iv <= civ
 		case ">=":
 			r = iv >= civ
 		default:
 			setPollingState(p,"unkown")
 			return
 		}
-		p.LastVal = iv
+		p.LastVal = float64(iv)
 	}
 	if r {
 		setPollingState(p,"normal")
@@ -410,5 +413,100 @@ func addPollingLog(p *pollingEnt) {
 		Time: time.Now().UnixNano(),
 		Type: "pollingLogs",
 		Log:  string(s),
+	}
+}
+
+var logPollRegex = regexp.MustCompile(`\s*(\S+.+\S+)\s*\|\s*(count|val)\s*(=|<|>|>=|<=|!=)\s*([-.0-9]+)`)
+
+func doPollingLog(p *pollingEnt) {
+	// 正規表現でログ検索定義を取得
+	a := logPollRegex.FindAllStringSubmatch(p.Polling, -1)
+	if  a == nil || len(a) != 1  {
+		astilog.Errorf("Invalid lig watch format Polling=%s",p.Polling)
+		p.LastResult = "Invalid log watch format"
+		setPollingState(p,"unkown")
+		return
+	}
+	filter := a[0][1]
+	f,err := regexp.Compile(filter)
+	if err != nil {
+		astilog.Errorf("Invalid log watch format Polling=%s err=%v",p.Polling,err)
+		p.LastResult = "Invalid log watch format"
+		setPollingState(p,"unkown")
+		return
+	}
+	key    := a[0][2]
+	op    := a[0][3]
+	vs   := a[0][4]
+	vc,err := strconv.ParseFloat(vs,64)
+	if err != nil {
+		astilog.Errorf("Invalid log watch format Polling=%s err=%v",p.Polling,err)
+		p.LastResult = "Invalid log watch format"
+		setPollingState(p,"unkown")
+		return
+	}
+	st := p.LastResult
+	if _,err := time.Parse("2006-01-02T15:04",p.LastResult); err != nil {
+		st = time.Now().Add(-time.Second * time.Duration(p.PollInt)).Format("2006-01-02T15:04")
+	}
+	et := time.Now().Format("2006-01-02T15:04")
+	logs := getLogs( &filterEnt {
+		Filter: filter,
+		StartTime: st,
+		EndTime: et,
+		LogType: p.Type,
+	})
+	p.LastResult = et
+	if key == "count" {
+		p.LastVal = float64(len(logs))
+		if  cmpVal(op,p.LastVal,vc) {
+			setPollingState(p,"normal")
+		} else {
+			setPollingState(p,p.Level)
+		}
+		return
+	}
+	bHit := false
+	for _,l := range logs {
+		va := f.FindAllStringSubmatch(string(l.Log),-1)
+		if va == nil || len(va) < 1 || len(va[0]) < 2 {
+			continue
+		}
+		vi,err := strconv.ParseFloat(va[0][1],64)
+		if err != nil {
+			continue
+		}
+		bHit = true
+		p.LastVal = vi
+		// ログの中に、一つでも異常がありれば、異常にする。
+		if !cmpVal(op,vi,vc) {
+			setPollingState(p,p.Level)
+			return
+		}
+	}
+	if bHit {
+		setPollingState(p,"normal")
+	} else {
+		setPollingState(p,"unkown")
+	}
+	return
+}
+
+func cmpVal(op string,a,b float64) bool {
+	switch op {
+	case "=","==":
+		return a == b
+	case "!=":
+		return a != b
+	case "<":
+		return  a < b
+	case ">":
+		return  a > b
+	case "<=":
+		return  a <= b
+	case ">=":
+		return a >= b
+	default:
+		return false
 	}
 }

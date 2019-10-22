@@ -276,10 +276,16 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		}
 	case"logDisp":
 		{
+			if err := bootstrap.SendMessage(logWindow, "show",""); err != nil {
+				astilog.Error(fmt.Sprintf("sendSendMessage %s error=%v",m.Name, err))
+				return "ng",err
+			}	
 			logWindow.Show()
-			logWindow.OpenDevTools()
 			return "ok", nil
 		}
+	case"checkAllPoll":
+		checkAllPoll()
+		return "ok", nil
 	}
 	return "ok", nil
 }
@@ -317,7 +323,7 @@ func mainWindowBackend(ctx context.Context) {
 			return
 		case p := <-pollingStateChangeCh:
 			stateCheckNodes[p.NodeID] = true
-		case <-time.Tick(time.Second * 10):
+		case <-time.Tick(time.Second * 5):
 			lastLog = sendLogs(lastLog)
 			if len(stateCheckNodes) > 0 {
 				for k := range stateCheckNodes {
@@ -381,6 +387,27 @@ func updateLineState() {
 		}
 		if p, ok := pollings[l.PollingID2]; ok {
 			l.State2 = p.State
+		}
+	}
+}
+
+func checkAllPoll() {
+	for _,p := range pollings {
+		if p.State == "repair" {
+			p.State = "normal"
+			nodeName := "Unknown"
+			if n,ok := nodes[p.NodeID]; ok {
+				nodeName = n.Name
+			}
+			pollingStateChangeCh <- p
+			addEventLog(eventLogEnt{
+				Type:"user",
+				Level: p.State,
+				NodeID: p.NodeID,
+				NodeName: nodeName,
+				Event: "ポーリング復帰確認:" + p.Name,
+			})
+			updatePolling(p)
 		}
 	}
 }
