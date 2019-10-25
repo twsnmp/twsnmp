@@ -151,6 +151,10 @@ function mousePressed() {
           <i class="fas fa-info-circle"></i>    
          情報
         </span>
+        <span class="nav-group-item showMIB">
+          <i class="fas fa-info-circle"></i>    
+         MIBブラウザ
+        </span>
         <span class="nav-group-item editNode">
           <i class="fas fa-cog"></i>
           編集
@@ -207,6 +211,12 @@ function mousePressed() {
     $("#ctxMenu span.showNodeInfo").on("click", () => {
       if (selectNode != "") {
         astilectron.sendMessage({ name: "showNodeInfo", payload: selectNode }, function (message) {
+        });
+      }
+    });
+    $("#ctxMenu span.showMIB").on("click", () => {
+      if (selectNode != "" ) {
+        astilectron.sendMessage({ name: "showMIB", payload: selectNode }, function (message) {
         });
       }
     });

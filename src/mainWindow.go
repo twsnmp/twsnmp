@@ -274,6 +274,38 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			nodeWindow.Show()
 			return "ok", nil
 		}
+	case"showMIB":
+		{
+			var nodeID string
+			if len(m.Payload) < 1 {
+				return "ng", errNoPayload
+			}
+			if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
+				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				return "ng", err
+			}
+			params := struct {
+				NodeID string
+				NodeName string
+				MibNames []string
+			}{
+				NodeID: nodeID,
+				MibNames: mib.GetNameList(),
+			}
+			n,ok := nodes[nodeID];
+			if !ok {
+				astilog.Errorf("showMIB Invalid nodID %s",nodeID)
+				return "ng",nil
+			}
+			params.NodeName = n.Name
+			if err := bootstrap.SendMessage(mibWindow, "setParams",params); err != nil {
+				astilog.Error(fmt.Sprintf("sendSendMessage %s error=%v",m.Name, err))
+				return "ng",err
+			}	
+			mibWindow.Show()
+			mibWindow.OpenDevTools()
+			return "ok", nil
+		}
 	case"logDisp":
 		{
 			if err := bootstrap.SendMessage(logWindow, "show",""); err != nil {

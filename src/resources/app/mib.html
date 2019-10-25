@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIBブラウザ - </title>
+  <link rel="stylesheet" href="./css/photon.css">
+  <link rel="stylesheet" href="./css/all.css">
+  <link rel="stylesheet" href="./css/common.css">
+  <link rel="stylesheet" href="./css/mib.css">
+  <link rel="stylesheet" href="./css/datatables.css" />
+  <script src="./js/moment.js"></script>
+  <script>
+    window.jQuery = window.$ = require('./js/jquery-3.4.1.js');
+  </script>
+  <script src="./js/typeahead.bundle.js"></script>
+  <script src="./js/datatables.js"></script>
+</head>
+
+<body>
+  <div class="window">
+    <header class="toolbar toolbar-header">
+      <h1 class="title">MIBブラウザ - </h1>
+    </header>
+    <div class="window-content">
+      <div class="table_base">
+        <table id="mib_table" class="display compact">
+          <thead>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <footer class="toolbar toolbar-footer">
+      <div class="toolbar-actions mib_btns">
+        <input name="mib" type="text" value="" size="60" placeholder="MIB">
+        <button class="btn btn-primary get">
+          <i class="fas fa-search"></i>
+          取得
+        </button>
+        <button class="btn btn-default pull-right close">
+          <i class="fas fa-times"></i>
+          閉じる
+        </button>
+      </div>
+    </footer>
+  </div>
+  <script src="./js/common.js"></script>
+  <script src="./js/mib.js"></script>
+</body>
+</html>
