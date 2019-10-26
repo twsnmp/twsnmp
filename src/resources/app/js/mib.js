@@ -24,7 +24,7 @@ function makeMibTable(cols) {
     "columns": [],
     "language": {
       "decimal":        "",
-      "emptyTable":     "表示するログがありません。",
+      "emptyTable":     "表示するMIBがありません。",
       "info":           "全 _TOTAL_ 件中 _START_ - _END_ 表示",
       "infoEmpty":      "",
       "infoFiltered":   "(全 _MAX_ 件)",
@@ -34,7 +34,7 @@ function makeMibTable(cols) {
       "loadingRecords": "読み込み中...",
       "processing":     "処理中...",
       "search":         "検索:",
-      "zeroRecords":    "一致するログがありません。",
+      "zeroRecords":    "一致するMIBがありません。",
       "paginate": {
           "first":      "最初",
           "last":       "最後",
@@ -87,10 +87,6 @@ function showTable(vbl) {
 }
 
 document.addEventListener('astilectron-ready', function () {
-  makeMibTable([
-    {title:"名前" },
-    {title:"値" },
-  ]);
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "setParams":
@@ -98,6 +94,11 @@ document.addEventListener('astilectron-ready', function () {
           nodeID = message.payload.NodeID;
           mibNames = message.payload.MibNames;
           setWindowTitle(message.payload.NodeName);
+          makeMibTable([
+            {title:"Index" },
+            {title:"名前" },
+            {title:"値" },
+          ]);
         }
         return { name: "setNodeID", payload: "ok" };
       case "error":
@@ -116,21 +117,32 @@ document.addEventListener('astilectron-ready', function () {
       NodeID: nodeID,
       Name: $(".mib_btns input[name=mib]").val()
     }
+    $('.toolbar-actions button.get').prop("disabled", true);
     astilectron.sendMessage({ name: "get", payload: params }, message => {
+      $('.toolbar-actions button.get').prop("disabled", false);
       const vbl = message.payload;
+      if(typeof vbl === "string"){
+        setTimeout(() => {
+          astilectron.showErrorBox("エラー", message.payload);
+        }, 100);
+        return;
+      }
       if(params.Name.indexOf("Table") != -1 ) {
         showTable(vbl)
         return;
       }
       makeMibTable([
+        {title:"Index" },
         {title:"名前" },
         {title:"値" },
       ]);    
       mibTable.rows().remove();
+      let i = 1;
       vbl.forEach(vb => {
         const a = vb.split('=',2)
         if (a.length > 1){
-          mibTable.row.add(a);
+          mibTable.row.add([i,a[0],a[1]]);
+          i++;
         } 
       });
       mibTable.draw();

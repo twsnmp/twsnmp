@@ -303,7 +303,6 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng",err
 			}	
 			mibWindow.Show()
-			mibWindow.OpenDevTools()
 			return "ok", nil
 		}
 	case"logDisp":
