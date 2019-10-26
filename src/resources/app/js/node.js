@@ -37,7 +37,7 @@ function setupPollingPage() {
     pollingList = {};
     for (let i = message.payload.length - 1; i >= 0; i--) {
       const p = message.payload[i];
-      const lt = moment(p.LastTime / (1000 * 1000)).format("YY/MM/DD HH:mm:ss.SSS");
+      const lt = moment(p.LastTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
       const level = getStateHtml(p.Level);
       const state = getStateHtml(p.State);
       polling.row.add([state, p.Name, level, p.Type, p.Polling, lt, p.ID]);
@@ -57,7 +57,7 @@ function setupLogPage() {
     log.rows().remove();
     for (let i = message.payload.length - 1; i >= 0; i--) {
       const l = message.payload[i]
-      const ts = moment(l.Time / (1000 * 1000)).format("YY/MM/DD HH:mm:ss.SSS");
+      const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
       const lvl = getStateHtml(l.Level)
       log.row.add([lvl, ts, l.Type, l.Event]);
     }
@@ -318,10 +318,11 @@ function createEditPollingPane(id){
       Level: "low",
       PollInt:   60,
       Timeout: 1,
-      Retry:1,
+      Retry: 1,
+      LogMode: 0,
       LastTime: 0,
       LastResult: "",
-      State: "",
+      State: "unkown",
     };
   }
   pane = new Tweakpane({
@@ -366,6 +367,14 @@ function createEditPollingPane(id){
     min: 0,
     max: 5,
     step: 1,
+  });
+  pane.addInput(p, 'LogMode', { 
+    label: "ログモード",
+    options: {
+      "記録しない": 0,
+      "常に記録": 1,
+      "状態変化時のみ記録": 2,
+    },
   });
   pane.addButton({
     title: 'Cancel',

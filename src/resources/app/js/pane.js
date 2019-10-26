@@ -70,9 +70,9 @@ function createMapConfPane() {
   });
   f4.addInput(mapConfTmp, 'LogDispSize', { 
     label: "表示件数",
-    min:1000,
-    max:20000,
-    step:1000,
+    min: 100,
+    max: 2000,
+    step:100,
  });
   f4.addInput(mapConfTmp, 'LogDays', { 
     label: "保存日数",

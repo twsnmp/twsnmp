@@ -436,9 +436,15 @@ document.addEventListener('astilectron-ready', function () {
       case "logs": {
         for (let i = message.payload.length - 1; i >= 0; i--) {
           const l = message.payload[i]
-          const ts = moment(l.Time / (1000 * 1000)).format("YY/MM/DD HH:mm:ss.SSS");
+          const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
           const lvl = getStateHtml(l.Level)
           log.row.add([lvl, ts, l.Type, l.NodeName, l.Event]);
+        }
+        if(mapConf && mapConf.LogDispSize){
+          // Logの表示数調整
+          while( log.rows().count() > mapConf.LogDispSize){
+            log.rows(0).remove();
+          }
         }
         log.draw();
         return { name: "logs", payload: "ok" };

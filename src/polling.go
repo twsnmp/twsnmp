@@ -101,6 +101,7 @@ func setPollingState(p *pollingEnt,newState string){
 }
 
 func doPolling(p *pollingEnt){
+	oldState := p.State
 	switch p.Type {
 	case "ping":
 		doPollingPing(p)
@@ -109,6 +110,9 @@ func doPolling(p *pollingEnt){
 	case "syslog","trap","netflow","ipfix":
 		doPollingLog(p)
 		updatePolling(p)
+	}
+	if p.LogMode == 1 || (p.LogMode == 2 && oldState != p.State) {
+		addPollingLog(p)
 	}
 }
 
@@ -140,9 +144,6 @@ func doPollingPing(p *pollingEnt){
 	p.LastVal = float64(s.AvgRtt.Nanoseconds())
 	p.LastResult = string(js)
 	updatePolling(p)
-	if strings.Contains(p.Polling,"log"){
-		addPollingLog(p)
-	}
 }
 
 func doPollingSnmp(p *pollingEnt){
@@ -168,7 +169,7 @@ func doPollingSnmp(p *pollingEnt){
 		return
 	}
 	defer agent.Conn.Close()
-	ps,mode,log := parseSnmpPolling(p.Polling)
+	ps,mode := parseSnmpPolling(p.Polling)
 	if ps == "" {
 		astilog.Errorf("Empty SNMP Polling %s",p.Name)
 		return
@@ -181,31 +182,19 @@ func doPollingSnmp(p *pollingEnt){
 		doPollingSnmpOther(p,ps,mode,agent)
 	}
 	updatePolling(p)
-	if log {
-		addPollingLog(p)
-	}
 }
 
-func parseSnmpPolling(s string) (string,string,bool) {
+func parseSnmpPolling(s string) (string,string) {
 	a :=  strings.Split(s,"|")
 	if len(a) < 1 {
-		return "","",false
+		return "",""
 	}
 	ps := strings.TrimSpace(a[0])
 	if len(a) < 2 {
-		return ps,"",false
+		return ps,""
 	}
 	mode := strings.TrimSpace(a[1])
-	if len(a) < 3 {
-		if mode == "log" {
-			return ps,"",true
-		}
-		return ps,mode,false
-	}
-	if strings.TrimSpace(a[1]) == "log"{
-		return ps,mode, true
-	}
-	return ps,mode, false
+	return ps,mode
 }
 
 func doPollingSnmpSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){

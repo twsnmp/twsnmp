@@ -55,6 +55,7 @@ type pollingEnt struct {
 	PollInt    int
 	Timeout    int
 	Retry      int
+	LogMode    int
 	LastTime   int64
 	LastResult string
 	LastVal    float64
