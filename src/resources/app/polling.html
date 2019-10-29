@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ポーリング分析 - </title>
+  <link rel="stylesheet" href="./css/photon.css">
+  <link rel="stylesheet" href="./css/all.css">
+  <link rel="stylesheet" href="./css/common.css">
+  <link rel="stylesheet" href="./css/log.css">
+  <link rel="stylesheet" href="./css/datatables.css" />
+  <script src="./js/moment.js"></script>
+  <script>
+    window.jQuery = window.$ = require('./js/jquery-3.4.1.js');
+  </script>
+  <script src="./js/typeahead.bundle.js"></script>
+  <script src="./js/datatables.js"></script>
+  <script src="./js/tweakpane-1.0.5.js"></script>
+  <script src="./js/echarts.min.js"></script>
+
+</head>
+
+<body>
+  <div class="window">
+    <header class="toolbar toolbar-header">
+      <h1 class="title">ポーリング分析 - </h1>
+    </header>
+    <div class="tab-group">
+      <div class="tab-item" id="log">
+        <i class="fas fa-warehouse"></i>
+        ポーリングログ
+      </div>
+      <div class="tab-item" id="state">
+        <i class="fas fa-clipboard-list"></i>
+        状態分析
+      </div>
+      <div class="tab-item" id="chart">
+        <i class="fas fa-poll-h"></i>
+        結果分析
+      </div>
+    </div>
+    <div class="window-content hidden" id="log_page">
+      <div id="log_chart" style="width:98%; height: 35%;"></div>
+      <div class="table_base">
+        <table id="log_table" class="display compact">
+          <thead>
+            <tr>
+              <th>状態</th>
+              <th>記録日時</th>
+              <th>数値</th>
+              <th>文字列結果</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="window-content hidden" id="state_page">
+      <div id="state_chart" style="width:100%; height: 100%;"></div>
+    </div>
+    <div class="window-content hidden" id="chart_page">
+    </div>
+    <footer class="toolbar toolbar-footer">
+      <div class="toolbar-actions">
+        <input name="start" type="datetime-local" value="">
+        -
+        <input name="end" type="datetime-local" value="">
+        <button class="btn btn-primary get">
+          <i class="fas fa-search"></i>
+          表示
+        </button>
+        <button class="btn btn-default pull-right close">
+          <i class="fas fa-times"></i>
+          閉じる
+        </button>
+      </div>
+    </footer>
+  </div>
+  <script src="./js/common.js"></script>
+  <script src="./js/polling.js"></script>
+</body>
+</html>

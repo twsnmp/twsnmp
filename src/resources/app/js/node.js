@@ -212,7 +212,7 @@ function makePollingTable() {
     }
     astilectron.sendMessage({ name: "showPolling", payload: id }, message => {
       if (message.payload != "ok" ) {
-        astilectron.showErrorBox("ノード情報", "ログを取得できません。");
+        astilectron.showErrorBox("ノード情報", "ポーリング分析画面を表示できません。");
         return;
       }
     });

@@ -1,0 +1,11 @@
+.window-content .table_base {
+  width: 95%;
+  margin-top: 10px;
+  margin-left: 20px;
+  margin-right: 20px;
+  overflow: auto;
+}
+
+.window-content {
+  flex-direction : column;
+}

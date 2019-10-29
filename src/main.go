@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"time"
-	"encoding/json"
-	"context"
 	"path/filepath"
+	"time"
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
@@ -16,30 +16,30 @@ import (
 
 // Vars
 var (
-	AppName string
-	BuiltAt   string
-	dbPath    string
-	debug     = flag.Bool("d", false, "enables the debug mode")
-	startWindow    *astilectron.Window
-	mainWindow     *astilectron.Window
-	nodeWindow     *astilectron.Window
-	logWindow      *astilectron.Window
-	pollingWindow  *astilectron.Window
-	mibWindow      *astilectron.Window
-	mib            *mibdb.MIBDB
-	app        *astilectron.Astilectron
-	aboutText = `TWSNMP Manager
+	AppName       string
+	BuiltAt       string
+	dbPath        string
+	debug         = flag.Bool("d", false, "enables the debug mode")
+	startWindow   *astilectron.Window
+	mainWindow    *astilectron.Window
+	nodeWindow    *astilectron.Window
+	logWindow     *astilectron.Window
+	pollingWindow *astilectron.Window
+	mibWindow     *astilectron.Window
+	mib           *mibdb.MIBDB
+	app           *astilectron.Astilectron
+	aboutText     = `TWSNMP Manager
 Version 5.0.0
 Copyright (c) 2019 Masayuki Yamai`
 )
 
-// Define errors 
+// Define errors
 var (
-	errNoPayload   = fmt.Errorf("No Payload")
-	errInvalidNode = fmt.Errorf("Invalid Node")
+	errNoPayload     = fmt.Errorf("No Payload")
+	errInvalidNode   = fmt.Errorf("Invalid Node")
 	errInvalidParams = fmt.Errorf("Invald Params")
-	errDBNotOpen = fmt.Errorf("DB Not Open")
-	errInvalidID = fmt.Errorf("Invalid ID")
+	errDBNotOpen     = fmt.Errorf("DB Not Open")
+	errInvalidID     = fmt.Errorf("Invalid ID")
 )
 
 func main() {
@@ -49,12 +49,12 @@ func main() {
 	dbPath = flag.Arg(0)
 	if dbPath != "" {
 		if err := checkDB(dbPath); err != nil {
-			astilog.Error(fmt.Sprintf("checkDB(Arg[0]) error=%v",err))
+			astilog.Error(fmt.Sprintf("checkDB(Arg[0]) error=%v", err))
 			dbPath = ""
 		}
 	}
 	pctx := context.Background()
-	ctx,cancel := context.WithCancel(pctx)	
+	ctx, cancel := context.WithCancel(pctx)
 
 	// Run bootstrap
 	astilog.Debugf("Running app built at %s", BuiltAt)
@@ -84,7 +84,7 @@ func main() {
 					Label: astilectron.PtrStr("TWSNMPを終了"),
 					OnClick: func(e astilectron.Event) (deleteListener bool) {
 						go func() {
-							time.Sleep(time.Second*1)
+							time.Sleep(time.Second * 1)
 							app.Stop()
 						}()
 						return
@@ -100,7 +100,7 @@ func main() {
 			pollingWindow = ws[4]
 			mibWindow = ws[5]
 			app = a
-			mibpath := filepath.Join(app.Paths().DataDirectory(), "resources","mib.txt")
+			mibpath := filepath.Join(app.Paths().DataDirectory(), "resources", "mib.txt")
 			var err error
 			mib, err = mibdb.NewMIBDB(mibpath)
 			if err != nil {
@@ -120,16 +120,16 @@ func main() {
 				Homepage:       "start.html",
 				MessageHandler: startMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:        astilectron.PtrBool(true),
-					Modal:        astilectron.PtrBool(true),
-					Show:          astilectron.PtrBool(true),
-					Closable:          astilectron.PtrBool(false),
-					Fullscreenable:          astilectron.PtrBool(false),
-					Maximizable:          astilectron.PtrBool(false),
-					Minimizable:          astilectron.PtrBool(false),
-					Width:         astilectron.PtrInt(450),
-					Height:        astilectron.PtrInt(500),
-					TitleBarStyle: astilectron.TitleBarStyleHidden,
+					Center:         astilectron.PtrBool(true),
+					Modal:          astilectron.PtrBool(true),
+					Show:           astilectron.PtrBool(true),
+					Closable:       astilectron.PtrBool(false),
+					Fullscreenable: astilectron.PtrBool(false),
+					Maximizable:    astilectron.PtrBool(false),
+					Minimizable:    astilectron.PtrBool(false),
+					Width:          astilectron.PtrInt(450),
+					Height:         astilectron.PtrInt(500),
+					TitleBarStyle:  astilectron.TitleBarStyleHidden,
 				},
 			},
 			{
@@ -147,15 +147,15 @@ func main() {
 				Homepage:       "node.html",
 				MessageHandler: nodeMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:        astilectron.PtrBool(true),
-					Modal:        astilectron.PtrBool(false),
-					Show:          astilectron.PtrBool(false),
-					Fullscreenable:          astilectron.PtrBool(false),
-					Maximizable:          astilectron.PtrBool(false),
-					Minimizable:          astilectron.PtrBool(true),
-					Width:         astilectron.PtrInt(800),
-					Height:        astilectron.PtrInt(500),
-					TitleBarStyle: astilectron.TitleBarStyleHidden,
+					Center:         astilectron.PtrBool(true),
+					Modal:          astilectron.PtrBool(false),
+					Show:           astilectron.PtrBool(false),
+					Fullscreenable: astilectron.PtrBool(false),
+					Maximizable:    astilectron.PtrBool(false),
+					Minimizable:    astilectron.PtrBool(true),
+					Width:          astilectron.PtrInt(800),
+					Height:         astilectron.PtrInt(500),
+					TitleBarStyle:  astilectron.TitleBarStyleHidden,
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},
@@ -165,15 +165,15 @@ func main() {
 				Homepage:       "log.html",
 				MessageHandler: logMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:        astilectron.PtrBool(true),
-					Modal:        astilectron.PtrBool(false),
-					Show:          astilectron.PtrBool(false),
-					Fullscreenable:          astilectron.PtrBool(false),
-					Maximizable:          astilectron.PtrBool(false),
-					Minimizable:          astilectron.PtrBool(true),
-					Width:         astilectron.PtrInt(1000),
-					Height:        astilectron.PtrInt(700),
-					TitleBarStyle: astilectron.TitleBarStyleHidden,
+					Center:         astilectron.PtrBool(true),
+					Modal:          astilectron.PtrBool(false),
+					Show:           astilectron.PtrBool(false),
+					Fullscreenable: astilectron.PtrBool(false),
+					Maximizable:    astilectron.PtrBool(false),
+					Minimizable:    astilectron.PtrBool(true),
+					Width:          astilectron.PtrInt(1000),
+					Height:         astilectron.PtrInt(700),
+					TitleBarStyle:  astilectron.TitleBarStyleHidden,
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},
@@ -183,15 +183,15 @@ func main() {
 				Homepage:       "polling.html",
 				MessageHandler: pollingMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:        astilectron.PtrBool(true),
-					Modal:        astilectron.PtrBool(false),
-					Show:          astilectron.PtrBool(false),
-					Fullscreenable:          astilectron.PtrBool(false),
-					Maximizable:          astilectron.PtrBool(false),
-					Minimizable:          astilectron.PtrBool(true),
-					Width:         astilectron.PtrInt(800),
-					Height:        astilectron.PtrInt(500),
-					TitleBarStyle: astilectron.TitleBarStyleHidden,
+					Center:         astilectron.PtrBool(true),
+					Modal:          astilectron.PtrBool(false),
+					Show:           astilectron.PtrBool(false),
+					Fullscreenable: astilectron.PtrBool(false),
+					Maximizable:    astilectron.PtrBool(false),
+					Minimizable:    astilectron.PtrBool(true),
+					Width:          astilectron.PtrInt(900),
+					Height:         astilectron.PtrInt(750),
+					TitleBarStyle:  astilectron.TitleBarStyleHidden,
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},
@@ -201,15 +201,15 @@ func main() {
 				Homepage:       "mib.html",
 				MessageHandler: mibMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:        astilectron.PtrBool(true),
-					Modal:        astilectron.PtrBool(false),
-					Show:          astilectron.PtrBool(false),
-					Fullscreenable:          astilectron.PtrBool(false),
-					Maximizable:          astilectron.PtrBool(false),
-					Minimizable:          astilectron.PtrBool(true),
-					Width:         astilectron.PtrInt(800),
-					Height:        astilectron.PtrInt(500),
-					TitleBarStyle: astilectron.TitleBarStyleHidden,
+					Center:         astilectron.PtrBool(true),
+					Modal:          astilectron.PtrBool(false),
+					Show:           astilectron.PtrBool(false),
+					Fullscreenable: astilectron.PtrBool(false),
+					Maximizable:    astilectron.PtrBool(false),
+					Minimizable:    astilectron.PtrBool(true),
+					Width:          astilectron.PtrInt(800),
+					Height:         astilectron.PtrInt(500),
+					TitleBarStyle:  astilectron.TitleBarStyleHidden,
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},
@@ -226,28 +226,28 @@ func main() {
 }
 
 // startMessageHandler handles messages
-func startMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{},error) {
+func startMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "exit":
 		go func() {
-			time.Sleep(time.Second*1)
+			time.Sleep(time.Second * 1)
 			app.Stop()
 		}()
 	case "start":
 		if len(m.Payload) > 0 {
 			var fileName string
 			if err := json.Unmarshal(m.Payload, &fileName); err != nil {
-				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v",m.Name, err))
-				return err.Error(),err
+				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				return err.Error(), err
 			}
 			if err := checkDB(fileName); err != nil {
 				astilog.Error(fmt.Sprintf("checkDB  error=%v", err))
-				return err.Error(),err
+				return err.Error(), err
 			}
 			dbPath = fileName
-		}		
+		}
 	}
-	return "",nil
+	return "", nil
 }
 
 // Backen Process
@@ -255,29 +255,29 @@ func startBackend(ctx context.Context) {
 	astilog.Debug("startBackend")
 	go func() {
 		if dbPath == "" {
-			if err := bootstrap.SendMessage(startWindow, "selectDB",""); err != nil {
+			if err := bootstrap.SendMessage(startWindow, "selectDB", ""); err != nil {
 				astilog.Error(fmt.Sprintf("sendSendMessage selectDB error=%v", err))
 			}
 			for dbPath == "" {
 				select {
-				case <- ctx.Done():
+				case <-ctx.Done():
 					return
-				case <- time.Tick(time.Second * 1):
+				case <-time.Tick(time.Second * 1):
 					continue
 				}
-			}	
+			}
 		} else {
 			time.Sleep(time.Second * 2)
 		}
-		if err := openDB(dbPath);err != nil {
+		if err := openDB(dbPath); err != nil {
 			astilog.Fatal(fmt.Sprintf("running bootstrap failed err=%v", err))
 		}
 		go mainWindowBackend(ctx)
 		go eventLogger(ctx)
 		addEventLog(eventLogEnt{
-			Type: "system",
-			Level:"info",
-			Event: fmt.Sprintf("TWSNMP起動 データベース='%s'",dbPath),
+			Type:  "system",
+			Level: "info",
+			Event: fmt.Sprintf("TWSNMP起動 データベース='%s'", dbPath),
 		})
 		go pollingBackend(ctx)
 		go logger(ctx)

@@ -112,7 +112,9 @@ func doPolling(p *pollingEnt){
 		updatePolling(p)
 	}
 	if p.LogMode == 1 || (p.LogMode == 2 && oldState != p.State) {
-		addPollingLog(p)
+		if err := addPollingLog(p);err != nil {
+			astilog.Errorf("addPollingLog err=%v",err)
+		}
 	}
 }
 
@@ -389,20 +391,6 @@ func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
 	}
 	setPollingState(p,p.Level)
 	return
-}
-
-
-func addPollingLog(p *pollingEnt) {
-	s, err := json.Marshal(p)
-	if err != nil {
-		astilog.Errorf("polling Marshal err=%v",err)
-		return
-	}
-	logCh <- &logEnt{
-		Time: time.Now().UnixNano(),
-		Type: "pollingLogs",
-		Log:  string(s),
-	}
 }
 
 var logPollRegex = regexp.MustCompile(`\s*(\S+.+\S+)\s*\|\s*(count|val)\s*(=|<|>|>=|<=|!=)\s*([-.0-9]+)`)

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"time"
-	"strings"
-	"context"
 	"regexp"
+	"strings"
+	"time"
+
 	astilog "github.com/asticode/go-astilog"
 	"go.etcd.io/bbolt"
 )
@@ -14,12 +16,12 @@ import (
 var (
 	db *bbolt.DB
 	// Data on Memory
-	mapConf      mapConfEnt
-	discoverConf discoverConfEnt
-	nodes        = make(map[string]*nodeEnt)
-	lines        = make(map[string]*lineEnt)
-	pollings     = make(map[string]*pollingEnt)
-	eventLogCh   = make(chan eventLogEnt,100)
+	mapConf           mapConfEnt
+	discoverConf      discoverConfEnt
+	nodes             = make(map[string]*nodeEnt)
+	lines             = make(map[string]*lineEnt)
+	pollings          = make(map[string]*pollingEnt)
+	eventLogCh        = make(chan eventLogEnt, 100)
 	stopEventLoggerCh = make(chan bool)
 )
 
@@ -36,11 +38,11 @@ type nodeEnt struct {
 }
 
 type lineEnt struct {
-	ID      string
-	NodeID1 string
+	ID         string
+	NodeID1    string
 	PollingID1 string
 	State1     string
-	NodeID2 string
+	NodeID2    string
 	PollingID2 string
 	State2     string
 }
@@ -71,10 +73,18 @@ type eventLogEnt struct {
 	Event    string
 }
 
+type pollingLogEnt struct {
+	Time      int64 // UnixNano()
+	PollingID string
+	State     string
+	NumVal    float64
+	StrVal    string
+}
+
 type logEnt struct {
-	Time   int64 // UnixNano()
-	Type   string
-	Log    string
+	Time int64 // UnixNano()
+	Type string
+	Log  string
 }
 
 // Config Data Struct
@@ -86,9 +96,9 @@ type mapConfEnt struct {
 	LogDays        int
 	LogDispSize    int
 	Community      string
-	EnableSyslogd   bool
-	EnableTrapd     bool
-	EnableNetflowd  bool
+	EnableSyslogd  bool
+	EnableTrapd    bool
+	EnableNetflowd bool
 	BackImg        string
 }
 
@@ -137,7 +147,7 @@ func openDB(path string) error {
 }
 
 func initDB() error {
-	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs","syslog","trap","netflow","ipfix"}
+	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix"}
 	mapConf.Community = "public"
 	mapConf.PollInt = 60
 	mapConf.Retry = 1
@@ -238,7 +248,7 @@ func loadMapDataFromDB() error {
 		b.ForEach(func(k, v []byte) error {
 			var n nodeEnt
 			if err := json.Unmarshal(v, &n); err == nil {
-				nodes[n.ID] =  &n
+				nodes[n.ID] = &n
 			}
 			return nil
 		})
@@ -273,7 +283,7 @@ func addNode(n *nodeEnt) error {
 	}
 	for {
 		n.ID = makeKey()
-		if _,ok := nodes[n.ID]; !ok {
+		if _, ok := nodes[n.ID]; !ok {
 			break
 		}
 	}
@@ -286,7 +296,7 @@ func addNode(n *nodeEnt) error {
 		b.Put([]byte(n.ID), s)
 		return nil
 	})
-	nodes[n.ID]  = n
+	nodes[n.ID] = n
 	return nil
 }
 
@@ -294,7 +304,7 @@ func updateNode(n *nodeEnt) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	if _,ok := nodes[n.ID]; !ok {
+	if _, ok := nodes[n.ID]; !ok {
 		return errInvalidID
 	}
 	s, err := json.Marshal(n)
@@ -313,7 +323,7 @@ func deleteNode(nodeID string) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	if _,ok := nodes[nodeID]; !ok {
+	if _, ok := nodes[nodeID]; !ok {
 		return errInvalidID
 	}
 	db.Update(func(tx *bbolt.Tx) error {
@@ -321,8 +331,8 @@ func deleteNode(nodeID string) error {
 		b.Delete([]byte(nodeID))
 		return nil
 	})
-	delete(nodes,nodeID)
-	for k,v := range pollings {
+	delete(nodes, nodeID)
+	for k, v := range pollings {
 		if v.NodeID == nodeID {
 			deletePolling(k)
 		}
@@ -331,10 +341,10 @@ func deleteNode(nodeID string) error {
 }
 
 func findNodeFromIP(ip string) *nodeEnt {
-	for _,n := range nodes {
+	for _, n := range nodes {
 		if n.IP == ip {
 			return n
-		} 
+		}
 	}
 	return nil
 }
@@ -342,7 +352,7 @@ func findNodeFromIP(ip string) *nodeEnt {
 func addLine(l *lineEnt) error {
 	for {
 		l.ID = makeKey()
-		if _,ok := lines[l.ID]; !ok {
+		if _, ok := lines[l.ID]; !ok {
 			break
 		}
 	}
@@ -366,7 +376,7 @@ func updateLine(l *lineEnt) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	if _,ok := lines[l.ID];!ok {
+	if _, ok := lines[l.ID]; !ok {
 		return errInvalidID
 	}
 	s, err := json.Marshal(l)
@@ -385,7 +395,7 @@ func deleteLine(lineID string) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	if _,ok := lines[lineID]; !ok {
+	if _, ok := lines[lineID]; !ok {
 		return errInvalidID
 	}
 	db.Update(func(tx *bbolt.Tx) error {
@@ -393,7 +403,7 @@ func deleteLine(lineID string) error {
 		b.Delete([]byte(lineID))
 		return nil
 	})
-	delete(lines,lineID)
+	delete(lines, lineID)
 	return nil
 }
 
@@ -404,7 +414,7 @@ func addPolling(p *pollingEnt) error {
 	}
 	for {
 		p.ID = makeKey()
-		if _,ok := pollings[p.ID];!ok {
+		if _, ok := pollings[p.ID]; !ok {
 			break
 		}
 	}
@@ -425,7 +435,7 @@ func updatePolling(p *pollingEnt) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	if _,ok := pollings[p.ID]; !ok {
+	if _, ok := pollings[p.ID]; !ok {
 		return errInvalidID
 	}
 	s, err := json.Marshal(p)
@@ -445,7 +455,7 @@ func deletePolling(pollingID string) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	if _,ok := pollings[pollingID]; !ok {
+	if _, ok := pollings[pollingID]; !ok {
 		return errInvalidID
 	}
 	db.Update(func(tx *bbolt.Tx) error {
@@ -453,10 +463,10 @@ func deletePolling(pollingID string) error {
 		b.Delete([]byte(pollingID))
 		return nil
 	})
-	delete(pollings,pollingID)
+	delete(pollings, pollingID)
 	// Delete lines
-	for k,v := range lines {
-		if v.PollingID1 == pollingID || v.PollingID2 == pollingID{
+	for k, v := range lines {
+		if v.PollingID1 == pollingID || v.PollingID2 == pollingID {
 			deleteLine(k)
 		}
 	}
@@ -478,20 +488,19 @@ func getNodePollings(nodeID string) []pollingEnt {
 func getLogPollings() []pollingEnt {
 	ret := []pollingEnt{}
 	for _, p := range pollings {
-		if p.Type == "syslog" || p.Type == "trap" ||  p.Type == "netflow" ||  p.Type == "ipfix" {
+		if p.Type == "syslog" || p.Type == "trap" || p.Type == "netflow" || p.Type == "ipfix" {
 			ret = append(ret, *p)
 		}
 	}
 	return ret
 }
 
-
-func addEventLog(e eventLogEnt){
+func addEventLog(e eventLogEnt) {
 	e.Time = time.Now().UnixNano()
 	eventLogCh <- e
 }
 
-func getEventLogList(startID string,n int) []eventLogEnt{
+func getEventLogList(startID string, n int) []eventLogEnt {
 	ret := []eventLogEnt{}
 	if db == nil {
 		return ret
@@ -503,14 +512,14 @@ func getEventLogList(startID string,n int) []eventLogEnt{
 		}
 		c := b.Cursor()
 		i := 0
-		for k,v := c.Last(); k != nil && i < n && string(k) != startID; k,v = c.Prev(){
+		for k, v := c.Last(); k != nil && i < n && string(k) != startID; k, v = c.Prev() {
 			var e eventLogEnt
-			err := json.Unmarshal(v,&e)
+			err := json.Unmarshal(v, &e)
 			if err != nil {
-				astilog.Errorf("getEventLogList err=%v",err)
+				astilog.Errorf("getEventLogList err=%v", err)
 				continue
 			}
-			ret = append(ret,e)
+			ret = append(ret, e)
 			i++
 		}
 		return nil
@@ -518,7 +527,7 @@ func getEventLogList(startID string,n int) []eventLogEnt{
 	return ret
 }
 
-func getNodeEventLogs(nodeID string) []eventLogEnt{
+func getNodeEventLogs(nodeID string) []eventLogEnt {
 	ret := []eventLogEnt{}
 	if db == nil {
 		return ret
@@ -530,17 +539,17 @@ func getNodeEventLogs(nodeID string) []eventLogEnt{
 		}
 		c := b.Cursor()
 		i := 0
-		for k,v := c.Last(); k != nil && i < 100000; k,v = c.Prev(){
+		for k, v := c.Last(); k != nil && i < 1000; k, v = c.Prev() {
 			var e eventLogEnt
-			err := json.Unmarshal(v,&e)
+			err := json.Unmarshal(v, &e)
 			if err != nil {
-				astilog.Errorf("getNodeEventLogs err=%v",err)
+				astilog.Errorf("getNodeEventLogs err=%v", err)
 				continue
 			}
 			if nodeID != e.NodeID {
 				continue
 			}
-			ret = append(ret,e)
+			ret = append(ret, e)
 			i++
 		}
 		return nil
@@ -549,44 +558,44 @@ func getNodeEventLogs(nodeID string) []eventLogEnt{
 }
 
 type logFilterParamEnt struct {
-	StartKey  string
-	StartTime int64
-	EndTime   int64
-	RegexFilter    *regexp.Regexp
+	StartKey    string
+	StartTime   int64
+	EndTime     int64
+	RegexFilter *regexp.Regexp
 }
 
-func getFilterParams(filter *filterEnt) *logFilterParamEnt{
+func getFilterParams(filter *filterEnt) *logFilterParamEnt {
 	var err error
 	var t time.Time
-	ret  := &logFilterParamEnt{} 
-	t,err = time.Parse("2006-01-02T15:04 MST",filter.StartTime + " JST")
+	ret := &logFilterParamEnt{}
+	t, err = time.Parse("2006-01-02T15:04 MST", filter.StartTime+" JST")
 	if err == nil {
 		ret.StartTime = t.UnixNano()
 	} else {
-		astilog.Errorf("getFilterParams err=%v",err)
-		ret.StartTime = time.Now().Add(-time.Hour*24).UnixNano()
+		astilog.Errorf("getFilterParams err=%v", err)
+		ret.StartTime = time.Now().Add(-time.Hour * 24).UnixNano()
 	}
-	t ,err = time.Parse("2006-01-02T15:04 MST",filter.EndTime + " JST")
+	t, err = time.Parse("2006-01-02T15:04 MST", filter.EndTime+" JST")
 	if err == nil {
 		ret.EndTime = t.UnixNano()
 	} else {
-		astilog.Errorf("getFilterParams err=%v",err)
+		astilog.Errorf("getFilterParams err=%v", err)
 		ret.EndTime = time.Now().UnixNano()
 	}
-	ret.StartKey = fmt.Sprintf("%016x",ret.StartTime)
+	ret.StartKey = fmt.Sprintf("%016x", ret.StartTime)
 	filter.Filter = strings.TrimSpace(filter.Filter)
 	if filter.Filter == "" {
 		return ret
 	}
-	ret.RegexFilter,err = regexp.Compile(filter.Filter)
+	ret.RegexFilter, err = regexp.Compile(filter.Filter)
 	if err != nil {
-		astilog.Errorf("getFilterParams err=%v",err)
+		astilog.Errorf("getFilterParams err=%v", err)
 		ret.RegexFilter = nil
 	}
 	return ret
 }
 
-func getEventLogs(filter *filterEnt) []eventLogEnt{
+func getEventLogs(filter *filterEnt) []eventLogEnt {
 	ret := []eventLogEnt{}
 	if db == nil {
 		return ret
@@ -599,11 +608,11 @@ func getEventLogs(filter *filterEnt) []eventLogEnt{
 		}
 		c := b.Cursor()
 		i := 0
-		for k,v := c.Seek([]byte(f.StartKey)); k != nil && i < 100000; k,v = c.Next(){
+		for k, v := c.Seek([]byte(f.StartKey)); k != nil && i < 100000; k, v = c.Next() {
 			var e eventLogEnt
-			err := json.Unmarshal(v,&e)
+			err := json.Unmarshal(v, &e)
 			if err != nil {
-				astilog.Errorf("getEventLogs err=%v",err)
+				astilog.Errorf("getEventLogs err=%v", err)
 				continue
 			}
 			if e.Time < f.StartTime {
@@ -612,10 +621,10 @@ func getEventLogs(filter *filterEnt) []eventLogEnt{
 			if e.Time > f.EndTime {
 				break
 			}
-			if f.RegexFilter != nil  && !f.RegexFilter.Match(v){
-					continue
+			if f.RegexFilter != nil && !f.RegexFilter.Match(v) {
+				continue
 			}
-			ret = append(ret,e)
+			ret = append(ret, e)
 			i++
 		}
 		return nil
@@ -623,7 +632,7 @@ func getEventLogs(filter *filterEnt) []eventLogEnt{
 	return ret
 }
 
-func getLogs(filter *filterEnt) []logEnt{
+func getLogs(filter *filterEnt) []logEnt {
 	ret := []logEnt{}
 	if db == nil {
 		return ret
@@ -632,16 +641,16 @@ func getLogs(filter *filterEnt) []logEnt{
 	db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(filter.LogType))
 		if b == nil {
-			astilog.Errorf("getLogs no Bucket=%s",filter.LogType)
+			astilog.Errorf("getLogs no Bucket=%s", filter.LogType)
 			return nil
 		}
 		c := b.Cursor()
 		i := 0
-		for k,v := c.Seek([]byte(f.StartKey)); k != nil && i < 100000; k,v = c.Next(){
+		for k, v := c.Seek([]byte(f.StartKey)); k != nil && i < 100000; k, v = c.Next() {
 			var l logEnt
-			err := json.Unmarshal(v,&l)
+			err := json.Unmarshal(v, &l)
 			if err != nil {
-				astilog.Errorf("getLogs err=%v",err)
+				astilog.Errorf("getLogs err=%v", err)
 				continue
 			}
 			if l.Time < f.StartTime {
@@ -650,10 +659,10 @@ func getLogs(filter *filterEnt) []logEnt{
 			if l.Time > f.EndTime {
 				break
 			}
-			if f.RegexFilter != nil  && !f.RegexFilter.Match(v){
-					continue
+			if f.RegexFilter != nil && !f.RegexFilter.Match(v) {
+				continue
 			}
-			ret = append(ret,l)
+			ret = append(ret, l)
 			i++
 		}
 		return nil
@@ -661,15 +670,90 @@ func getLogs(filter *filterEnt) []logEnt{
 	return ret
 }
 
-func deleteOldLog(bucket string,days int) error {
-	st := fmt.Sprintf("%016x",time.Now().AddDate(0,0,-days))
+func addPollingLog(p *pollingEnt) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	pl := pollingLogEnt{
+		Time:      time.Now().UnixNano(),
+		PollingID: p.ID,
+		State:     p.State,
+		NumVal:    p.LastVal,
+		StrVal:    p.LastResult,
+	}
+	s, err := json.Marshal(pl)
+	if err != nil {
+		return err
+	}
+	db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("pollingLogs"))
+		b.Put([]byte(makeKey()), s)
+		return nil
+	})
+	return nil
+}
+
+func getPollingLog(startTime, endTime, pollingID string) []pollingLogEnt {
+	ret := []pollingLogEnt{}
+	var st int64
+	var et int64
+	if t, err := time.Parse("2006-01-02T15:04 MST", startTime+" JST"); err == nil {
+		st = t.UnixNano()
+	} else {
+		astilog.Errorf("getPollingLog err=%v", err)
+		st = time.Now().Add(-time.Hour * 24).UnixNano()
+	}
+	if t, err := time.Parse("2006-01-02T15:04 MST", endTime+" JST"); err == nil {
+		et = t.UnixNano()
+	} else {
+		astilog.Errorf("getFilterParams err=%v", err)
+		et = time.Now().UnixNano()
+	}
+	startKey := fmt.Sprintf("%016x", st)
+	db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("pollingLogs"))
+		if b == nil {
+			astilog.Errorf("getPollingLog no Bucket getPollingLog")
+			return nil
+		}
+		c := b.Cursor()
+		i := 0
+		for k, v := c.Seek([]byte(startKey)); k != nil && i < 100000; k, v = c.Next() {
+			if !bytes.Contains(v, []byte(pollingID)) {
+				continue
+			}
+			var l pollingLogEnt
+			err := json.Unmarshal(v, &l)
+			if err != nil {
+				astilog.Errorf("getPollingLog err=%v", err)
+				continue
+			}
+			if l.Time < st {
+				continue
+			}
+			if l.Time > et {
+				break
+			}
+			if l.PollingID != pollingID {
+				continue
+			}
+			ret = append(ret, l)
+			i++
+		}
+		return nil
+	})
+	return ret
+}
+
+func deleteOldLog(bucket string, days int) error {
+	st := fmt.Sprintf("%016x", time.Now().AddDate(0, 0, -days))
 	return db.Batch(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
-			return fmt.Errorf("Bucket %s not found",bucket)
+			return fmt.Errorf("Bucket %s not found", bucket)
 		}
 		c := b.Cursor()
-		for k,_ := c.First(); k != nil ; k,_ = c.Next(){
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
 			if st > string(k) {
 				break
 			}
@@ -684,9 +768,9 @@ func deleteOldLogs() {
 		astilog.Error("mapConf.LogDays < 1 ")
 		return
 	}
-	buckets := []string{"logs", "pollingLogs","syslog","trap","netflow","ipfix"}
-	for _,b := range buckets {
-		if err := deleteOldLog(b,mapConf.LogDays); err != nil {
+	buckets := []string{"logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix"}
+	for _, b := range buckets {
+		if err := deleteOldLog(b, mapConf.LogDays); err != nil {
 			astilog.Errorf("deleteOldLog err=%v")
 		}
 	}
@@ -697,9 +781,9 @@ func closeDB() {
 		return
 	}
 	saveLogList([]eventLogEnt{eventLogEnt{
-		Type:"system",
-		Level:"info",
-		Time: time.Now().UnixNano(),
+		Type:  "system",
+		Level: "info",
+		Time:  time.Now().UnixNano(),
 		Event: "TWSNMP終了",
 	}})
 	db.Close()
@@ -710,44 +794,48 @@ func eventLogger(ctx context.Context) {
 	list := []eventLogEnt{}
 	for {
 		select {
-			case <- ctx.Done():{
+		case <-ctx.Done():
+			{
 				if len(list) > 0 {
 					saveLogList(list)
 				}
 				return
 			}
-			case e := <- eventLogCh:{
-				list = append(list,e)
+		case e := <-eventLogCh:
+			{
+				list = append(list, e)
 				if len(list) > 1000 {
 					saveLogList(list)
-					list =[]eventLogEnt{}
+					list = []eventLogEnt{}
 				}
 			}
-			case <- time.Tick(time.Minute * 5):{
+		case <-time.Tick(time.Minute * 5):
+			{
 				deleteOldLogs()
 			}
-			case <- time.Tick(time.Second * 10):{
+		case <-time.Tick(time.Second * 10):
+			{
 				if len(list) > 0 {
 					saveLogList(list)
-					list =[]eventLogEnt{}
+					list = []eventLogEnt{}
 				}
 			}
 		}
 	}
 }
 
-func saveLogList(list []eventLogEnt){
+func saveLogList(list []eventLogEnt) {
 	if db == nil {
 		return
 	}
 	db.Batch(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("logs"))
-		for _,e := range list {
+		for _, e := range list {
 			s, err := json.Marshal(e)
 			if err != nil {
 				return err
 			}
-			err = b.Put([]byte(fmt.Sprintf("%016x",e.Time)), s)
+			err = b.Put([]byte(fmt.Sprintf("%016x", e.Time)), s)
 			if err != nil {
 				return err
 			}
