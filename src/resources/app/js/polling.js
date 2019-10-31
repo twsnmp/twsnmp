@@ -5,11 +5,11 @@ let node;
 let logTable;
 let logChart;
 let stateChart;
-let stateScatterChart;
+let resultChart;
 let currentPage;
 
 function showPage(mode) {
-  const pages = ["log", "state", "chart"];
+  const pages = ["log", "state", "result"];
   pages.forEach(p => {
     if (mode == p) {
       $("#" + p + "_page").removeClass("hidden");
@@ -21,7 +21,6 @@ function showPage(mode) {
   });
   currentPage = mode;
 }
-
 
 function makeLogTable() {
   const opt =  {
@@ -168,9 +167,91 @@ function  makeStateChart(){
   stateChart.setOption(option);
 }
 
+function makeResultChart() {
+  const option = {
+    title: {
+      show: false,
+    },
+    tooltip: {
+      trigger: 'axis',
+      formatter: function (params) {
+        const p = params[0];
+        return p.name + ' : ' + p.value[1];
+      },
+      axisPointer: {
+        type: 'shadow'
+      }
+    },
+    grid: {
+      left: "10%",
+      right:"5%",
+      top: 30,
+      buttom: 0,
+    },
+    xAxis: {
+      type: 'time',
+      axisLabel:{
+        fontSize: "8px",
+        formatter: function (value, index) {
+          var date = new Date(value);
+          return echarts.format.formatTime('MM/dd hh:mm', date)
+        }
+      },
+      splitLine: {
+        show: false
+      },
+    },
+    yAxis: {
+      type: 'value',
+    },
+    series: [{
+      color: "#1f78b4",
+      type: 'line',
+      showSymbol: false,
+      hoverAnimation: false,
+      data: [],
+    }]
+  };
+  resultChart = echarts.init(document.getElementById('result_chart'));
+  resultChart.setOption(option);
+}
+
+
 function setupTimeVal() {
-  $(".toolbar-actions input[name=start]").val(moment().subtract(1, "h").format("Y-MM-DDTHH:mm"));
-  $(".toolbar-actions input[name=end]").val(moment().format("Y-MM-DDTHH:mm"));
+  $(".toolbar-actions input[name=start]").val(moment().subtract(1, "h").format("Y-MM-DDTHH:00"));
+  $(".toolbar-actions input[name=end]").val(moment().format("Y-MM-DDTHH:00"));
+}
+
+function clearData() {
+  logTable.rows().remove();
+  logTable.draw();
+  logChart.setOption({
+    series: [{
+      data: []
+    }]
+  });
+  logChart.resize();
+  const optState = {
+    yAxis:{
+      data:[],
+    },
+    series:[
+      {data:[]},
+      {data:[]},
+      {data:[]},
+      {data:[]},
+      {data:[]},
+    ]
+  };
+  stateChart.setOption( optState);
+  stateChart.resize();
+  resultChart.setOption({
+    series: [{
+      data: []
+    }]
+  });
+  resultChart.resize();
+
 }
 
 document.addEventListener('astilectron-ready', function () {
@@ -179,8 +260,10 @@ document.addEventListener('astilectron-ready', function () {
   makeLogTable();
   makeLogChart();
   makeStateChart();
-  stateChart.resize();
+  makeResultChart();
   logChart.resize();
+  stateChart.resize();
+  resultChart.resize();
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "setParams":
@@ -188,6 +271,9 @@ document.addEventListener('astilectron-ready', function () {
           polling = message.payload.Polling;
           node = message.payload.Node;
           setWindowTitle(node.Name,polling.Name);
+          clearData();
+          showPage("log");
+          logChart.resize();      
         }
         return { name: "setParams", payload: "ok" };
       case "error":
@@ -206,7 +292,8 @@ document.addEventListener('astilectron-ready', function () {
     stateChart.resize();
   });
   $('#chart').click(()=>{
-    showPage("chart");
+    showPage("result");
+    resultChart.resize();
   });
   $('.toolbar-actions button.close').click(() => {
     astilectron.sendMessage({ name: "close", payload: "" }, message => {
@@ -229,6 +316,7 @@ document.addEventListener('astilectron-ready', function () {
         return;
       }
       const dataTimeLine = [];
+      const dataResult = [];
       const optState = {
         yAxis:{
           data:[],
@@ -268,6 +356,10 @@ document.addEventListener('astilectron-ready', function () {
         const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
         const state = getStateHtml(l.State)
         logTable.row.add([state, ts, l.NumVal, l.StrVal]);
+        dataResult.push({
+          name: ts,
+          value:[new Date(l.Time/(1000*1000)),l.NumVal],
+        });
         const newCtc = Math.floor(l.Time / (1000 * 1000 * 1000 * 60 * intCount));
         if(!ctc) {
           ctc = newCtc;
@@ -343,6 +435,12 @@ document.addEventListener('astilectron-ready', function () {
       logChart.resize();
       stateChart.setOption( optState);
       stateChart.resize();
+      resultChart.setOption({
+        series: [{
+          data: dataResult
+        }]
+      });
+      resultChart.resize();
     });
   });
 });

@@ -140,7 +140,7 @@ func doPollingPing(p *pollingEnt){
 	}
 	js,err := json.Marshal(&s)
 	if err != nil {
-		astilog.Errorf("ping Marshal err=%",err)
+		astilog.Errorf("ping Marshal err=%v",err)
 		return
 	}
 	p.LastVal = float64(s.AvgRtt.Nanoseconds())

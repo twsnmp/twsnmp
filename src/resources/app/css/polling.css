@@ -9,3 +9,9 @@
 .window-content {
   flex-direction : column;
 }
+
+#state_chart,
+#result_chart {
+  width: 100%; 
+  height: 100%;
+}
