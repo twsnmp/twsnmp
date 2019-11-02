@@ -91,14 +91,58 @@ func main() {
 					},
 				},
 			},
+		}, {
+			Label: astilectron.PtrStr("Window"),
+			SubMenu: []*astilectron.MenuItemOptions{
+				{
+					Checked: astilectron.PtrBool(true), Label: astilectron.PtrStr("マップ"),
+					Type: astilectron.MenuItemTypeCheckbox,
+					OnClick: func(e astilectron.Event) bool {
+						setWindowsShowOrHide(mainWindow, *e.MenuItemOptions.Checked)
+						return false
+					},
+				},
+				{
+					Label: astilectron.PtrStr("ノード情報"),
+					Type:  astilectron.MenuItemTypeCheckbox,
+					OnClick: func(e astilectron.Event) bool {
+						setWindowsShowOrHide(nodeWindow, *e.MenuItemOptions.Checked)
+						return false
+					},
+				},
+				{
+					Label: astilectron.PtrStr("ログ表示"),
+					Type:  astilectron.MenuItemTypeCheckbox,
+					OnClick: func(e astilectron.Event) bool {
+						setWindowsShowOrHide(logWindow, *e.MenuItemOptions.Checked)
+						return false
+					},
+				},
+				{
+					Label: astilectron.PtrStr("ポーリング"),
+					Type:  astilectron.MenuItemTypeCheckbox,
+					OnClick: func(e astilectron.Event) bool {
+						setWindowsShowOrHide(pollingWindow, *e.MenuItemOptions.Checked)
+						return false
+					},
+				},
+				{
+					Label: astilectron.PtrStr("MIBブラウザー"),
+					Type:  astilectron.MenuItemTypeCheckbox,
+					OnClick: func(e astilectron.Event) bool {
+						setWindowsShowOrHide(mibWindow, *e.MenuItemOptions.Checked)
+						return false
+					},
+				},
+			},
 		}},
-		OnWait: func(a *astilectron.Astilectron, ws []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
-			startWindow = ws[0]
-			mainWindow = ws[1]
-			nodeWindow = ws[2]
-			logWindow = ws[3]
-			pollingWindow = ws[4]
-			mibWindow = ws[5]
+		OnWait: func(a *astilectron.Astilectron, w []*astilectron.Window, m *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+			startWindow = w[0]
+			mainWindow = w[1]
+			nodeWindow = w[2]
+			logWindow = w[3]
+			pollingWindow = w[4]
+			mibWindow = w[5]
 			app = a
 			mibpath := filepath.Join(app.Paths().DataDirectory(), "resources", "mib.txt")
 			var err error
@@ -112,6 +156,29 @@ func main() {
 				app.Stop()
 				return
 			})
+			for i, w := range w {
+				if i < 2 {
+					continue
+				}
+				mi, err := m.Item(1, i-1)
+				if err != nil {
+					continue
+				}
+				mi.SetVisible(false)
+				w.On(astilectron.EventNameWindowEventHide, func(e astilectron.Event) (deleteListener bool) {
+					mi.SetChecked(false)
+					return
+				})
+				w.On(astilectron.EventNameWindowEventMinimize, func(e astilectron.Event) (deleteListener bool) {
+					mi.SetChecked(false)
+					return
+				})
+				w.On(astilectron.EventNameWindowEventShow, func(e astilectron.Event) (deleteListener bool) {
+					mi.SetChecked(true)
+					mi.SetVisible(true)
+					return
+				})
+			}
 			return nil
 		},
 		RestoreAssets: RestoreAssets,
@@ -223,6 +290,14 @@ func main() {
 	cancel()
 	closeDB()
 	astilog.Debug(fmt.Sprintf("End of main()"))
+}
+
+func setWindowsShowOrHide(w *astilectron.Window, show bool) {
+	if show {
+		w.Show()
+	} else {
+		w.Hide()
+	}
 }
 
 // startMessageHandler handles messages
