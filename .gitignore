@@ -19,3 +19,4 @@ src/windows.syso
 # twsmmp 
 rel/*
 .DS_Store
+.vscode

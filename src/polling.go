@@ -27,7 +27,6 @@ import (
 	gosnmp "github.com/soniah/gosnmp"
 
 	astilog "github.com/asticode/go-astilog"
-	ping "github.com/sparrc/go-ping"
 
 )
 
@@ -36,6 +35,8 @@ var (
 )
 
 func pollingBackend(ctx context.Context) {
+	go pingBackend(ctx)
+	time.Sleep(time.Millisecond*100)
 	for {
 		select {
 		case <-ctx.Done():
@@ -124,26 +125,18 @@ func doPollingPing(p *pollingEnt){
 		astilog.Errorf("node not found nodeID=%s",p.NodeID)
 		return
 	}
-	pinger, err := ping.NewPinger(n.IP)
-	if err != nil {
-		astilog.Errorf("NewPinger err=%v",err)
-		return
-	}
-	pinger.Count = 1
-	pinger.Timeout = time.Second * time.Duration(p.Timeout)
-	pinger.Run()
-	s := pinger.Statistics()
-	if s.PacketsRecv > 0 {
+	r := doPing(n.IP,p.Timeout,p.Retry,64)
+	if r.Stat == pingOK {
 		setPollingState(p,"normal")
 	}	else {
 		setPollingState(p,p.Level)
 	}
-	js,err := json.Marshal(&s)
+	js,err := json.Marshal(&r)
 	if err != nil {
 		astilog.Errorf("ping Marshal err=%v",err)
 		return
 	}
-	p.LastVal = float64(s.AvgRtt.Nanoseconds())
+	p.LastVal = float64(r.Time)
 	p.LastResult = string(js)
 	updatePolling(p)
 }

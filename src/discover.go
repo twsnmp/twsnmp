@@ -11,7 +11,6 @@ import (
 	"strings"
 	"github.com/signalsciences/ipv4"
 	"github.com/soniah/gosnmp"
-	ping "github.com/sparrc/go-ping"
 	astilog "github.com/asticode/go-astilog"
 )
 
@@ -91,8 +90,8 @@ func startDiscover() error {
 				if findNodeFromIP(ipstr) != nil {
 					return
 				}
-				r := doDiscoverPing(ipstr)
-				if r != nil && r.PacketsRecv > 0 {
+				r := doPing(ipstr,1,0,64)
+				if r.Stat == pingOK {
 					discoverStat.Found++
 					dent := discoverInfoEnt{
 						IP: ipstr,
@@ -128,17 +127,6 @@ func startDiscover() error {
 	return nil
 }
 
-func doDiscoverPing(t string) *ping.Statistics {
-	pinger, err := ping.NewPinger(t)
-	if err != nil {
-		return nil
-	}
-	pinger.Count = 1
-	pinger.Timeout = time.Millisecond * time.Duration(discoverConf.Timeout)
-	pinger.Run()
-	return pinger.Statistics()
-}
-
 func discoverGetSnmpInfo(t string,dent *discoverInfoEnt) {
 	agent := &gosnmp.GoSNMP{
 		Target:             t,
@@ -153,12 +141,14 @@ func discoverGetSnmpInfo(t string,dent *discoverInfoEnt) {
 	}
 	err := agent.Connect()
 	if err != nil {
+		astilog.Errorf("discoverGetSnmpInfo err=%v",err)
 		return
 	}
 	defer agent.Conn.Close()
 	oids := []string{mib.NameToOID("sysName"), mib.NameToOID("sysObjectID")}
 	result, err := agent.GetNext(oids)
 	if err != nil {
+		astilog.Errorf("discoverGetSnmpInfo err=%v",err)
 		return
 	}
 	for _, variable := range result.Variables {
