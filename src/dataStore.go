@@ -17,6 +17,7 @@ var (
 	db *bbolt.DB
 	// Data on Memory
 	mapConf           mapConfEnt
+	notifyConf        notifyConfEnt
 	discoverConf      discoverConfEnt
 	nodes             = make(map[string]*nodeEnt)
 	lines             = make(map[string]*lineEnt)
@@ -102,6 +103,18 @@ type mapConfEnt struct {
 	BackImg        string
 }
 
+type notifyConfEnt struct {
+	MailServer         string
+	User               string
+	Password           string
+	InsecureSkipVerify bool
+	MailTo             string
+	MailFrom           string
+	Subject            string
+	Interval           int
+	Level              string
+}
+
 type discoverConfEnt struct {
 	StartIP   string
 	EndIP     string
@@ -157,6 +170,10 @@ func initDB() error {
 	discoverConf.Community = "public"
 	discoverConf.Retry = 1
 	discoverConf.Timeout = 1
+	notifyConf.InsecureSkipVerify = true
+	notifyConf.Interval = 60
+	notifyConf.Subject = "TWSNMPからの通知"
+	notifyConf.Level = "none"
 	return db.Update(func(tx *bbolt.Tx) error {
 		for _, b := range buckets {
 			if _, err := tx.CreateBucketIfNotExists([]byte(b)); err != nil {
@@ -191,10 +208,19 @@ func loadConfFromDB() error {
 			astilog.Error(fmt.Sprintf("Unmarshal discoverConf from DB error=%v", err))
 			return err
 		}
+		v = b.Get([]byte("notifyConf"))
+		if v == nil {
+			return nil
+		}
+		if err := json.Unmarshal(v, &notifyConf); err != nil {
+			astilog.Error(fmt.Sprintf("Unmarshal notifyConf from DB error=%v", err))
+			return err
+		}
 		return nil
 	})
 	if err == nil && bSaveConf {
 		saveMapConfToDB()
+		saveNotifyConfToDB()
 		saveDiscoverConfToDB()
 	}
 	return err
@@ -214,6 +240,24 @@ func saveMapConfToDB() error {
 			return fmt.Errorf("Bucket config is nil")
 		}
 		b.Put([]byte("mapConf"), s)
+		return nil
+	})
+}
+
+func saveNotifyConfToDB() error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	s, err := json.Marshal(notifyConf)
+	if err != nil {
+		return err
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("config"))
+		if b == nil {
+			return fmt.Errorf("Bucket config is nil")
+		}
+		b.Put([]byte("notifyConf"), s)
 		return nil
 	})
 }

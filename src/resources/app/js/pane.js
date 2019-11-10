@@ -94,13 +94,83 @@ function createMapConfPane() {
       astilectron.showErrorBox("マップ設定", "マップ名を指定してください。");
       return;
     }
-    astilectron.sendMessage({ name: "mapConf", payload: mapConf }, message => {
+    astilectron.sendMessage({ name: "mapConf", payload: mapConfTmp }, message => {
       if(message.payload !== "ok") {
         astilectron.showErrorBox("マップ設定", "保存に失敗しました。");
         return;
       }
       mapConf = mapConfTmp;
       setWindowTitle();
+    });
+    pane.dispose();
+  });
+  return;
+}
+
+function createNotifyConfPane() {
+  const notifyConfTmp = notifyConf
+  const pane = new Tweakpane({
+    title: "通知設定"
+  });
+  pane.addInput(notifyConfTmp, 'MailServer', { label: "サーバー" });
+  pane.addInput(notifyConfTmp, 'User', { label: "ユーザー" });
+  pane.addInput(notifyConfTmp, 'Password', { label: "パスワード" });
+  pane.addInput(notifyConfTmp, 'InsecureSkipVerify', { 
+    label: "証明書検証",
+    options: {
+      "しない": true,
+      "する": false,
+    },
+  });
+
+  pane.addInput(notifyConfTmp, 'MailFrom', { label: "送信元" });
+  pane.addInput(notifyConfTmp, 'MailTo', { label: "宛先" });
+  pane.addInput(notifyConfTmp, 'Subject', { label: "件名" });
+  pane.addInput(notifyConfTmp, 'Interval', { 
+    label: "間隔(分)",
+    min: 5,
+    max: 1440,
+    step: 5,
+  });
+  pane.addInput(notifyConfTmp, 'Level', { 
+    label: "レベル",
+    options: {
+      "通知しない": "none",
+      "注意以上": "warn",
+      "軽度以上": "low",
+      "重度": "high",
+    },
+  });
+  pane.addButton({
+    title: 'Cancel',
+  }).on('click', (value) => {
+    pane.dispose();
+  });
+  pane.addButton({
+    title: 'Test',
+  }).on('click', (value) => {
+    astilectron.sendMessage({ name: "notifyTest", payload: notifyConfTmp }, message => {
+      if(message.payload !== "ok") {
+        astilectron.showErrorBox("試験通知", "送信に失敗しました。");
+      } else {
+        astilectron.showErrorBox("通信通知", "送信しました。");
+      }
+      return
+    });
+  });
+  pane.addButton({
+    title: 'Save',
+  }).on('click', (value) => {
+    if( notifyConfTmp.Subject == "" ){
+      astilectron.showErrorBox("通知設定", "件名を指定してください。");
+      return;
+    }
+    astilectron.sendMessage({ name: "notifyConf", payload: notifyConfTmp }, message => {
+      if(message.payload !== "ok") {
+        astilectron.showErrorBox("通知設定", "保存に失敗しました。");
+        return;
+      }
+      notifyConf = notifyConfTmp;
     });
     pane.dispose();
   });

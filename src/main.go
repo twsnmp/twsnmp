@@ -356,6 +356,7 @@ func startBackend(ctx context.Context) {
 		})
 		go pollingBackend(ctx)
 		go logger(ctx)
+		go notifyBackend(ctx)
 		startWindow.Hide()
 		mainWindow.Show()
 	}()

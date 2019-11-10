@@ -3,6 +3,7 @@
 let myFont;
 let selectNode = "";
 let mapConf;
+let notifyConf;
 let nodes = {};
 let lines = {};
 
@@ -235,7 +236,7 @@ function mousePressed() {
       createMapConfPane();
     });
     $("#ctxMenu span.notifyConf").on("click", () => {
-      createMapConfPane();
+      createNotifyConfPane();
     });
     $("#ctxMenu span.logDisp").on("click", () => {
       astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
@@ -383,7 +384,7 @@ document.addEventListener('astilectron-ready', function () {
     createMapConfPane();
   });
   $("header.toolbar-header h1  button.notifyConf").on("click", () => {
-    createMapConfPane();
+    createNotifyConfPane();
   });
   $("header.toolbar-header h1  button.logDisp").on("click", () => {
     astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
@@ -411,6 +412,10 @@ document.addEventListener('astilectron-ready', function () {
         mapConf = message.payload;
         setWindowTitle();
         return { name: "mapConf", payload: "ok" };
+      }
+      case "notifyConf": {
+        notifyConf = message.payload;
+        return { name: "notifyConf", payload: "ok" };
       }
       case "nodes": {
         nodes = message.payload;

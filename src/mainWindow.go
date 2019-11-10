@@ -28,6 +28,35 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			}
 			return "ok", nil
 		}
+	case "notifyConf":
+		{
+			if len(m.Payload) > 0 {
+				if err := json.Unmarshal(m.Payload, &notifyConf); err != nil {
+					astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+					return "ng", err
+				}
+				if err := saveNotifyConfToDB(); err != nil {
+					astilog.Error(fmt.Sprintf("saveNotifyConfToDB  error=%v", err))
+					return "ng", err
+				}
+			}
+			return "ok", nil
+		}
+	case "notifyTest":
+		{
+			var notifyTestConf notifyConfEnt
+			if len(m.Payload) > 0 {
+				if err := json.Unmarshal(m.Payload, &notifyTestConf); err != nil {
+					astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+					return "ng", err
+				}
+				if err := sendTestMail(&notifyTestConf); err != nil {
+					astilog.Error(fmt.Sprintf("sendTestMail  error=%v", err))
+					return "ng", err
+				}
+			}
+			return "ok", nil
+		}
 	case "startDiscover":
 		{
 			if discoverStat.Running {
@@ -324,6 +353,10 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 func applyMapConf() {
 	if err := bootstrap.SendMessage(mainWindow, "mapConf", mapConf); err != nil {
 		astilog.Error(fmt.Sprintf("sendSendMessage mapConf error=%v", err))
+		return
+	}
+	if err := bootstrap.SendMessage(mainWindow, "notifyConf", notifyConf); err != nil {
+		astilog.Error(fmt.Sprintf("sendSendMessage notifyConf error=%v", err))
 		return
 	}
 }
