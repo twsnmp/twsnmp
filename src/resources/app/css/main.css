@@ -14,6 +14,10 @@
   background-color: rgb(250, 250, 250);
 }
 
+div.pane-group div.sidebar {
+  overflow: scroll;
+}
+
 #logDiv tbody tr td:last-child {
   white-space: normal;
 }
