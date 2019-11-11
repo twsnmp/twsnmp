@@ -13,7 +13,7 @@ import (
 func notifyBackend(ctx context.Context) {
 	lastLog := ""
 	lastLog = checkSendMail(lastLog)
-	i := 60
+	i := 0
 	for {
 		select {
 		case <-ctx.Done():
