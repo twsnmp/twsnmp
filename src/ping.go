@@ -193,7 +193,7 @@ func pingBackend(ctx context.Context) {
 			return
 		case p := <-pingSendCh:
 			if err := p.sendICMP(conn); err != nil {
-				astilog.Errorf("sendICMP err=%v", err)
+				astilog.Debugf("sendICMP err=%v", err)
 			}
 		default:
 			bytes := make([]byte, 2048)
@@ -212,11 +212,11 @@ func pingBackend(ctx context.Context) {
 						continue
 					}
 				}
-				astilog.Errorf("pingBackend err=%v", err)
+				astilog.Debugf("pingBackend err=%v", err)
 				continue
 			}
 			if err := processPacket(&packet{bytes: bytes, nbytes: n, ttl: ttl}); err != nil {
-				astilog.Errorf("pingBackend processPacket err=%v", err)
+				astilog.Debugf("pingBackend processPacket err=%v", err)
 			}
 		}
 	}

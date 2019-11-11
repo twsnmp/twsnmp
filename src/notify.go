@@ -19,7 +19,7 @@ func notifyBackend(ctx context.Context) {
 			return
 		case <-time.Tick(time.Second * 60):
 			i++
-			if i > notifyConf.Interval {
+			if i >= notifyConf.Interval {
 				i = 0
 				lastLog = checkSendMail(lastLog)
 			} 
