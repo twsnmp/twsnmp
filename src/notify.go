@@ -11,8 +11,9 @@ import (
 )
 
 func notifyBackend(ctx context.Context) {
-	lastLog := fmt.Sprintf("%016x", time.Now().Add(time.Minute * time.Duration(-notifyConf.Interval)).UnixNano())
-	i := 0
+	lastLog := ""
+	lastLog = checkSendMail(lastLog)
+	i := 60
 	for {
 		select {
 		case <-ctx.Done():
@@ -47,9 +48,10 @@ func checkSendMail(lastLog string) string{
 			return fmt.Sprintf("%016x", list[0].Time)
 		}
 		body := []string{}
+		ti := time.Now().Add(time.Duration(-notifyConf.Interval) * time.Minute).UnixNano()
 		for _,l := range list {
 			n := getLevelNum(l.Level)
-			if n > nl {
+			if n > nl || ti > l.Time {
 				continue
 			}
 			ts := time.Unix(0,l.Time).Local().Format(time.RFC3339Nano)
