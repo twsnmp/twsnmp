@@ -28,6 +28,10 @@ This project is to revive the TWSNMP Manager that was developed in 1999 and is s
 * Syslog受信
 * Netflow受信
 * Trap受信
+* MIBブラウザー
+* ログ検索表示
+* メール通知
+* ログ監視
 
 
 ![TWSNMP](https://assets.st-note.com/production/uploads/images/15118776/picture_pc_9d8f9c01141ab53f0c72ec1384cb36c4.png)
