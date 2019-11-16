@@ -133,7 +133,7 @@ func (p *pingEnt) waitPingResp() bool {
 	case <-p.done:
 		return true
 	case <-time.After(time.Duration(p.Timeout) * time.Second):
-		astilog.Errorf("Ping Timeout %v", p)
+		astilog.Debugf("Ping Timeout %v", p)
 		return false
 	}
 }

@@ -276,14 +276,15 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			dlgParam.NodeName2 = n2.Name
 			dlgParam.Pollings1 = []pollingEnt{}
 			dlgParam.Pollings2 = []pollingEnt{}
-			for _, p := range pollings {
-				if p.NodeID == l.NodeID1 {
-					dlgParam.Pollings1 = append(dlgParam.Pollings1, *p)
+			pollings.Range(func(_, p interface{}) bool {
+				if p.(*pollingEnt).NodeID == l.NodeID1 {
+					dlgParam.Pollings1 = append(dlgParam.Pollings1, *p.(*pollingEnt))
 				}
-				if p.NodeID == l.NodeID2 {
-					dlgParam.Pollings2 = append(dlgParam.Pollings2, *p)
+				if p.(*pollingEnt).NodeID == l.NodeID2 {
+					dlgParam.Pollings2 = append(dlgParam.Pollings2, *p.(*pollingEnt))
 				}
-			}
+				return true
+			})
 			return dlgParam, nil
 		}
 	case"showNodeInfo":
@@ -419,44 +420,48 @@ func updateNodeState(nodeID string) {
 		return
 	}
 	n.State = "unkown"
-	for _, p := range pollings {
-		if p.NodeID != nodeID {
-			continue
+	pollings.Range(func(_,p interface{}) bool {
+		if p.(*pollingEnt).NodeID != nodeID {
+			return true
 		}
-		if p.State == "high" {
+		s := p.(*pollingEnt).State
+		if s == "high" {
 			n.State = "high"
-			break
+			return false
 		}
-		if p.State == "low" {
+		if s == "low" {
 			n.State = "low"
-			continue
+			return true
 		}
 		if n.State == "low" {
-			continue
+			return true
 		}
-		if p.State == "repair" {
+		if  s == "repair" {
 			n.State = "repair"
 		}
 		if n.State == "repair" || n.State != "unkown" {
-			continue
+			return true
 		}
-		n.State = p.State
-	}
+		n.State = s
+		return true
+	})
 }
 
 func updateLineState() {
 	for _, l := range lines {
-		if p, ok := pollings[l.PollingID1]; ok {
-			l.State1 = p.State
+		if p, ok := pollings.Load(l.PollingID1); ok {
+			l.State1 = p.(*pollingEnt).State
 		}
-		if p, ok := pollings[l.PollingID2]; ok {
-			l.State2 = p.State
+		if p, ok := pollings.Load(l.PollingID2); ok {
+			l.State2 = p.(*pollingEnt).State
 		}
 	}
 }
 
 func checkAllPoll() {
-	for _,p := range pollings {
+	updateList := []*pollingEnt{}
+	pollings.Range(func (_,v interface{}) bool {
+		p := v.(*pollingEnt)
 		if p.State == "repair" {
 			p.State = "normal"
 			nodeName := "Unknown"
@@ -471,7 +476,11 @@ func checkAllPoll() {
 				NodeName: nodeName,
 				Event: "ポーリング復帰確認:" + p.Name,
 			})
-			updatePolling(p)
+			updateList = append(updateList,p)
 		}
+		return true
+	})
+	for _,p := range updateList{
+		updatePolling(p)
 	}
 }

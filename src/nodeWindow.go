@@ -120,9 +120,9 @@ func pollNow(m *bootstrap.MessageIn) (interface{}, error) {
 			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
-		if p, ok := pollings[id]; ok {
-			p.LastTime = 0
-			p.State = "unkown"
+		if p, ok := pollings.Load(id); ok {
+			p.(*pollingEnt).LastTime = 0
+			p.(*pollingEnt).State = "unkown"
 		} else {
 			astilog.Errorf("No Polling")
 			return "ng", nil
@@ -140,14 +140,16 @@ func showPolling(m *bootstrap.MessageIn) (interface{}, error) {
 			return "ng", err
 		}
 		var ok bool
+		var v interface{}
 		params := struct {
 			Polling *pollingEnt
 			Node    *nodeEnt	
 		}{}
-		if params.Polling, ok = pollings[id]; !ok {
+		if v, ok = pollings.Load(id); !ok {
 			astilog.Errorf("No Polling id=%s",id)
 			return "ng", nil
 		}
+		params.Polling = v.(*pollingEnt)
 		if params.Node,ok = nodes[params.Polling.NodeID];!ok {
 			astilog.Errorf("No Node id=%s",params.Polling.NodeID)
 			return "ng", nil
@@ -157,7 +159,6 @@ func showPolling(m *bootstrap.MessageIn) (interface{}, error) {
 			return "ng",err
 		}	
 		pollingWindow.Show()
-		pollingWindow.OpenDevTools()
 		return "ok", nil
 	}
 	return "ng", errInvalidNode

@@ -46,11 +46,13 @@ func pollingBackend(ctx context.Context) {
 		case <-time.Tick(time.Second * 10):
 			{
 				list := []*pollingEnt{}
-				for _,p := range pollings {
+				pollings.Range(func(_,v interface{}) bool {
+					p := v.(*pollingEnt)
 					if p.LastTime + (int64(p.PollInt) * 1000 * 1000 * 1000) < time.Now().UnixNano() {
 						list = append(list,p)
 					}
-				}
+					return true
+				})
 				sort.Slice(list,func (i,j int)bool {
 					return list[i].LastTime < list[j].LastTime 
 				})

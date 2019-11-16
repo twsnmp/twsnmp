@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	astilog "github.com/asticode/go-astilog"
@@ -21,7 +22,7 @@ var (
 	discoverConf      discoverConfEnt
 	nodes             = make(map[string]*nodeEnt)
 	lines             = make(map[string]*lineEnt)
-	pollings          = make(map[string]*pollingEnt)
+	pollings          = sync.Map{}
 	eventLogCh        = make(chan eventLogEnt, 100)
 	stopEventLoggerCh = make(chan bool)
 )
@@ -311,7 +312,7 @@ func loadMapDataFromDB() error {
 			b.ForEach(func(k, v []byte) error {
 				var p pollingEnt
 				if err := json.Unmarshal(v, &p); err == nil {
-					pollings[p.ID] = &p
+					pollings.Store(p.ID, &p)
 				}
 				return nil
 			})
@@ -376,10 +377,15 @@ func deleteNode(nodeID string) error {
 		return nil
 	})
 	delete(nodes, nodeID)
-	for k, v := range pollings {
-		if v.NodeID == nodeID {
-			deletePolling(k)
+	delList := []string{}
+	pollings.Range(func(k, v interface{}) bool {
+		if v.(*pollingEnt).NodeID == nodeID {
+			delList = append(delList, k.(string))
 		}
+		return true
+	})
+	for _, k := range delList {
+		deletePolling(k)
 	}
 	return nil
 }
@@ -458,7 +464,7 @@ func addPolling(p *pollingEnt) error {
 	}
 	for {
 		p.ID = makeKey()
-		if _, ok := pollings[p.ID]; !ok {
+		if _, ok := pollings.Load(p.ID); !ok {
 			break
 		}
 	}
@@ -471,7 +477,7 @@ func addPolling(p *pollingEnt) error {
 		b.Put([]byte(p.ID), s)
 		return nil
 	})
-	pollings[p.ID] = p
+	pollings.Store(p.ID, p)
 	return nil
 }
 
@@ -479,7 +485,7 @@ func updatePolling(p *pollingEnt) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	if _, ok := pollings[p.ID]; !ok {
+	if _, ok := pollings.Load(p.ID); !ok {
 		return errInvalidID
 	}
 	s, err := json.Marshal(p)
@@ -491,7 +497,7 @@ func updatePolling(p *pollingEnt) error {
 		b.Put([]byte(p.ID), s)
 		return nil
 	})
-	pollings[p.ID] = p
+	pollings.Store(p.ID, p)
 	return nil
 }
 
@@ -499,7 +505,7 @@ func deletePolling(pollingID string) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	if _, ok := pollings[pollingID]; !ok {
+	if _, ok := pollings.Load(pollingID); !ok {
 		return errInvalidID
 	}
 	db.Update(func(tx *bbolt.Tx) error {
@@ -507,7 +513,7 @@ func deletePolling(pollingID string) error {
 		b.Delete([]byte(pollingID))
 		return nil
 	})
-	delete(pollings, pollingID)
+	pollings.Delete(pollingID)
 	// Delete lines
 	for k, v := range lines {
 		if v.PollingID1 == pollingID || v.PollingID2 == pollingID {
@@ -520,22 +526,25 @@ func deletePolling(pollingID string) error {
 // getNodePollings : ノードを指定してポーリングリストを取得する
 func getNodePollings(nodeID string) []pollingEnt {
 	ret := []pollingEnt{}
-	for _, p := range pollings {
-		if p.NodeID == nodeID {
-			ret = append(ret, *p)
+	pollings.Range(func(_, p interface{}) bool {
+		if p.(*pollingEnt).NodeID == nodeID {
+			ret = append(ret, *p.(*pollingEnt))
 		}
-	}
+		return true
+	})
 	return ret
 }
 
 // getLogPollings : ログを監視するポーリングリストを取得する
 func getLogPollings() []pollingEnt {
 	ret := []pollingEnt{}
-	for _, p := range pollings {
-		if p.Type == "syslog" || p.Type == "trap" || p.Type == "netflow" || p.Type == "ipfix" {
-			ret = append(ret, *p)
+	pollings.Range(func(_, p interface{}) bool {
+		t := p.(*pollingEnt).Type
+		if t == "syslog" || t == "trap" || t == "netflow" || t == "ipfix" {
+			ret = append(ret, *p.(*pollingEnt))
 		}
-	}
+		return true
+	})
 	return ret
 }
 
