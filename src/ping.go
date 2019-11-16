@@ -67,25 +67,24 @@ var pingMap = &safePingMap{
 	v: make(map[int64]*pingEnt),
 }
 
-func (m *safePingMap) set(k int64, v *pingEnt) {
+func (m *safePingMap) set(k int64, v *pingEnt) bool {
 	m.mux.Lock()
+	if _, ok := m.v[k]; ok {
+		m.mux.Unlock()
+		return false
+	}
 	m.v[k] = v
 	m.mux.Unlock()
+	return true
 }
 
 func (m *safePingMap) get(k int64) *pingEnt {
 	m.mux.Lock()
 	defer m.mux.Unlock()
-	return m.v[k]
-}
-
-func (m *safePingMap) has(k int64) bool {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-	if _, ok := m.v[k]; ok {
-		return true
+	if r, ok := m.v[k]; ok {
+		return r
 	}
-	return false
+	return nil
 }
 
 func (m *safePingMap) del(k int64) {
@@ -94,16 +93,17 @@ func (m *safePingMap) del(k int64) {
 	m.mux.Unlock()
 }
 
+var randGen = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 func doPing(ip string, timeout, retry, size int) *pingEnt {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	var err error
 	var p = &pingEnt{
 		Target:  ip,
 		Timeout: timeout,
 		Retry:   retry,
 		Size:    size,
-		id:      r.Intn(math.MaxInt16),
-		Tracker: r.Int63n(math.MaxInt64),
+		id:      randGen.Intn(math.MaxInt16),
+		Tracker: randGen.Int63n(math.MaxInt64),
 		done:    make(chan bool),
 	}
 	if p.ipaddr, err = net.ResolveIPAddr("ip", ip); err != nil {
@@ -111,10 +111,10 @@ func doPing(ip string, timeout, retry, size int) *pingEnt {
 		return p
 	}
 	// 念のためTrackerの重複を防ぐ
-	for pingMap.has(p.Tracker) {
-		p.Tracker = r.Int63n(math.MaxInt64)
+	for !pingMap.set(p.Tracker, p) {
+		astilog.Debugf("Dup Tracker %v len=%d", p, len(pingMap.v))
+		p.Tracker++
 	}
-	pingMap.set(p.Tracker, p)
 	defer func() {
 		pingMap.del(p.Tracker)
 	}()
@@ -133,6 +133,7 @@ func (p *pingEnt) waitPingResp() bool {
 	case <-p.done:
 		return true
 	case <-time.After(time.Duration(p.Timeout) * time.Second):
+		astilog.Errorf("Ping Timeout %v", p)
 		return false
 	}
 }
@@ -193,7 +194,7 @@ func pingBackend(ctx context.Context) {
 			return
 		case p := <-pingSendCh:
 			if err := p.sendICMP(conn); err != nil {
-				astilog.Debugf("sendICMP err=%v", err)
+				astilog.Errorf("sendICMP err=%v", err)
 			}
 		default:
 			bytes := make([]byte, 2048)
@@ -212,7 +213,7 @@ func pingBackend(ctx context.Context) {
 						continue
 					}
 				}
-				astilog.Debugf("pingBackend err=%v", err)
+				astilog.Errorf("pingBackend err=%v", err)
 				continue
 			}
 			if err := processPacket(&packet{bytes: bytes, nbytes: n, ttl: ttl}); err != nil {
@@ -230,7 +231,7 @@ func processPacket(recv *packet) error {
 		return fmt.Errorf("error parsing icmp message: %s", err.Error())
 	}
 	if m.Type != ipv4.ICMPTypeEchoReply {
-		return fmt.Errorf("icmp message type != ICMPTypeEchoReply  : %v", m.Type)
+		return fmt.Errorf("icmp message type != ICMPTypeEchoReply  : %v", m)
 	}
 	switch pkt := m.Body.(type) {
 	case *icmp.Echo:
@@ -240,8 +241,7 @@ func processPacket(recv *packet) error {
 		}
 		tracker := bytesToInt(pkt.Data[timeSliceLength:])
 		timestamp := bytesToTime(pkt.Data[:timeSliceLength])
-		if pingMap.has(tracker) {
-			p := pingMap.get(tracker)
+		if p := pingMap.get(tracker); p != nil {
 			p.Time = receivedAt.Sub(timestamp).Nanoseconds()
 			p.Stat = pingOK
 			p.done <- true

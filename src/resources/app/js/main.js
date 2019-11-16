@@ -141,7 +141,6 @@ function mousePressed() {
   }
   if (selectNodeBack != selectNode) {
     updateNodeList();
-    redraw();
   }
   if (mouseButton === RIGHT) {
     let div;
@@ -243,8 +242,7 @@ function mousePressed() {
       });
     });
     $("#ctxMenu span.checkAllPoll").on("click", () => {
-      astilectron.sendMessage({ name: "checkAllPoll", payload: "" }, function (message) {
-      });
+      checkAllPoll();
     });
   }
   lastMouseX = mouseX;
@@ -301,7 +299,6 @@ function deleteNode() {
     delete nodes[selectNode];
     selectNode = "";
     updateNodeList();
-    redraw();
   });
 }
 
@@ -315,7 +312,6 @@ function dupNode() {
     }
     nodes[message.payload.ID] = message.payload;
     updateNodeList();
-    redraw();
   });
 }
 
@@ -357,11 +353,16 @@ function updateNodeList() {
         if (id != selectNode) {
           selectNode = id;
           updateNodeList();
-          redraw();
         }
       });
     }
   });
+  clearStatus();
+  for (let k in nodes) {
+    updateStatus(nodes[k]);
+  }
+  redraw();
+  showStatus();
 }
 
 
@@ -391,8 +392,7 @@ document.addEventListener('astilectron-ready', function () {
     });
   });
   $("header.toolbar-header h1  button.checkAllPoll").on("click", () => {
-    astilectron.sendMessage({ name: "checkAllPoll", payload: "" }, function (message) {
-    });
+    checkAllPoll();
   });
 
   log = $('#log_table').DataTable({
@@ -420,14 +420,10 @@ document.addEventListener('astilectron-ready', function () {
       case "nodes": {
         nodes = message.payload;
         setTimeout(() => {
-          clearStatus();
           for (let k in nodes) {
-            updateStatus(nodes[k]);
             addOrUpdateNode(nodes[k]);
           }
           updateNodeList();
-          redraw();
-          showStatus();
         }, 100);
         return { name: "nodes", payload: "ok" };
       }
@@ -472,6 +468,14 @@ document.addEventListener('astilectron-ready', function () {
     }
   });
 });
+
+function checkAllPoll() {
+  if (!confirm(`全てのノードの再確認を実施しますか?`)) {
+    return;
+  }
+  astilectron.sendMessage({ name: "checkAllPoll", payload: "" }, function (message) {
+  });
+}
 
 function setWindowTitle() {
   const t = "TWSNMP - " + mapConf.MapName;
