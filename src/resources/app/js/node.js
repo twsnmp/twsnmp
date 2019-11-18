@@ -345,7 +345,7 @@ function createEditPollingPane(id){
     options: {
       "重度": "high",
       "軽度": "low",
-      "警告": "warn",
+      "注意": "warn",
       "情報": "info",
     },
   });

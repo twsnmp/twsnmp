@@ -582,8 +582,8 @@ function makeCharts() {
 }
 
 function setupTimeVal() {
-  $(".log_btns input[name=start]").val(moment().subtract(1, "h").format("Y-MM-DDTHH:mm"));
-  $(".log_btns input[name=end]").val(moment().format("Y-MM-DDTHH:mm"));
+  $(".log_btns input[name=start]").val(moment().subtract(1, "h").format("Y-MM-DDTHH:00"));
+  $(".log_btns input[name=end]").val(moment().add(1,"h").format("Y-MM-DDTHH:00"));
 }
 
 document.addEventListener('astilectron-ready', function () {

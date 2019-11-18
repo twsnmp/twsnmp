@@ -219,7 +219,7 @@ function makeResultChart() {
 
 function setupTimeVal() {
   $(".toolbar-actions input[name=start]").val(moment().subtract(1, "h").format("Y-MM-DDTHH:00"));
-  $(".toolbar-actions input[name=end]").val(moment().format("Y-MM-DDTHH:00"));
+  $(".toolbar-actions input[name=end]").val(moment().add(1,"h").format("Y-MM-DDTHH:00"));
 }
 
 function clearData() {
