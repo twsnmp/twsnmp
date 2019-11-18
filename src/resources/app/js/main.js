@@ -6,6 +6,7 @@ let mapConf;
 let notifyConf;
 let nodes = {};
 let lines = {};
+let backimg;
 
 const status = {
   High: 0,
@@ -28,6 +29,9 @@ function setup() {
 
 function draw() {
   background(250);
+  if(backimg){
+    image(backimg,0,0);
+  }
   for (let k in lines) {
     if (!nodes[lines[k].NodeID1] || !nodes[lines[k].NodeID2]) {
       continue;
@@ -411,6 +415,11 @@ document.addEventListener('astilectron-ready', function () {
       case "mapConf": {
         mapConf = message.payload;
         setWindowTitle();
+        if(mapConf.BackImg ){
+          backimg = loadImage("./images/backimg");
+        } else {
+          backimg = undefined;
+        }
         return { name: "mapConf", payload: "ok" };
       }
       case "notifyConf": {

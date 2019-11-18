@@ -101,6 +101,15 @@ function createMapConfPane() {
       }
       mapConf = mapConfTmp;
       setWindowTitle();
+      if(mapConf.BackImg ){
+        loadImage("./images/backimg",img => {
+          backimg =  img;
+          redraw();
+        });
+      } else {
+        backimg = undefined;
+        redraw();
+      }
     });
     pane.dispose();
   });

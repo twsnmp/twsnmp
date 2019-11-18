@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"io"
+	"os"
+	"path/filepath"
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
@@ -25,6 +28,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 					astilog.Error(fmt.Sprintf("saveMapConfToDB  error=%v", err))
 					return "ng", err
 				}
+				updateBackImg()
 			}
 			return "ok", nil
 		}
@@ -380,6 +384,7 @@ func mainWindowBackend(ctx context.Context) {
 		updateNodeState(k)
 	}
 	updateLineState()
+	updateBackImg()
 	applyMapConf()
 	applyMapData()
 	for {
@@ -482,5 +487,27 @@ func checkAllPoll() {
 	})
 	for _,p := range updateList{
 		updatePolling(p)
+	}
+}
+
+func updateBackImg() {
+	path := filepath.Join(app.Paths().DataDirectory(), "resources","app","images", "backimg")
+	if mapConf.BackImg != "" {
+		os.Remove(path)
+		src,err := os.Open(mapConf.BackImg)
+		if err != nil {
+			astilog.Errorf("updateBackImg err=%v",err)
+			return
+		}
+		defer src.Close()
+		dst,err := os.Create(path)
+		if err != nil {
+			astilog.Errorf("updateBackImg err=%v",err)
+			return
+		}
+		defer dst.Close()
+		io.Copy(dst,src)
+	} else {
+		os.Remove(path)
 	}
 }
