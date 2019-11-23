@@ -26,6 +26,11 @@ div.pane-group div.sidebar {
   font-size: 20px;
 }
 
+#nodeList .list-group-item {
+  font-size: 10px;
+  padding: 4px;
+}
+
 .list-group-item.active, .list-group-item.selected {
   background-color: inherit;
   background-color: aliceblue;
