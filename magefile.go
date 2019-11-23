@@ -18,11 +18,12 @@ var pkgList = []string{
 	"github.com/twsnmp/go-mibdb",
 	"go.etcd.io/bbolt",
 	"github.com/signalsciences/ipv4",
-	"github.com/sparrc/go-ping",
 	"gopkg.in/mcuadros/go-syslog.v2",
 	"github.com/tehmaze/netflow",
 	"github.com/soniah/gosnmp",
 	"github.com/twsnmp/go-mibdb",
+	"github.com/konsorten/go-windows-terminal-sequences",
+	"github.com/mattn/go-colorable",
 }
 
 // Build 実行ファイルのビルド
