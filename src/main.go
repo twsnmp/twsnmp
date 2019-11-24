@@ -45,7 +45,10 @@ var (
 func main() {
 	// Init
 	flag.Parse()
-	astilog.FlagInit()
+	logConf := astilog.FlagConfig()
+	logConf.FullTimestamp = true
+	logConf.DisableTimestamp = false
+	astilog.SetLogger(astilog.New(logConf))
 	dbPath = flag.Arg(0)
 	if dbPath != "" {
 		if err := checkDB(dbPath); err != nil {

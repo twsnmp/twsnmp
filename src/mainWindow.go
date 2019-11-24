@@ -308,6 +308,19 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			nodeWindow.Show()
 			return "ok", nil
 		}
+	case"pollNow":
+		{
+			var nodeID string
+			if len(m.Payload) < 1 {
+				return "ng", errNoPayload
+			}
+			if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
+				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				return "ng", err
+			}
+			pollNowNode(nodeID)
+			return "ok", nil
+		}
 	case"showMIB":
 		{
 			var nodeID string
@@ -463,12 +476,41 @@ func updateLineState() {
 	}
 }
 
+func pollNowNode(nodeID string) {
+	nodeName := "Unknown"
+	if n,ok := nodes[nodeID]; ok {
+		nodeName = n.Name
+	}
+	updateList := []*pollingEnt{}
+	pollings.Range(func (_,v interface{}) bool {
+		p := v.(*pollingEnt)
+		if p.NodeID == nodeID && p.State != "normal" {
+			p.State = "unkown"
+			p.LastTime = 0
+			pollingStateChangeCh <- p
+			addEventLog(eventLogEnt{
+				Type:"user",
+				Level: p.State,
+				NodeID: p.NodeID,
+				NodeName: nodeName,
+				Event: "ポーリング再確認:" + p.Name,
+			})
+			updateList = append(updateList,p)
+		}
+		return true
+	})
+	for _,p := range updateList{
+		updatePolling(p)
+	}
+}
+
 func checkAllPoll() {
 	updateList := []*pollingEnt{}
 	pollings.Range(func (_,v interface{}) bool {
 		p := v.(*pollingEnt)
-		if p.State == "repair" {
-			p.State = "normal"
+		if p.State != "normal" {
+			p.State = "unkown"
+			p.LastTime = 0
 			nodeName := "Unknown"
 			if n,ok := nodes[p.NodeID]; ok {
 				nodeName = n.Name
@@ -479,7 +521,7 @@ func checkAllPoll() {
 				Level: p.State,
 				NodeID: p.NodeID,
 				NodeName: nodeName,
-				Event: "ポーリング復帰確認:" + p.Name,
+				Event: "ポーリング再確認:" + p.Name,
 			})
 			updateList = append(updateList,p)
 		}

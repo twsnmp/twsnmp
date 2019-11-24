@@ -155,6 +155,10 @@ function mousePressed() {
           <i class="fas fa-info-circle"></i>    
          情報
         </span>
+        <span class="nav-group-item pollNow">
+          <i class="fas fa-info-circle"></i>    
+         再確認
+        </span>
         <span class="nav-group-item showMIB">
           <i class="fas fa-info-circle"></i>    
          MIBブラウザ
@@ -194,7 +198,7 @@ function mousePressed() {
         </span>
         <span class="nav-group-item checkAllPoll">
         <i class="fas fa-check-square"></i>
-          全て確認
+          全て再確認
         </span>
         <span class="nav-group-item logDisp">
           <i class="fas fa-clipboard-list"></i>
@@ -215,6 +219,14 @@ function mousePressed() {
     $("#ctxMenu span.showNodeInfo").on("click", () => {
       if (selectNode != "") {
         astilectron.sendMessage({ name: "showNodeInfo", payload: selectNode }, function (message) {
+        });
+      }
+    });
+    $("#ctxMenu span.pollNow").on("click", () => {
+      if (selectNode != "") {
+        astilectron.sendMessage({ name: "pollNow", payload: selectNode }, function (message) {
+          nodes[selectNode].State = "unkown";
+          redraw();
         });
       }
     });

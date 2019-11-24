@@ -124,6 +124,7 @@ func doPing(ip string, timeout, retry, size int) *pingEnt {
 			return p
 		}
 	}
+	astilog.Infof("Ping timeout retry over %s", ip)
 	p.Stat = pingTimuout
 	return p
 }
