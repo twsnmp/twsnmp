@@ -30,6 +30,13 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				}
 				updateBackImg()
 			}
+			addEventLog(eventLogEnt{
+				Type:"user",
+				Level: "info",
+				NodeID: "",
+				NodeName: "",
+				Event: "MAP設定を更新",
+			})
 			return "ok", nil
 		}
 	case "notifyConf":
@@ -44,6 +51,13 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 					return "ng", err
 				}
 			}
+			addEventLog(eventLogEnt{
+				Type:"user",
+				Level: "info",
+				NodeID: "",
+				NodeName: "",
+				Event: "通知設定を更新",
+			})
 			return "ok", nil
 		}
 	case "notifyTest":
@@ -120,6 +134,13 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 						astilog.Errorf("editNode %s error=%v", m.Name, err)
 						return "ng", err
 					}
+					addEventLog(eventLogEnt{
+						Type:"user",
+						Level: "info",
+						NodeID: n.ID,
+						NodeName: n.Name,
+						Event: "ノード設定を更新",
+					})
 				}
 			}
 			applyMapData()
@@ -161,9 +182,17 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			if _, ok := nodes[nodeID]; !ok {
 				return "ng", errInvalidNode
 			}
+			name := nodes[nodeID].Name
 			if err := deleteNode(nodeID); err != nil {
 				return "ng", err
 			}
+			addEventLog(eventLogEnt{
+				Type:"user",
+				Level: "info",
+				NodeID: nodeID,
+				NodeName: name,
+				Event: "ノード削除",
+			})
 			return "ok", nil
 		}
 	case "dupNode":
@@ -189,9 +218,16 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			n.Icon = nodes[nodeID].Icon
 			n.State = nodes[nodeID].State
 			if err := addNode(&n); err != nil {
-				astilog.Error(fmt.Sprintf("addNode %s error=%v", m.Name, err))
+				astilog.Error(fmt.Sprintf("dupNode %s error=%v", m.Name, err))
 				return "ng", err
 			}
+			addEventLog(eventLogEnt{
+				Type:"user",
+				Level: "info",
+				NodeID: n.ID,
+				NodeName: n.Name,
+				Event: "ノード複製",
+			})
 			return n, nil
 		}
 	case "saveLine":
@@ -213,6 +249,24 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 						return "ng", err
 					}
 				}
+				if n,ok := nodes[l.NodeID1];ok {
+					addEventLog(eventLogEnt{
+						Type:"user",
+						Level: "info",
+						NodeID: l.NodeID1,
+						NodeName: n.Name,
+						Event: "ライン更新",
+					})
+				}
+				if n,ok := nodes[l.NodeID2];ok {
+					addEventLog(eventLogEnt{
+						Type:"user",
+						Level: "info",
+						NodeID: l.NodeID2,
+						NodeName: n.Name,
+						Event: "ライン更新",
+					})
+				}
 				updateLineState()
 			}
 			applyMapData()
@@ -233,6 +287,24 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				if err := deleteLine(l.ID); err != nil {
 					astilog.Error(fmt.Sprintf("deleteLine %s error=%v", m.Name, err))
 					return "ng", err
+				}
+				if n,ok := nodes[l.NodeID1];ok {
+					addEventLog(eventLogEnt{
+						Type:"user",
+						Level: "info",
+						NodeID: l.NodeID1,
+						NodeName: n.Name,
+						Event: "ライン削除",
+					})
+				}
+				if n,ok := nodes[l.NodeID2];ok {
+					addEventLog(eventLogEnt{
+						Type:"user",
+						Level: "info",
+						NodeID: l.NodeID2,
+						NodeName: n.Name,
+						Event: "ライン削除",
+					})
 				}
 			}
 			go applyMapData()

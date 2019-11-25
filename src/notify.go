@@ -12,7 +12,7 @@ import (
 
 func notifyBackend(ctx context.Context) {
 	lastLog := ""
-	lastLog = checkSendMail(lastLog)
+	lastLog = checkNotify(lastLog)
 	i := 0
 	for {
 		select {
@@ -22,7 +22,7 @@ func notifyBackend(ctx context.Context) {
 			i++
 			if i >= notifyConf.Interval {
 				i = 0
-				lastLog = checkSendMail(lastLog)
+				lastLog = checkNotify(lastLog)
 			} 
 		}
 	}
@@ -40,7 +40,7 @@ func getLevelNum(l string) int {
 	return 3
 }
 
-func checkSendMail(lastLog string) string{
+func checkNotify(lastLog string) string{
 	list := getEventLogList(lastLog, 1000)
 	if len(list) > 0 {
 		nl := getLevelNum(notifyConf.Level)
@@ -68,6 +68,9 @@ func checkSendMail(lastLog string) string{
 }
 
 func sendMail(subject,body string) error {
+	if notifyConf.MailServer == "" || notifyConf.MailFrom == "" || notifyConf.MailTo == "" {
+		return nil
+	}
 	tlsconfig := &tls.Config{
 		ServerName:         notifyConf.MailServer,
 		InsecureSkipVerify: notifyConf.InsecureSkipVerify,
@@ -106,6 +109,7 @@ func sendMail(subject,body string) error {
 	message += "\r\n" + convNewline(body,"\r\n")
 	w.Write([]byte(message))
 	c.Quit()
+	astilog.Infof("Send Mail to %s",notifyConf.MailTo)
 	return nil
 }
 
