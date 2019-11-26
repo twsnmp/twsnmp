@@ -124,7 +124,7 @@ func doPing(ip string, timeout, retry, size int) *pingEnt {
 			return p
 		}
 	}
-	astilog.Infof("Ping timeout retry over %s", ip)
+	astilog.Debugf("Ping timeout retry over %s", ip)
 	p.Stat = pingTimuout
 	return p
 }
@@ -195,7 +195,7 @@ func pingBackend(ctx context.Context) {
 			return
 		case p := <-pingSendCh:
 			if err := p.sendICMP(conn); err != nil {
-				astilog.Errorf("sendICMP err=%v", err)
+				astilog.Debugf("sendICMP err=%v", err)
 			}
 		default:
 			bytes := make([]byte, 2048)
@@ -232,13 +232,13 @@ func processPacket(recv *packet) error {
 		return fmt.Errorf("error parsing icmp message: %s", err.Error())
 	}
 	if m.Type != ipv4.ICMPTypeEchoReply {
-		return fmt.Errorf("icmp message type != ICMPTypeEchoReply  : %v", m)
+		astilog.Debugf("icmp message type != ICMPTypeEchoReply  : %v", m)
+		return nil
 	}
 	switch pkt := m.Body.(type) {
 	case *icmp.Echo:
 		if len(pkt.Data) < timeSliceLength+trackerLength {
-			return fmt.Errorf("insufficient data received; got: %d %v",
-				len(pkt.Data), pkt.Data)
+			return fmt.Errorf("insufficient data received; got: %d %v", len(pkt.Data), pkt.Data)
 		}
 		tracker := bytesToInt(pkt.Data[timeSliceLength:])
 		timestamp := bytesToTime(pkt.Data[:timeSliceLength])

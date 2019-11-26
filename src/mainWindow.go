@@ -21,11 +21,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		{
 			if len(m.Payload) > 0 {
 				if err := json.Unmarshal(m.Payload, &mapConf); err != nil {
-					astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 					return "ng", err
 				}
 				if err := saveMapConfToDB(); err != nil {
-					astilog.Error(fmt.Sprintf("saveMapConfToDB  error=%v", err))
+					astilog.Errorf("saveMapConfToDB  error=%v", err)
 					return "ng", err
 				}
 				updateBackImg()
@@ -43,11 +43,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		{
 			if len(m.Payload) > 0 {
 				if err := json.Unmarshal(m.Payload, &notifyConf); err != nil {
-					astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 					return "ng", err
 				}
 				if err := saveNotifyConfToDB(); err != nil {
-					astilog.Error(fmt.Sprintf("saveNotifyConfToDB  error=%v", err))
+					astilog.Errorf("saveNotifyConfToDB  error=%v", err)
 					return "ng", err
 				}
 			}
@@ -65,11 +65,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			var notifyTestConf notifyConfEnt
 			if len(m.Payload) > 0 {
 				if err := json.Unmarshal(m.Payload, &notifyTestConf); err != nil {
-					astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 					return "ng", err
 				}
 				if err := sendTestMail(&notifyTestConf); err != nil {
-					astilog.Error(fmt.Sprintf("sendTestMail  error=%v", err))
+					astilog.Errorf("sendTestMail  error=%v", err)
 					return "ng", err
 				}
 			}
@@ -82,11 +82,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			}
 			if len(m.Payload) > 0 {
 				if err := json.Unmarshal(m.Payload, &discoverConf); err != nil {
-					astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 					return "ng", err
 				}
 				if err := saveDiscoverConfToDB(); err != nil {
-					astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 					return "ng", err
 				}
 				startDiscover()
@@ -153,18 +153,18 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", errNoPayload
 			}
 			if err := json.Unmarshal(m.Payload, &n); err != nil {
-				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 				return "ng", err
 			}
 			ntmp, ok := nodes[n.ID]
 			if !ok {
-				astilog.Error(fmt.Sprintf("%s  invalid node %s", m.Name, n.ID))
+				astilog.Errorf("%s  invalid node %s", m.Name, n.ID)
 				return "ng", errInvalidNode
 			}
 			ntmp.X = n.X
 			ntmp.Y = n.Y
 			if err := updateNode(ntmp); err != nil {
-				astilog.Error(fmt.Sprintf("editNode %s error=%v", m.Name, err))
+				astilog.Errorf("editNode %s error=%v", m.Name, err)
 				return "ng", err
 			}
 			return "ok", nil
@@ -176,7 +176,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", errNoPayload
 			}
 			if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 				return "ng", err
 			}
 			if _, ok := nodes[nodeID]; !ok {
@@ -202,7 +202,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", errNoPayload
 			}
 			if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 				return "ng", err
 			}
 			if _, ok := nodes[nodeID]; !ok {
@@ -218,7 +218,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			n.Icon = nodes[nodeID].Icon
 			n.State = nodes[nodeID].State
 			if err := addNode(&n); err != nil {
-				astilog.Error(fmt.Sprintf("dupNode %s error=%v", m.Name, err))
+				astilog.Errorf("dupNode %s error=%v", m.Name, err)
 				return "ng", err
 			}
 			addEventLog(eventLogEnt{
@@ -235,17 +235,17 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			if len(m.Payload) > 0 {
 				var l lineEnt
 				if err := json.Unmarshal(m.Payload, &l); err != nil {
-					astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 					return "ng", err
 				}
 				if l.ID == "" {
 					if err := addLine(&l); err != nil {
-						astilog.Error(fmt.Sprintf("addLine %s error=%v", m.Name, err))
+						astilog.Errorf("addLine %s error=%v", m.Name, err)
 						return "ng", err
 					}
 				} else {
 					if err := updateLine(&l); err != nil {
-						astilog.Error(fmt.Sprintf("updateLine %s error=%v", m.Name, err))
+						astilog.Errorf("updateLine %s error=%v", m.Name, err)
 						return "ng", err
 					}
 				}
@@ -277,15 +277,15 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			if len(m.Payload) > 0 {
 				var l lineEnt
 				if err := json.Unmarshal(m.Payload, &l); err != nil {
-					astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 					return "ng", err
 				}
 				if l.ID == "" {
-					astilog.Error(fmt.Sprintf("delLine %s ", m.Name))
+					astilog.Errorf("delLine %s ", m.Name)
 					return "ng", errInvalidID
 				}
 				if err := deleteLine(l.ID); err != nil {
-					astilog.Error(fmt.Sprintf("deleteLine %s error=%v", m.Name, err))
+					astilog.Errorf("deleteLine %s error=%v", m.Name, err)
 					return "ng", err
 				}
 				if n,ok := nodes[l.NodeID1];ok {
@@ -317,17 +317,17 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", errNoPayload
 			}
 			if err := json.Unmarshal(m.Payload, &l); err != nil {
-				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 				return "ng", err
 			}
 			n1, ok := nodes[l.NodeID1]
 			if !ok {
-				astilog.Error(fmt.Sprintf("Invalid Node %s", m.Name))
+				astilog.Errorf("Invalid Node %s", m.Name)
 				return "ng", errInvalidNode
 			}
 			n2, ok := nodes[l.NodeID2]
 			if !ok {
-				astilog.Error(fmt.Sprintf("Invalid Node %s", m.Name))
+				astilog.Errorf("Invalid Node %s", m.Name)
 				return "ng", errInvalidNode
 			}
 			var dlgParam struct {
@@ -370,11 +370,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", errNoPayload
 			}
 			if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 				return "ng", err
 			}
 			if err := bootstrap.SendMessage(nodeWindow, "setNodeID",nodeID); err != nil {
-				astilog.Error(fmt.Sprintf("sendSendMessage %s error=%v",m.Name, err))
+				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
 				return "ng",err
 			}	
 			nodeWindow.Show()
@@ -387,7 +387,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", errNoPayload
 			}
 			if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 				return "ng", err
 			}
 			pollNowNode(nodeID)
@@ -400,7 +400,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", errNoPayload
 			}
 			if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 				return "ng", err
 			}
 			params := struct {
@@ -418,7 +418,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			}
 			params.NodeName = n.Name
 			if err := bootstrap.SendMessage(mibWindow, "setParams",params); err != nil {
-				astilog.Error(fmt.Sprintf("sendSendMessage %s error=%v",m.Name, err))
+				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
 				return "ng",err
 			}	
 			mibWindow.Show()
@@ -427,7 +427,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 	case"logDisp":
 		{
 			if err := bootstrap.SendMessage(logWindow, "show",""); err != nil {
-				astilog.Error(fmt.Sprintf("sendSendMessage %s error=%v",m.Name, err))
+				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
 				return "ng",err
 			}	
 			logWindow.Show()
@@ -442,22 +442,22 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 
 func applyMapConf() {
 	if err := bootstrap.SendMessage(mainWindow, "mapConf", mapConf); err != nil {
-		astilog.Error(fmt.Sprintf("sendSendMessage mapConf error=%v", err))
+		astilog.Errorf("sendSendMessage mapConf error=%v", err)
 		return
 	}
 	if err := bootstrap.SendMessage(mainWindow, "notifyConf", notifyConf); err != nil {
-		astilog.Error(fmt.Sprintf("sendSendMessage notifyConf error=%v", err))
+		astilog.Errorf("sendSendMessage notifyConf error=%v", err)
 		return
 	}
 }
 
 func applyMapData() {
 	if err := bootstrap.SendMessage(mainWindow, "nodes", nodes); err != nil {
-		astilog.Error(fmt.Sprintf("sendSendMessage nodes error=%v", err))
+		astilog.Errorf("sendSendMessage nodes error=%v", err)
 		return
 	}
 	if err := bootstrap.SendMessage(mainWindow, "lines", lines); err != nil {
-		astilog.Error(fmt.Sprintf("sendSendMessage lines error=%v", err))
+		astilog.Errorf("sendSendMessage lines error=%v", err)
 		return
 	}
 }
@@ -481,6 +481,7 @@ func mainWindowBackend(ctx context.Context) {
 		case <-time.Tick(time.Second * 5):
 			lastLog = sendLogs(lastLog)
 			if len(stateCheckNodes) > 0 {
+				astilog.Infof("stateCheckNodes len=%d",len(stateCheckNodes))
 				for k := range stateCheckNodes {
 					updateNodeState(k)
 					delete(stateCheckNodes, k)
@@ -496,7 +497,7 @@ func sendLogs(lastLog string) string {
 	list := getEventLogList(lastLog, mapConf.LogDispSize)
 	if len(list) > 0 {
 		if err := bootstrap.SendMessage(mainWindow, "logs", list); err != nil {
-			astilog.Error(fmt.Sprintf("sendSendMessage logs error=%v", err))
+			astilog.Errorf("sendSendMessage logs error=%v", err)
 		} else {
 			return fmt.Sprintf("%016x", list[0].Time)
 		}

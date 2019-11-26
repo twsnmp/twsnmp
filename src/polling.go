@@ -53,9 +53,10 @@ func pollingBackend(ctx context.Context) {
 					}
 					return true
 				})
-				if len(list) > 0 {
-					astilog.Infof("polling Len=%d",len(list))
+				if len(list) < 1 {
+					continue
 				}
+				astilog.Infof("polling Len=%d",len(list))
 				sort.Slice(list,func (i,j int)bool {
 					return list[i].LastTime < list[j].LastTime 
 				})
