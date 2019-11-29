@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
 	"path/filepath"
+	"runtime"
+	"runtime/pprof"
 	"time"
 
 	astilectron "github.com/asticode/go-astilectron"
@@ -20,6 +23,8 @@ var (
 	BuiltAt       string
 	dbPath        string
 	debug         = flag.Bool("d", false, "enables the debug mode")
+	cpuprofile    = flag.String("cpuprofile", "", "write cpu profile to `file`")
+	memprofile    = flag.String("memprofile", "", "write memory profile to `file`")
 	startWindow   *astilectron.Window
 	mainWindow    *astilectron.Window
 	nodeWindow    *astilectron.Window
@@ -45,6 +50,28 @@ var (
 func main() {
 	// Init
 	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			astilog.Fatalf("could not create CPU profile: %v", err)
+		}
+		defer f.Close()
+		if err := pprof.StartCPUProfile(f); err != nil {
+			astilog.Fatalf("could not start CPU profile: %v", err)
+		}
+		defer pprof.StopCPUProfile()
+	}
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			astilog.Fatalf("could not create memory profile: %v", err)
+		}
+		defer f.Close()
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			astilog.Fatalf("could not write memory profile:%v", err)
+		}
+	}
 	logConf := astilog.FlagConfig()
 	logConf.FullTimestamp = true
 	logConf.DisableTimestamp = false
