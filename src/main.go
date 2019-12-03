@@ -377,6 +377,7 @@ func startBackend(ctx context.Context) {
 		if err := openDB(dbPath); err != nil {
 			astilog.Fatal(fmt.Sprintf("running bootstrap failed err=%v", err))
 		}
+		loadMIBDB()
 		go mainWindowBackend(ctx)
 		go eventLogger(ctx)
 		addEventLog(eventLogEnt{

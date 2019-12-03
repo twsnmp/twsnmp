@@ -112,6 +112,9 @@ document.addEventListener('astilectron-ready', function () {
     astilectron.sendMessage({ name: "close", payload: "" }, message => {
     });
   });
+  $('.toolbar-header button.mibDB').click(() => {
+    createMIBDBPane();
+  });
   $('.toolbar-actions button.get').click(() => {
     const params = {
       NodeID: nodeID,
@@ -179,5 +182,63 @@ document.addEventListener('astilectron-ready', function () {
 function setWindowTitle(n){
   const t = "MIBブラウザー - " + n;
   $("title").html(t);
-  $("h1.title").html(t);
+  $("h1.title span").html(t);
+}
+
+function createMIBDBPane() {
+  astilectron.sendMessage({ name: "getMIBModuleList", payload: "" }, message => {
+    if(!message.payload) {
+      astilectron.showErrorBox("MIBデータベース", "リストを取得できません。");
+      return;
+    }
+    const MIBModuleList = {} 
+    message.payload.forEach(e => MIBModuleList[e] = e);
+    const tmpParams = {
+      MIBModule: ""
+    };
+    const pane = new Tweakpane({
+      title: "MIBデータベース"
+    });
+    pane.addButton({
+      title: 'MIB追加',
+    }).on('click', (value) => {
+      astilectron.showOpenDialog({ properties: ['openFile'], title: "MIB追加" }, function (paths) {
+        if(paths && paths[0]){
+          astilectron.sendMessage({ name: "addMIBFile", payload: paths[0] }, message => {
+            if(message.payload !== "ok") {
+              astilectron.showErrorBox("MIBファイル追加",message.payload);
+              return
+            }
+            pane.dispose();
+            setTimeout(createMIBDBPane,100);
+            return
+          });
+        }
+      });
+    });
+    pane.addInput(tmpParams, 'MIBModule', { 
+      label: "MIB",
+      options: MIBModuleList
+    });
+    pane.addButton({
+      title: 'MIB削除',
+    }).on('click', (value) => {
+      if(tmpParams.MIBModule){
+        astilectron.sendMessage({ name: "delMIBModule", payload: tmpParams.MIBModule }, message => {
+          if(message.payload !== "ok") {
+            astilectron.showErrorBox("MIB削除",message.payload);
+            return
+          }
+          pane.dispose();
+          setTimeout(createMIBDBPane,100);
+          return
+        });
+      }
+    });
+    pane.addButton({
+      title: 'Close',
+    }).on('click', (value) => {
+      pane.dispose();
+    });  
+  }); 
 }

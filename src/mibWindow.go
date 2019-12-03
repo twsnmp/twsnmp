@@ -5,17 +5,33 @@ import (
 	"time"
 	"fmt"
 	"strings"
+	"bytes"
 
 	gosnmp "github.com/soniah/gosnmp"
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
 	astilog "github.com/asticode/go-astilog"
+	"github.com/sleepinggenius2/gosmi/parser"
 )
 
 // mibMessageHandler handles messages
 func mibMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{},error) {
 	switch m.Name {
+		case "getMIBModuleList":
+			return getMIBModuleList(),nil
+		case "addMIBFile":
+			if err:= addMIBFile(&m);err != nil {
+				astilog.Error(err)
+				return fmt.Sprintf("%v",err),err
+			}
+			return "ok",nil
+		case "delMIBModule":
+			if err:= delMIBModule(&m);err != nil {
+				astilog.Error(err)
+				return fmt.Sprintf("%v",err),err
+			}
+			return "ok",nil
 		case "close":
 			mibWindow.Hide()
 			return "ok",nil
@@ -90,3 +106,124 @@ func snmpWalk(nodeID,mibName string) ([]string,error) {
 	})
 	return ret,err
 }
+
+
+func addMIBFile(m *bootstrap.MessageIn) error {
+	if len(m.Payload) < 1 {
+		return errInvalidParams
+	}
+	var path string
+	if err := json.Unmarshal(m.Payload, &path); err != nil {
+		return fmt.Errorf("Unmarshal %s error=%v", m.Name, err)
+	}
+	var nameList []string
+	var mapNameToOID = make(map[string]string)
+	for _, name := range mib.GetNameList() {
+		mapNameToOID[name] = mib.NameToOID(name)
+	}
+	module, err := parser.ParseFile(path)
+	if err != nil {
+		return fmt.Errorf("ParseFile %s error=%v", m.Name, err)
+	}
+	key := module.Name.String()
+	if module.Body.Identity != nil {
+		name := module.Body.Identity.Name.String()
+		oid := getOid(&module.Body.Identity.Oid)
+		mapNameToOID[name] = oid
+		nameList = append(nameList, name)
+	}
+	for _, n := range module.Body.Nodes {
+		name := n.Name.String()
+		mapNameToOID[name] = getOid(n.Oid)
+		nameList = append(nameList, name)
+	}
+	for _, name := range nameList {
+		oid, ok := mapNameToOID[name]
+		if !ok {
+			return fmt.Errorf("Can not find mib name %s", name)
+		}
+		a := strings.SplitN(oid, ".", 2)
+		if len(a) < 2 {
+			return fmt.Errorf("Can not split mib name=%s oid=%s", name, oid)
+		}
+		noid, ok := mapNameToOID[a[0]]
+		if !ok {
+			return fmt.Errorf("Can not split mib name=%s oid=%s", name, a[0])
+		}
+		mapNameToOID[name] = noid + "." + a[1]
+	}
+	return putMIBFileToDB(key, path)
+}
+
+func delMIBModule(m *bootstrap.MessageIn) error {
+	if len(m.Payload) < 1 {
+		return errInvalidParams
+	}
+	var key string
+	if err := json.Unmarshal(m.Payload, &key); err != nil {
+		return fmt.Errorf("Unmarshal %s error=%v", m.Name, err)
+	}
+	return delMIBModuleFromDB(key)
+}
+
+func getOid(oid *parser.Oid) string {
+	ret := ""
+	for _, o := range oid.SubIdentifiers {
+		if o.Name != nil {
+			ret += o.Name.String()
+		}
+		if o.Number != nil {
+			ret += fmt.Sprintf(".%d", int(*o.Number))
+		}
+	}
+	return ret
+}
+
+func loadMIBDB() error {
+	var nameList []string
+	var mapNameToOID = make(map[string]string)
+	for _, name := range mib.GetNameList() {
+		mapNameToOID[name] = mib.NameToOID(name)
+	}
+	for _, m := range getMIBModuleList() {
+		asn1 := getMIBModule(m)
+		module, err := parser.Parse(bytes.NewReader(asn1))
+		if err != nil || module == nil {
+			continue
+		}
+		if module.Body.Identity != nil {
+			name := module.Body.Identity.Name.String()
+			oid := getOid(&module.Body.Identity.Oid)
+			mapNameToOID[name] = oid
+			nameList = append(nameList, name)
+		}
+		for _, n := range module.Body.Nodes {
+			name := n.Name.String()
+			mapNameToOID[name] = getOid(n.Oid)
+			nameList = append(nameList, name)
+		}
+		for _, name := range nameList {
+			oid, ok := mapNameToOID[name]
+			if !ok {
+				astilog.Errorf("Can not find mib name %s", name)
+				continue
+			}
+			a := strings.SplitN(oid, ".", 2)
+			if len(a) < 2 {
+				astilog.Errorf("Can not split mib name=%s oid=%s", name, oid)
+				continue
+			}
+			noid, ok := mapNameToOID[a[0]]
+			if !ok {
+				astilog.Errorf("Can not split mib name=%s oid=%s", name, a[0])
+				continue
+			}
+			mapNameToOID[name] = noid + "." + a[1]
+		}
+		for _, name := range nameList {
+			mib.Add(name, mapNameToOID[name])
+		}
+	}
+	return nil
+}
+

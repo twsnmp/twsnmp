@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"regexp"
 	"strings"
 	"sync"
@@ -161,7 +162,7 @@ func openDB(path string) error {
 }
 
 func initDB() error {
-	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix"}
+	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "mibdb"}
 	mapConf.Community = "public"
 	mapConf.PollInt = 60
 	mapConf.Retry = 1
@@ -827,6 +828,67 @@ func deleteOldLogs() {
 			astilog.Errorf("deleteOldLog err=%v")
 		}
 	}
+}
+
+func getMIBModuleList() []string {
+	ret := []string{}
+	if db == nil {
+		return ret
+	}
+	db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("mibdb"))
+		if b == nil {
+			return nil
+		}
+		b.ForEach(func(k, v []byte) error {
+			ret = append(ret, string(k))
+			return nil
+		})
+		return nil
+	})
+	return ret
+}
+
+func getMIBModule(m string) []byte {
+	ret := []byte{}
+	if db == nil {
+		return ret
+	}
+	db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("mibdb"))
+		if b == nil {
+			return nil
+		}
+		ret = b.Get([]byte(m))
+		return nil
+	})
+	return ret
+}
+
+func putMIBFileToDB(m, path string) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	d, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("mibdb"))
+		b.Put([]byte(m), d)
+		return nil
+	})
+}
+
+func delMIBModuleFromDB(m string) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("mibdb"))
+		b.Delete([]byte(m))
+		return nil
+	})
 }
 
 func closeDB() {
