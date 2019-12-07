@@ -21,8 +21,11 @@ import (
 	"strings"
 	"fmt"
 	"strconv"
-	"sort"
 	"regexp"
+	"sort"
+	"runtime"
+	"os"
+	"runtime/pprof"
 
 	gosnmp "github.com/soniah/gosnmp"
 
@@ -32,37 +35,50 @@ import (
 
 var (
 	pollingStateChangeCh = make(chan *pollingEnt,10)
+	doPollingCh = make(chan bool,10)
 )
 
 func pollingBackend(ctx context.Context) {
 	go pingBackend(ctx)
 	time.Sleep(time.Millisecond*100)
+	skip1 := 0
+	skip2 := 0
+	var nextPoll int64
 	for {
 		select {
 		case <-ctx.Done():
+			return
+		case  <- doPollingCh:
 			{
-				return
-			}
-		case <-time.Tick(time.Second * 10):
-			{
+				now := time.Now().UnixNano()
+				if nextPoll > now {
+					skip1++
+					continue
+				}
+				nextPoll = now + (1000 * 1000 * 1000) * 2
 				list := []*pollingEnt{}
 				pollings.Range(func(_,v interface{}) bool {
 					p := v.(*pollingEnt)
-					if p.LastTime + (int64(p.PollInt) * 1000 * 1000 * 1000) < time.Now().UnixNano() {
+					if p.LastTime + (int64(p.PollInt) * 1000 * 1000 * 1000) < now {
 						list = append(list,p)
 					}
 					return true
 				})
 				if len(list) < 1 {
+					skip2++
 					continue
 				}
-				astilog.Infof("polling Len=%d",len(list))
+				astilog.Infof("polling Len=%d NumGoroutine=%d skip1=%d skip2=%d",len(list),runtime.NumGoroutine(),skip1,skip2)
+				if runtime.NumGoroutine() > 10000 {
+					pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+				}
 				sort.Slice(list,func (i,j int)bool {
 					return list[i].LastTime < list[j].LastTime 
 				})
-				for i:=0; i < 100 && i < len(list);i++ {
+				for i:=0; i < len(list);i++ {
 					list[i].LastTime = time.Now().UnixNano()
 					go doPolling(list[i])
+					time.Sleep(time.Millisecond * 1)
 				}
 			}
 		}

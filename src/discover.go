@@ -122,7 +122,8 @@ func startDiscover() error {
 			Type: "system",
 			Level:"info",
 			Event: fmt.Sprintf("自動発見終了 %s - %s",discoverConf.StartIP,discoverConf.EndIP),
-		})	
+		})
+		doPollingCh <- true
 	}()
 	return nil
 }

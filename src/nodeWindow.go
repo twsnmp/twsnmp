@@ -87,7 +87,8 @@ func savePolling(m *bootstrap.MessageIn) (interface{}, error) {
 		} else {
 			p.LastResult = ""
 			p.LastTime = 0
-			p.State ="unkown"	
+			p.State ="unkown"
+			doPollingCh <- true
 			if err := updatePolling(&p); err != nil {
 				astilog.Errorf("updatePolling %s error=%v", m.Name, err)
 				return "ng", err
@@ -127,6 +128,7 @@ func pollNow(m *bootstrap.MessageIn) (interface{}, error) {
 			astilog.Errorf("No Polling")
 			return "ng", nil
 		}
+		doPollingCh <- true
 		return "ok", nil
 	}
 	return "ng", errInvalidNode

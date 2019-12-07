@@ -70,7 +70,7 @@ func logger(ctx context.Context) {
 		case <-time.Tick(time.Second * 10):
 			{
 				if len(logBuffer) > 0 {
-					astilog.Infof("saveLogBuffer len=%d",len(logBuffer))
+					astilog.Infof("Save Logs %d",len(logBuffer))
 					saveLogBuffer(logBuffer)
 					logBuffer = []*logEnt{}
 				}

@@ -472,6 +472,7 @@ func mainWindowBackend(ctx context.Context) {
 	updateBackImg()
 	applyMapConf()
 	applyMapData()
+	i := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -479,9 +480,14 @@ func mainWindowBackend(ctx context.Context) {
 		case p := <-pollingStateChangeCh:
 			stateCheckNodes[p.NodeID] = true
 		case <-time.Tick(time.Second * 5):
+			i++
+			if i > 6 {
+				doPollingCh <- true
+				i = 0
+			}
 			lastLog = sendLogs(lastLog)
 			if len(stateCheckNodes) > 0 {
-				astilog.Infof("stateCheckNodes len=%d",len(stateCheckNodes))
+				astilog.Infof("State Change Nodes %d",len(stateCheckNodes))
 				for k := range stateCheckNodes {
 					updateNodeState(k)
 					delete(stateCheckNodes, k)
@@ -496,6 +502,7 @@ func mainWindowBackend(ctx context.Context) {
 func sendLogs(lastLog string) string {
 	list := getEventLogList(lastLog, mapConf.LogDispSize)
 	if len(list) > 0 {
+		astilog.Infof("Send Logs %d",len(list))
 		if err := bootstrap.SendMessage(mainWindow, "logs", list); err != nil {
 			astilog.Errorf("sendSendMessage logs error=%v", err)
 		} else {
@@ -575,6 +582,7 @@ func pollNowNode(nodeID string) {
 	for _,p := range updateList{
 		updatePolling(p)
 	}
+	doPollingCh <- true
 }
 
 func checkAllPoll() {
@@ -603,6 +611,7 @@ func checkAllPoll() {
 	for _,p := range updateList{
 		updatePolling(p)
 	}
+	doPollingCh <- true
 }
 
 func updateBackImg() {

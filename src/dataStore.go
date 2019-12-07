@@ -919,7 +919,7 @@ func eventLogger(ctx context.Context) {
 		case e := <-eventLogCh:
 			{
 				list = append(list, e)
-				if len(list) > 1000 {
+				if len(list) > 100 {
 					saveLogList(list)
 					list = []eventLogEnt{}
 				}
@@ -928,7 +928,7 @@ func eventLogger(ctx context.Context) {
 			{
 				deleteOldLogs()
 			}
-		case <-time.Tick(time.Second * 10):
+		case <-time.Tick(time.Second * 5):
 			{
 				if len(list) > 0 {
 					saveLogList(list)
