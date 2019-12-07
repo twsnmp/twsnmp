@@ -238,14 +238,14 @@ function mousePressed() {
     });
     $("#ctxMenu span.editNode").on("click", () => {
       if (selectNode != "") {
-        createEditNodePane(lastMouseX, lastMouseX, selectNode);
+        createEditNodePane(lastMouseX, lastMouseY, selectNode);
       }
     });
     $("#ctxMenu span.startDiscover").on("click", () => {
       createStartDiscoverPane(lastMouseX, lastMouseY);
     });
     $("#ctxMenu span.addNode").on("click", () => {
-      createEditNodePane(lastMouseX, lastMouseX, selectNode);
+      createEditNodePane(lastMouseX, lastMouseY, "");
     });
     $("#ctxMenu span.mapConf").on("click", () => {
       createMapConfPane();

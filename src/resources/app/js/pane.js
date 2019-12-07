@@ -198,8 +198,8 @@ function createStartDiscoverPane(x,y) {
       createDiscoverStatPane(discoverStat);
       return;
     }
-    discoverConf.X= x;
-    discoverConf.Y= y;
+    discoverConf.X= Math.round(x);
+    discoverConf.Y= Math.round(y);
     const pane = new Tweakpane({
       title: "自動発見"
     });
@@ -317,8 +317,8 @@ function createEditNodePane(x,y,nodeID) {
       Name: "",
       Icon: "desktop",
       Descr: "",
-      X: x,
-      Y: y,
+      X: Math.round(x),
+      Y: Math.round(y),
       IP: "",
       Community: "",
     };
