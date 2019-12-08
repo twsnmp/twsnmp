@@ -397,17 +397,20 @@ document.addEventListener('astilectron-ready', function () {
     nodeFilter();
     return (false);
   });
-  $("header.toolbar-header h1  button.mapConf").on("click", () => {
+  $("header.toolbar-header button.mapConf").on("click", () => {
     createMapConfPane();
   });
-  $("header.toolbar-header h1  button.notifyConf").on("click", () => {
+  $("header.toolbar-header button.notifyConf").on("click", () => {
     createNotifyConfPane();
   });
-  $("header.toolbar-header h1  button.logDisp").on("click", () => {
+  $("header.toolbar-header button.mibDBConf").on("click", () => {
+    createMIBDBPane();
+  });
+  $("header.toolbar-header button.logDisp").on("click", () => {
     astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
     });
   });
-  $("header.toolbar-header h1  button.checkAllPoll").on("click", () => {
+  $("header.toolbar-header button.checkAllPoll").on("click", () => {
     checkAllPoll();
   });
 
@@ -501,7 +504,6 @@ function checkAllPoll() {
 function setWindowTitle() {
   const t = "TWSNMP - " + mapConf.MapName;
   $("title").html(t);
-  $("h1.title span").html(t);
 }
 
 function clearStatus() {

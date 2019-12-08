@@ -220,24 +220,23 @@ func main() {
 					Center:         astilectron.PtrBool(true),
 					Modal:          astilectron.PtrBool(true),
 					Show:           astilectron.PtrBool(true),
+					Frame:          astilectron.PtrBool(false),
 					Closable:       astilectron.PtrBool(false),
 					Fullscreenable: astilectron.PtrBool(false),
 					Maximizable:    astilectron.PtrBool(false),
 					Minimizable:    astilectron.PtrBool(false),
 					Width:          astilectron.PtrInt(450),
 					Height:         astilectron.PtrInt(500),
-					TitleBarStyle:  astilectron.TitleBarStyleHidden,
 				},
 			},
 			{
 				Homepage:       "main.html",
 				MessageHandler: mainWindowMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:        astilectron.PtrBool(true),
-					Show:          astilectron.PtrBool(false),
-					Width:         astilectron.PtrInt(1024),
-					Height:        astilectron.PtrInt(800),
-					TitleBarStyle: astilectron.TitleBarStyleHidden,
+					Center: astilectron.PtrBool(true),
+					Show:   astilectron.PtrBool(false),
+					Width:  astilectron.PtrInt(1024),
+					Height: astilectron.PtrInt(800),
 				},
 			},
 			{
@@ -245,6 +244,7 @@ func main() {
 				MessageHandler: nodeMessageHandler,
 				Options: &astilectron.WindowOptions{
 					Center:         astilectron.PtrBool(true),
+					Frame:          astilectron.PtrBool(false),
 					Modal:          astilectron.PtrBool(false),
 					Show:           astilectron.PtrBool(false),
 					Fullscreenable: astilectron.PtrBool(false),
@@ -252,7 +252,6 @@ func main() {
 					Minimizable:    astilectron.PtrBool(true),
 					Width:          astilectron.PtrInt(800),
 					Height:         astilectron.PtrInt(500),
-					TitleBarStyle:  astilectron.TitleBarStyleHidden,
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},
@@ -263,6 +262,7 @@ func main() {
 				MessageHandler: logMessageHandler,
 				Options: &astilectron.WindowOptions{
 					Center:         astilectron.PtrBool(true),
+					Frame:          astilectron.PtrBool(false),
 					Modal:          astilectron.PtrBool(false),
 					Show:           astilectron.PtrBool(false),
 					Fullscreenable: astilectron.PtrBool(false),
@@ -270,7 +270,6 @@ func main() {
 					Minimizable:    astilectron.PtrBool(true),
 					Width:          astilectron.PtrInt(1000),
 					Height:         astilectron.PtrInt(700),
-					TitleBarStyle:  astilectron.TitleBarStyleHidden,
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},
@@ -281,6 +280,7 @@ func main() {
 				MessageHandler: pollingMessageHandler,
 				Options: &astilectron.WindowOptions{
 					Center:         astilectron.PtrBool(true),
+					Frame:          astilectron.PtrBool(false),
 					Modal:          astilectron.PtrBool(false),
 					Show:           astilectron.PtrBool(false),
 					Fullscreenable: astilectron.PtrBool(false),
@@ -288,7 +288,6 @@ func main() {
 					Minimizable:    astilectron.PtrBool(true),
 					Width:          astilectron.PtrInt(900),
 					Height:         astilectron.PtrInt(750),
-					TitleBarStyle:  astilectron.TitleBarStyleHidden,
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},
@@ -299,6 +298,7 @@ func main() {
 				MessageHandler: mibMessageHandler,
 				Options: &astilectron.WindowOptions{
 					Center:         astilectron.PtrBool(true),
+					Frame:          astilectron.PtrBool(false),
 					Modal:          astilectron.PtrBool(false),
 					Show:           astilectron.PtrBool(false),
 					Fullscreenable: astilectron.PtrBool(false),
@@ -306,7 +306,24 @@ func main() {
 					Minimizable:    astilectron.PtrBool(true),
 					Width:          astilectron.PtrInt(800),
 					Height:         astilectron.PtrInt(500),
-					TitleBarStyle:  astilectron.TitleBarStyleHidden,
+					Custom: &astilectron.WindowCustomOptions{
+						HideOnClose: astilectron.PtrBool(true),
+					},
+				},
+			},
+			{
+				Homepage:       "ai.html",
+				MessageHandler: mibMessageHandler,
+				Options: &astilectron.WindowOptions{
+					Center:         astilectron.PtrBool(true),
+					Frame:          astilectron.PtrBool(false),
+					Modal:          astilectron.PtrBool(false),
+					Show:           astilectron.PtrBool(false),
+					Fullscreenable: astilectron.PtrBool(false),
+					Maximizable:    astilectron.PtrBool(false),
+					Minimizable:    astilectron.PtrBool(true),
+					Width:          astilectron.PtrInt(10),
+					Height:         astilectron.PtrInt(10),
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},

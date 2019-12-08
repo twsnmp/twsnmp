@@ -18,20 +18,6 @@ import (
 // mibMessageHandler handles messages
 func mibMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{},error) {
 	switch m.Name {
-		case "getMIBModuleList":
-			return getMIBModuleList(),nil
-		case "addMIBFile":
-			if err:= addMIBFile(&m);err != nil {
-				astilog.Error(err)
-				return fmt.Sprintf("%v",err),err
-			}
-			return "ok",nil
-		case "delMIBModule":
-			if err:= delMIBModule(&m);err != nil {
-				astilog.Error(err)
-				return fmt.Sprintf("%v",err),err
-			}
-			return "ok",nil
 		case "close":
 			mibWindow.Hide()
 			return "ok",nil
