@@ -380,14 +380,16 @@ func startBackend(ctx context.Context) {
 			if err := bootstrap.SendMessage(startWindow, "selectDB", ""); err != nil {
 				astilog.Error(fmt.Sprintf("sendSendMessage selectDB error=%v", err))
 			}
+			timer := time.NewTicker(time.Millisecond * 500)
 			for dbPath == "" {
 				select {
 				case <-ctx.Done():
 					return
-				case <-time.Tick(time.Second * 1):
+				case <-timer.C:
 					continue
 				}
 			}
+			timer.Stop()
 		} else {
 			time.Sleep(time.Second * 2)
 		}

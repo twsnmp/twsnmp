@@ -906,6 +906,8 @@ func closeDB() {
 }
 
 func eventLogger(ctx context.Context) {
+	timer1 := time.NewTicker(time.Minute * 5)
+	timer2 := time.NewTicker(time.Second * 5)
 	list := []eventLogEnt{}
 	for {
 		select {
@@ -914,6 +916,8 @@ func eventLogger(ctx context.Context) {
 				if len(list) > 0 {
 					saveLogList(list)
 				}
+				timer1.Stop()
+				timer2.Stop()
 				return
 			}
 		case e := <-eventLogCh:
@@ -924,11 +928,11 @@ func eventLogger(ctx context.Context) {
 					list = []eventLogEnt{}
 				}
 			}
-		case <-time.Tick(time.Minute * 5):
+		case <-timer1.C:
 			{
 				deleteOldLogs()
 			}
-		case <-time.Tick(time.Second * 5):
+		case <-timer2.C:
 			{
 				if len(list) > 0 {
 					saveLogList(list)

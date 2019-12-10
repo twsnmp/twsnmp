@@ -487,19 +487,16 @@ func mainWindowBackend(ctx context.Context) {
 	updateBackImg()
 	applyMapConf()
 	applyMapData()
-	i := 0
+	timer := time.NewTicker(time.Second * 10)
 	for {
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return
 		case p := <-pollingStateChangeCh:
 			stateCheckNodes[p.NodeID] = true
-		case <-time.Tick(time.Second * 5):
-			i++
-			if i > 6 {
-				doPollingCh <- true
-				i = 0
-			}
+		case <-timer.C:
+			doPollingCh <- true
 			lastLog = sendLogs(lastLog)
 			if len(stateCheckNodes) > 0 {
 				astilog.Infof("State Change Nodes %d",len(stateCheckNodes))

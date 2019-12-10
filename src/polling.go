@@ -24,8 +24,6 @@ import (
 	"regexp"
 	"sort"
 	"runtime"
-	"os"
-	"runtime/pprof"
 
 	gosnmp "github.com/soniah/gosnmp"
 
@@ -69,9 +67,6 @@ func pollingBackend(ctx context.Context) {
 					continue
 				}
 				astilog.Infof("polling Len=%d NumGoroutine=%d skip1=%d skip2=%d",len(list),runtime.NumGoroutine(),skip1,skip2)
-				if runtime.NumGoroutine() > 10000 {
-					pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
-				}
 				sort.Slice(list,func (i,j int)bool {
 					return list[i].LastTime < list[j].LastTime 
 				})

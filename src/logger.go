@@ -39,11 +39,13 @@ func logger(ctx context.Context) {
 	var stopSyslogd chan bool
 	var stopTrapd  chan bool
 	var stopNetflowd chan bool
+	timer := time.NewTicker(time.Second * 10)
 	logBuffer := []*logEnt{}
 	for {
 		select {
 		case <-ctx.Done():
 			{
+				timer.Stop()
 				if len(logBuffer) > 0 {
 					saveLogBuffer(logBuffer)
 					logBuffer = []*logEnt{}
@@ -67,7 +69,7 @@ func logger(ctx context.Context) {
 			{
 				logBuffer = append(logBuffer, l)
 			}
-		case <-time.Tick(time.Second * 10):
+		case <-timer.C:
 			{
 				if len(logBuffer) > 0 {
 					astilog.Infof("Save Logs %d",len(logBuffer))

@@ -13,12 +13,14 @@ import (
 func notifyBackend(ctx context.Context) {
 	lastLog := ""
 	lastLog = checkNotify(lastLog)
+	timer := time.NewTicker(time.Second * 60)
 	i := 0
 	for {
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return
-		case <-time.Tick(time.Second * 60):
+		case <-timer.C:
 			i++
 			if i >= notifyConf.Interval {
 				i = 0

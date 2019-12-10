@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
-	"sync"
 	"syscall"
 	"time"
 
@@ -47,6 +46,7 @@ type pingEnt struct {
 	Tracker  int64
 	Stat     pingStat
 	Time     int64
+	lastSend int64
 	done     chan bool
 }
 
@@ -56,90 +56,33 @@ type packet struct {
 	ttl    int
 }
 
-var pingSendCh = make(chan *pingEnt, 10)
-
-type safePingMap struct {
-	v   map[int64]*pingEnt
-	mux sync.Mutex
-}
-
-var pingMap = &safePingMap{
-	v: make(map[int64]*pingEnt),
-}
-
-func (m *safePingMap) set(k int64, v *pingEnt) bool {
-	m.mux.Lock()
-	if _, ok := m.v[k]; ok {
-		m.mux.Unlock()
-		return false
-	}
-	m.v[k] = v
-	m.mux.Unlock()
-	return true
-}
-
-func (m *safePingMap) get(k int64) *pingEnt {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-	if r, ok := m.v[k]; ok {
-		return r
-	}
-	return nil
-}
-
-func (m *safePingMap) del(k int64) {
-	m.mux.Lock()
-	delete(m.v, k)
-	m.mux.Unlock()
-}
+var pingSendCh = make(chan *pingEnt, 100)
 
 var randGen = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func doPing(ip string, timeout, retry, size int) *pingEnt {
 	var err error
 	var p = &pingEnt{
-		Target:  ip,
-		Timeout: timeout,
-		Retry:   retry,
-		Size:    size,
-		id:      randGen.Intn(math.MaxInt16),
-		Tracker: randGen.Int63n(math.MaxInt64),
-		done:    make(chan bool),
+		Target:   ip,
+		Timeout:  timeout,
+		Retry:    retry,
+		Size:     size,
+		sequence: 0,
+		id:       randGen.Intn(math.MaxInt16),
+		Tracker:  randGen.Int63n(math.MaxInt64),
+		done:     make(chan bool),
 	}
 	if p.ipaddr, err = net.ResolveIPAddr("ip", ip); err != nil {
 		p.Stat = pingOtherError
 		return p
 	}
-	// 念のためTrackerの重複を防ぐ
-	for !pingMap.set(p.Tracker, p) {
-		astilog.Debugf("Dup Tracker %v len=%d", p, len(pingMap.v))
-		p.Tracker++
-	}
-	defer func() {
-		pingMap.del(p.Tracker)
-	}()
-	for i := 0; i < p.Retry+1; i++ {
-		pingSendCh <- p
-		if p.waitPingResp() {
-			return p
-		}
-	}
-	astilog.Debugf("Ping timeout retry over %s", ip)
-	p.Stat = pingTimuout
+	pingSendCh <- p
+	<-p.done
 	return p
 }
 
-func (p *pingEnt) waitPingResp() bool {
-	select {
-	case <-p.done:
-		return true
-	case <-time.After(time.Duration(p.Timeout) * time.Second):
-		astilog.Debugf("Ping Timeout %v", p)
-		return false
-	}
-}
-
 func (p *pingEnt) sendICMP(conn *icmp.PacketConn) error {
+	p.lastSend = time.Now().Unix()
 	var dst net.Addr = p.ipaddr
 	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
 		dst = &net.UDPAddr{IP: p.ipaddr.IP, Zone: p.ipaddr.Zone}
@@ -180,6 +123,8 @@ func (p *pingEnt) sendICMP(conn *icmp.PacketConn) error {
 }
 
 func pingBackend(ctx context.Context) {
+	timer := time.NewTicker(time.Millisecond * 500)
+	pingMap := make(map[int64]*pingEnt)
 	netProto := "udp4"
 	if runtime.GOOS == "windows" {
 		netProto = "ip4:icmp"
@@ -192,10 +137,35 @@ func pingBackend(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			timer.Stop()
+			for _, p := range pingMap {
+				close(p.done)
+			}
 			return
 		case p := <-pingSendCh:
-			if err := p.sendICMP(conn); err != nil {
-				astilog.Debugf("sendICMP err=%v", err)
+			if p != nil {
+				if _, ok := pingMap[p.Tracker]; ok {
+					astilog.Errorf("Dup Tracker %d", p.Tracker)
+				}
+				pingMap[p.Tracker] = p
+				if err := p.sendICMP(conn); err != nil {
+					astilog.Debugf("sendICMP err=%v", err)
+				}
+			}
+		case <-timer.C:
+			now := time.Now().Unix()
+			for k, p := range pingMap {
+				if p.lastSend+int64(p.Timeout) < now {
+					p.sequence++
+					if p.sequence > p.Retry {
+						delete(pingMap, k)
+						p.done <- true
+						continue
+					}
+					if err := p.sendICMP(conn); err != nil {
+						astilog.Debugf("sendICMP err=%v", err)
+					}
+				}
 			}
 		default:
 			bytes := make([]byte, 2048)
@@ -217,41 +187,42 @@ func pingBackend(ctx context.Context) {
 				astilog.Errorf("pingBackend err=%v", err)
 				continue
 			}
-			if err := processPacket(&packet{bytes: bytes, nbytes: n, ttl: ttl}); err != nil {
+			if tracker, tm, err := processPacket(&packet{bytes: bytes, nbytes: n, ttl: ttl}); err != nil {
 				astilog.Debugf("pingBackend processPacket err=%v", err)
+			} else {
+				if p, ok := pingMap[tracker]; ok {
+					delete(pingMap, tracker)
+					p.Stat = pingOK
+					p.Time = tm
+					p.done <- true
+				}
 			}
 		}
 	}
 }
 
-func processPacket(recv *packet) error {
+func processPacket(recv *packet) (int64, int64, error) {
 	receivedAt := time.Now()
 	var m *icmp.Message
 	var err error
 	if m, err = icmp.ParseMessage(protocolICMP, recv.bytes); err != nil {
-		return fmt.Errorf("error parsing icmp message: %s", err.Error())
+		return -1, -1, fmt.Errorf("error parsing icmp message: %s", err.Error())
 	}
 	if m.Type != ipv4.ICMPTypeEchoReply {
-		astilog.Debugf("icmp message type != ICMPTypeEchoReply  : %v", m)
-		return nil
+		return -1, -1, fmt.Errorf("icmp message type != ICMPTypeEchoReply  : %v", m)
 	}
 	switch pkt := m.Body.(type) {
 	case *icmp.Echo:
 		if len(pkt.Data) < timeSliceLength+trackerLength {
-			return fmt.Errorf("insufficient data received; got: %d %v", len(pkt.Data), pkt.Data)
+			return -1, -1, fmt.Errorf("insufficient data received; got: %d %v", len(pkt.Data), pkt.Data)
 		}
 		tracker := bytesToInt(pkt.Data[timeSliceLength:])
 		timestamp := bytesToTime(pkt.Data[:timeSliceLength])
-		if p := pingMap.get(tracker); p != nil {
-			p.Time = receivedAt.Sub(timestamp).Nanoseconds()
-			p.Stat = pingOK
-			p.done <- true
-		}
+		return tracker, receivedAt.Sub(timestamp).Nanoseconds(), nil
 	default:
 		// Very bad, not sure how this can happen
-		return fmt.Errorf("invalid ICMP echo reply; type: '%T', '%v'", pkt, pkt)
+		return -1, -1, fmt.Errorf("invalid ICMP echo reply; type: '%T', '%v'", pkt, pkt)
 	}
-	return nil
 }
 
 func bytesToTime(b []byte) time.Time {
