@@ -144,8 +144,11 @@ func pingBackend(ctx context.Context) {
 			return
 		case p := <-pingSendCh:
 			if p != nil {
-				if _, ok := pingMap[p.Tracker]; ok {
+				_, ok := pingMap[p.Tracker]
+				for ok {
 					astilog.Errorf("Dup Tracker %d", p.Tracker)
+					p.Tracker++
+					_, ok = pingMap[p.Tracker]
 				}
 				pingMap[p.Tracker] = p
 				if err := p.sendICMP(conn); err != nil {
