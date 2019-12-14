@@ -174,12 +174,14 @@ func main() {
 			pollingWindow = w[4]
 			mibWindow = w[5]
 			app = a
-			mibpath := filepath.Join(app.Paths().DataDirectory(), "resources", "mib.txt")
+			path := filepath.Join(app.Paths().DataDirectory(), "resources", "mib.txt")
 			var err error
-			mib, err = mibdb.NewMIBDB(mibpath)
+			mib, err = mibdb.NewMIBDB(path)
 			if err != nil {
 				astilog.Fatalf("NewMIBDB failed err=%v", err)
 			}
+			path = filepath.Join(app.Paths().DataDirectory(), "resources", "tlsparams.csv")
+			loadTLSParamsMap(path)
 			startBackend(ctx)
 			mainWindow.On(astilectron.EventNameWindowEventClosed, func(e astilectron.Event) (deleteListener bool) {
 				astilog.Debug("Main Window Closed")

@@ -334,6 +334,10 @@ function createEditPollingPane(id){
     options: {
       "PING": "ping",
       "SNMP": "snmp",
+      "TCP": "tcp",
+      "HTTP": "http",
+      "TLS": "tls",
+      "DNS": "dns",
       "SYSLOG": "syslog",
       "TRAP":   "trap",
       "NetFlow": "netflow",

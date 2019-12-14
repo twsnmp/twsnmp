@@ -24,7 +24,11 @@ import (
 	"regexp"
 	"sort"
 	"runtime"
-
+	"net"
+	"net/http"
+	"crypto/tls"
+	"encoding/csv"
+	"os"
 	gosnmp "github.com/soniah/gosnmp"
 
 	astilog "github.com/asticode/go-astilog"
@@ -125,6 +129,14 @@ func doPolling(p *pollingEnt){
 		doPollingPing(p)
 	case "snmp":
 		doPollingSnmp(p)
+	case "tcp":
+		doPollingTCP(p)
+	case "http":
+		doPollingHTTP(p)
+	case "tls":
+		doPollingTLS(p)
+	case "dns":
+		doPollingDNS(p)
 	case "syslog","trap","netflow","ipfix":
 		doPollingLog(p)
 		updatePolling(p)
@@ -409,7 +421,7 @@ func doPollingLog(p *pollingEnt) {
 	// 正規表現でログ検索定義を取得
 	a := logPollRegex.FindAllStringSubmatch(p.Polling, -1)
 	if  a == nil || len(a) != 1  {
-		astilog.Errorf("Invalid lig watch format Polling=%s",p.Polling)
+		astilog.Errorf("Invalid log watch format Polling=%s",p.Polling)
 		p.LastResult = "Invalid log watch format"
 		setPollingState(p,"unkown")
 		return
@@ -497,3 +509,207 @@ func cmpVal(op string,a,b float64) bool {
 		return false
 	}
 }
+
+func doPollingTCP(p *pollingEnt){
+	n,ok := nodes[p.NodeID]
+	if !ok {
+		astilog.Errorf("node not found nodeID=%s",p.NodeID)
+		return
+	}
+	ok = false
+	var rTime int64
+	for i:=0  ; !ok && i < p.Retry;i++{
+		startTime := time.Now().UnixNano()
+		conn, err := net.DialTimeout("tcp", n.IP +":" + p.Polling, time.Duration(p.Timeout) *time.Second)
+		endTime := time.Now().UnixNano()
+		if err != nil {
+			astilog.Error(err)
+			p.LastResult = fmt.Sprintf("%v",err)
+			continue
+		}
+		defer conn.Close()
+		rTime = endTime - startTime
+		ok = true
+	}
+	if ok {
+		setPollingState(p,"normal")
+		p.LastResult = ""
+	}	else {
+		setPollingState(p,p.Level)
+	}
+	p.LastVal = float64(rTime)
+	updatePolling(p)
+}
+
+func doPollingHTTP(p *pollingEnt){
+	_,ok := nodes[p.NodeID]
+	if !ok {
+		astilog.Errorf("node not found nodeID=%s",p.NodeID)
+		return
+	}
+	ok = false
+	var rTime int64
+	for i:=0  ; !ok && i < p.Retry;i++{
+		startTime := time.Now().UnixNano()
+		err := doHTTPGet(p)
+		endTime := time.Now().UnixNano()
+		if err != nil {
+			astilog.Error(err)
+			p.LastResult = fmt.Sprintf("%v",err)
+			continue
+		}
+		rTime = endTime - startTime
+		ok = true
+	}
+	if ok {
+		setPollingState(p,"normal")
+		p.LastResult = ""
+	}	else {
+		setPollingState(p,p.Level)
+	}
+	p.LastVal = float64(rTime)
+	updatePolling(p)
+}
+
+func doHTTPGet(p *pollingEnt) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.Timeout) * time.Second)
+	defer cancel()
+	req, err := http.NewRequest(http.MethodGet,p.Polling, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	p.LastResult = resp.Status
+	return nil
+}
+
+func doPollingTLS(p *pollingEnt){
+	n,ok := nodes[p.NodeID]
+	if !ok {
+		astilog.Errorf("node not found nodeID=%s",p.NodeID)
+		return
+	}
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	d := &net.Dialer{
+		Timeout:time.Duration(p.Timeout) *time.Second,
+	}
+	ok = false
+	var rTime int64
+	var cs tls.ConnectionState
+	for i:=0  ; !ok && i < p.Retry;i++{
+		startTime := time.Now().UnixNano()
+		conn, err := tls.DialWithDialer(d,"tcp",n.IP +":"+ p.Polling, conf)
+		endTime := time.Now().UnixNano()
+		if err != nil {
+			astilog.Error(err)
+			p.LastResult = fmt.Sprintf("%v",err)
+			continue
+		}
+		defer conn.Close()
+		rTime = endTime - startTime
+		cs = conn.ConnectionState()
+		ok = true
+	}
+	if ok {
+		setPollingState(p,"normal")
+		p.LastResult = getTLSConnectioStateInfo(&cs)
+	}	else {
+		setPollingState(p,p.Level)
+	}
+	p.LastVal = float64(rTime)
+	updatePolling(p)
+}
+
+var tlsCSMap = make(map[string]string)
+
+func loadTLSParamsMap(path string) {
+	file, err := os.Open(path)
+	if err != nil {
+		astilog.Errorf("loadTLSParamsMap err=%v",err)
+		return
+	}
+	defer file.Close()
+	reader := csv.NewReader(file)
+	var line []string
+	for {
+		line, err = reader.Read()
+		if err != nil {
+			break
+		}
+		if len(line) < 2 {
+			continue
+		}
+		id := strings.Replace(line[0], ",", "", 1)
+		id = strings.Replace(id, "0x", "", 2)
+		id = strings.ToLower(id)
+		name := line[1]
+		if strings.HasPrefix(name, "TLS_") {
+			tlsCSMap[id] = name
+		}
+	}
+}
+
+func  getTLSConnectioStateInfo(cs *tls.ConnectionState) string{
+	var v string
+	switch cs.Version {
+	case tls.VersionSSL30:
+		v = "SSLv3"
+	case tls.VersionTLS10:
+		v = "TLSv1.0"
+	case tls.VersionTLS11:
+		v = "TLSv1.1"
+	case tls.VersionTLS12:
+		v = "TLSv1.2"
+	case tls.VersionTLS13:
+		v = "TLSv1.3"
+	default:
+		v = "Unknown"
+	}
+	id := fmt.Sprintf("%04x",cs.CipherSuite)
+	if n,ok := tlsCSMap[id];ok {
+		return fmt.Sprintf("%v %s",v,n)
+	}
+	return fmt.Sprintf("%v 0x%s",v,id)
+}
+
+func doPollingDNS(p *pollingEnt){
+	_,ok := nodes[p.NodeID]
+	if !ok {
+		astilog.Errorf("node not found nodeID=%s",p.NodeID)
+		return
+	}
+	ok = false
+	var rTime int64
+	var ip string
+	for i:=0  ; !ok && i < p.Retry;i++{
+		startTime := time.Now().UnixNano()
+		addr, err := net.ResolveIPAddr("ip", p.Polling)
+		endTime := time.Now().UnixNano()
+		if err != nil {
+			astilog.Error(err)
+			p.LastResult = fmt.Sprintf("ERR:%v",err)
+			continue
+		}
+		rTime = endTime - startTime
+		ok = true
+		ip = addr.String()
+	}
+	if ok && p.LastResult != ""  && !strings.HasPrefix(p.LastResult,"ERR") && ip != p.LastResult {
+		ok = false
+	}
+	if ok {
+		setPollingState(p,"normal")
+		p.LastResult = ip
+	}	else {
+		setPollingState(p,p.Level)
+	}
+	p.LastVal = float64(rTime)
+	updatePolling(p)
+}
+
