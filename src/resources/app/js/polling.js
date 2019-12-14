@@ -218,7 +218,7 @@ function makeResultChart() {
 
 
 function setupTimeVal() {
-  $(".toolbar-actions input[name=start]").val(moment().subtract(1, "h").format("Y-MM-DDTHH:00"));
+  $(".toolbar-actions input[name=start]").val(moment().subtract(12, "h").format("Y-MM-DDTHH:00"));
   $(".toolbar-actions input[name=end]").val(moment().add(1,"h").format("Y-MM-DDTHH:00"));
 }
 
@@ -272,7 +272,9 @@ document.addEventListener('astilectron-ready', function () {
           node = message.payload.Node;
           setWindowTitle(node.Name,polling.Name);
           clearData();
+          setupTimeVal();
           showPage("log");
+          $('.toolbar-actions button.get').click();
           logChart.resize();      
         }
         return { name: "setParams", payload: "ok" };

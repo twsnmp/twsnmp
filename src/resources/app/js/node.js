@@ -40,7 +40,7 @@ function setupPollingPage() {
       const lt = moment(p.LastTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
       const level = getStateHtml(p.Level);
       const state = getStateHtml(p.State);
-      polling.row.add([state, p.Name, level, p.Type, p.Polling, lt, p.ID]);
+      polling.row.add([state, p.Name, level, p.Type, p.Polling,lt,p.LastVal,p.LastResult, p.ID]);
       pollingList[p.ID] = p;
     }
     polling.draw();
@@ -91,8 +91,8 @@ function makeBasicTable() {
   });
 }
 
-function setPollingBtns(show){
-  const btns = ["edit","delete","poll","show"];
+function setPollingBtns(show,bAn){
+  const btns = ["edit","delete","poll"];
   btns.forEach( b =>{
     if(!show) {
       $('.polling_btns button.'+ b).addClass("hidden");
@@ -100,6 +100,11 @@ function setPollingBtns(show){
       $('.polling_btns button.'+ b).removeClass("hidden");
     }
   });
+  if (bAn) {
+    $('.polling_btns button.show').removeClass("hidden");
+  } else {
+    $('.polling_btns button.show').addClass("hidden");
+  }
 }
 
 function makePollingTable() {
@@ -126,11 +131,22 @@ function makePollingTable() {
   $('#polling_table tbody').on('click', 'tr', function () {
     if ($(this).hasClass('selected')) {
       $(this).removeClass('selected');
-      setPollingBtns(false);
+      setPollingBtns(false,false);
     } else {
       polling.$('tr.selected').removeClass('selected');
       $(this).addClass('selected');
-      setPollingBtns(true);
+      const r = polling.row('.selected');
+      let bAn = false;
+      if( r ){
+        const d = r.data();
+        if (d && d.length > 8){
+          const id = d[8];
+          if(pollingList[id] && pollingList[id].LogMode ){
+            bAn = true;
+          }
+        }
+      }
+      setPollingBtns(true,bAn);
     }
   });
   $('.polling_btns button.delete').click(function () {
@@ -139,10 +155,10 @@ function makePollingTable() {
       return;
     }
     const d = r.data();
-    if (!d || d.length < 7){
+    if (!d || d.length < 9){
       return;
     }
-    const id = d[6];
+    const id = d[8];
     if(!pollingList[id]){
       return;
     }
@@ -163,10 +179,10 @@ function makePollingTable() {
       return;
     }
     const d = r.data();
-    if (!d || d.length < 7){
+    if (!d || d.length < 9){
       return;
     }
-    const id = d[6];
+    const id = d[8];
     if(!pollingList[id]){
       return;
     }
@@ -185,10 +201,10 @@ function makePollingTable() {
       return;
     }
     const d = r.data();
-    if (!d || d.length < 7){
+    if (!d || d.length < 9){
       return;
     }
-    const id = d[6];
+    const id = d[8];
     if(!pollingList[id]){
       return;
     }
@@ -203,10 +219,10 @@ function makePollingTable() {
       return;
     }
     const d = r.data();
-    if (!d || d.length < 7){
+    if (!d || d.length < 9){
       return;
     }
-    const id = d[6];
+    const id = d[8];
     if(!pollingList[id]){
       return;
     }
@@ -264,6 +280,17 @@ document.addEventListener('astilectron-ready', function () {
           nodeID = message.payload;
           setupBasicPage();
           showPage("basic");
+        }
+        return { name: "setNodeID", payload: "ok" };
+      case "setMode":
+        if (message.payload) {
+          if(message.payload == "showNodeLog"){
+            setupLogPage()
+            showPage("log")
+          } else if (message.payload == "showPolling"){
+            setupPollingPage()
+            showPage("polling")
+          }
         }
         return { name: "setNodeID", payload: "ok" };
       case "error":

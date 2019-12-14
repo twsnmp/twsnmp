@@ -252,7 +252,7 @@ func main() {
 					Fullscreenable: astilectron.PtrBool(false),
 					Maximizable:    astilectron.PtrBool(false),
 					Minimizable:    astilectron.PtrBool(true),
-					Width:          astilectron.PtrInt(800),
+					Width:          astilectron.PtrInt(850),
 					Height:         astilectron.PtrInt(500),
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),

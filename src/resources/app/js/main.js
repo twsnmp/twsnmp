@@ -153,7 +153,15 @@ function mousePressed() {
       <nav class="nav-group">
         <span class="nav-group-item showNodeInfo">
           <i class="fas fa-info-circle"></i>    
-         情報
+         ノード情報
+        </span>
+        <span class="nav-group-item showPolling">
+          <i class="fas fa-info-circle"></i>    
+         ポーリング
+        </span>
+        <span class="nav-group-item showNodeLog">
+          <i class="fas fa-info-circle"></i>    
+         ログ
         </span>
         <span class="nav-group-item pollNow">
           <i class="fas fa-info-circle"></i>    
@@ -219,6 +227,18 @@ function mousePressed() {
     $("#ctxMenu span.showNodeInfo").on("click", () => {
       if (selectNode != "") {
         astilectron.sendMessage({ name: "showNodeInfo", payload: selectNode }, function (message) {
+        });
+      }
+    });
+    $("#ctxMenu span.showPolling").on("click", () => {
+      if (selectNode != "") {
+        astilectron.sendMessage({ name: "showPolling", payload: selectNode }, function (message) {
+        });
+      }
+    });
+    $("#ctxMenu span.showNodeLog").on("click", () => {
+      if (selectNode != "") {
+        astilectron.sendMessage({ name: "showNodeLog", payload: selectNode }, function (message) {
         });
       }
     });

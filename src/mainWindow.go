@@ -378,7 +378,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			})
 			return dlgParam, nil
 		}
-	case"showNodeInfo":
+	case"showNodeInfo","showNodeLog","showPolling":
 		{
 			var nodeID string
 			if len(m.Payload) < 1 {
@@ -389,6 +389,10 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", err
 			}
 			if err := bootstrap.SendMessage(nodeWindow, "setNodeID",nodeID); err != nil {
+				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
+				return "ng",err
+			}	
+			if err := bootstrap.SendMessage(nodeWindow, "setMode",m.Name); err != nil {
 				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
 				return "ng",err
 			}	

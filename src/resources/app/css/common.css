@@ -48,3 +48,14 @@ i.state {
 .hidden {
   display: none;
 }
+
+.tab-item {
+  padding: 2px;
+  font-size: 10px;
+}
+
+table.dataTable tbody td,
+table.dataTable thead th {
+  font-size:  10px;
+  padding: 8px 12px;
+}
