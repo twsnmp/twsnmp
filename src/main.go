@@ -19,21 +19,23 @@ import (
 
 // Vars
 var (
-	AppName       string
-	BuiltAt       string
-	dbPath        string
-	debug         = flag.Bool("d", false, "enables the debug mode")
-	cpuprofile    = flag.String("cpuprofile", "", "write cpu profile to `file`")
-	memprofile    = flag.String("memprofile", "", "write memory profile to `file`")
-	startWindow   *astilectron.Window
-	mainWindow    *astilectron.Window
-	nodeWindow    *astilectron.Window
-	logWindow     *astilectron.Window
-	pollingWindow *astilectron.Window
-	mibWindow     *astilectron.Window
-	mib           *mibdb.MIBDB
-	app           *astilectron.Astilectron
-	aboutText     = `TWSNMP Manager
+	AppName           string
+	BuiltAt           string
+	dbPath            string
+	debug             = flag.Bool("d", false, "enables the debug mode")
+	cpuprofile        = flag.String("cpuprofile", "", "write cpu profile to `file`")
+	memprofile        = flag.String("memprofile", "", "write memory profile to `file`")
+	startWindow       *astilectron.Window
+	mainWindow        *astilectron.Window
+	nodeWindow        *astilectron.Window
+	pollingListWindow *astilectron.Window
+	logWindow         *astilectron.Window
+	pollingWindow     *astilectron.Window
+	mibWindow         *astilectron.Window
+	aiWindow          *astilectron.Window
+	mib               *mibdb.MIBDB
+	app               *astilectron.Astilectron
+	aboutText         = `TWSNMP Manager
 Version 5.0.0
 Copyright (c) 2019 Masayuki Yamai`
 )
@@ -141,6 +143,14 @@ func main() {
 					},
 				},
 				{
+					Label: astilectron.PtrStr("ポーリングリスト"),
+					Type:  astilectron.MenuItemTypeCheckbox,
+					OnClick: func(e astilectron.Event) bool {
+						setWindowsShowOrHide(pollingListWindow, *e.MenuItemOptions.Checked)
+						return false
+					},
+				},
+				{
 					Label: astilectron.PtrStr("ログ表示"),
 					Type:  astilectron.MenuItemTypeCheckbox,
 					OnClick: func(e astilectron.Event) bool {
@@ -170,9 +180,11 @@ func main() {
 			startWindow = w[0]
 			mainWindow = w[1]
 			nodeWindow = w[2]
-			logWindow = w[3]
-			pollingWindow = w[4]
-			mibWindow = w[5]
+			pollingListWindow = w[3]
+			logWindow = w[4]
+			pollingWindow = w[5]
+			mibWindow = w[6]
+			aiWindow = w[7]
 			app = a
 			path := filepath.Join(app.Paths().DataDirectory(), "resources", "mib.txt")
 			var err error
@@ -260,6 +272,24 @@ func main() {
 				},
 			},
 			{
+				Homepage:       "pollingList.html",
+				MessageHandler: pollingListMessageHandler,
+				Options: &astilectron.WindowOptions{
+					Center:         astilectron.PtrBool(true),
+					Frame:          astilectron.PtrBool(false),
+					Modal:          astilectron.PtrBool(false),
+					Show:           astilectron.PtrBool(false),
+					Fullscreenable: astilectron.PtrBool(false),
+					Maximizable:    astilectron.PtrBool(false),
+					Minimizable:    astilectron.PtrBool(true),
+					Width:          astilectron.PtrInt(1000),
+					Height:         astilectron.PtrInt(500),
+					Custom: &astilectron.WindowCustomOptions{
+						HideOnClose: astilectron.PtrBool(true),
+					},
+				},
+			},
+			{
 				Homepage:       "log.html",
 				MessageHandler: logMessageHandler,
 				Options: &astilectron.WindowOptions{
@@ -289,7 +319,7 @@ func main() {
 					Maximizable:    astilectron.PtrBool(false),
 					Minimizable:    astilectron.PtrBool(true),
 					Width:          astilectron.PtrInt(900),
-					Height:         astilectron.PtrInt(750),
+					Height:         astilectron.PtrInt(700),
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},

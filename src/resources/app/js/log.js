@@ -582,7 +582,7 @@ function makeCharts() {
 }
 
 function setupTimeVal() {
-  $(".log_btns input[name=start]").val(moment().subtract(1, "h").format("Y-MM-DDTHH:00"));
+  $(".log_btns input[name=start]").val(moment().subtract(3, "h").format("Y-MM-DDTHH:00"));
   $(".log_btns input[name=end]").val(moment().add(1,"h").format("Y-MM-DDTHH:00"));
 }
 
@@ -766,10 +766,4 @@ function createEditPollingPane(id) {
     pane.dispose();
     pane = undefined;
   });
-}
-
-function setWindowTitle(n) {
-  const t = "ログ表示 - " + n;
-  $("title").html(t);
-  $("h1.title").html(t);
 }

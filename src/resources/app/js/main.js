@@ -208,6 +208,10 @@ function mousePressed() {
         <i class="fas fa-check-square"></i>
           全て再確認
         </span>
+        <span class="nav-group-item showPollingList">
+          <i class="fas fa-exchange-alt"></i>
+          ポーリングリスト
+        </span>
         <span class="nav-group-item logDisp">
           <i class="fas fa-clipboard-list"></i>
           ログ表示
@@ -275,6 +279,10 @@ function mousePressed() {
     });
     $("#ctxMenu span.logDisp").on("click", () => {
       astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
+      });
+    });
+    $("#ctxMenu span.showPollingList").on("click", () => {
+      astilectron.sendMessage({ name: "showPollingList", payload: "" }, function (message) {
       });
     });
     $("#ctxMenu span.checkAllPoll").on("click", () => {
@@ -425,6 +433,10 @@ document.addEventListener('astilectron-ready', function () {
   });
   $("header.toolbar-header button.mibDBConf").on("click", () => {
     createMIBDBPane();
+  });
+  $("header.toolbar-header button.showPollingList").on("click", () => {
+    astilectron.sendMessage({ name: "showPollingList", payload: "" }, function (message) {
+    });
   });
   $("header.toolbar-header button.logDisp").on("click", () => {
     astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {

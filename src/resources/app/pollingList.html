@@ -4,11 +4,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TWSNMP</title>
+  <title>ポーリングリスト</title>
   <link rel="stylesheet" href="./css/photon.css">
   <link rel="stylesheet" href="./css/all.css">
   <link rel="stylesheet" href="./css/common.css">
-  <link rel="stylesheet" href="./css/node.css">
+  <link rel="stylesheet" href="./css/log.css">
   <link rel="stylesheet" href="./css/datatables.css" />
   <script src="./js/moment.js"></script>
   <script>
@@ -23,42 +23,15 @@
 <body>
   <div class="window">
     <header class="toolbar toolbar-header">
-      <h1 class="title">TWSNMP</h1>
+      <h1 class="title">ポーリングリスト</h1>
     </header>
-    <div class="tab-group">
-      <div class="tab-item active" id="basic">
-        <i class="fas fa-info-circle"></i>
-        基本情報
-      </div>
-      <div class="tab-item" id="polling">
-        <i class="fas fa-exchange-alt"></i>
-        ポーリング
-      </div>
-      <div class="tab-item" id="log">
-        <i class="fas fa-warehouse"></i>
-        ログ
-      </div>
-    </div>
-    <div class="window-content" id="basic_page">
-      <div class="table_base">
-        <table id="basic_table" class="display">
-          <thead>
-            <tr>
-              <th>項目</th>
-              <th>内容</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="window-content hidden" id="polling_page">
+    <div class="window-content">
       <div class="table_base">
         <table id="polling_table" class="display compact">
           <thead>
             <tr>
               <th>状態</th>
+              <th>ノード</th>
               <th>名前</th>
               <th>レベル</th>
               <th>種別</th>
@@ -74,30 +47,8 @@
         </table>
       </div>
     </div>
-    <div class="window-content hidden" id="log_page">
-      <div class="table_base">
-        <table id="log_table" class="display compact">
-          <thead>
-            <tr>
-              <th>状態</th>
-              <th>発生日時</th>
-              <th>種別</th>
-              <th>イベント</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
-      </div>
-    </div>
     <footer class="toolbar toolbar-footer">
-      <div class="toolbar-actions basic_btns">
-        <button class="btn btn-default pull-right close">
-          <i class="fas fa-times"></i>
-          閉じる
-        </button>
-      </div>
-      <div class="toolbar-actions polling_btns hidden">
+      <div class="toolbar-actions polling_btns">
         <button class="btn btn-primary add">
           <i class="fas fa-plus-circle"></i>
           新規
@@ -123,16 +74,10 @@
           閉じる
         </button>
       </div>
-      <div class="toolbar-actions log_btns hidden">
-        <button class="btn btn-default pull-right close">
-          <i class="fas fa-times"></i>
-          閉じる
-        </button>
-      </div>
     </footer>
   </div>
   <script src="./js/common.js"></script>
-  <script src="./js/node.js"></script>
+  <script src="./js/pollingList.js"></script>
 </body>
 
 </html>

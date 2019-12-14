@@ -536,6 +536,16 @@ func getNodePollings(nodeID string) []pollingEnt {
 	return ret
 }
 
+// getPollings : ポーリングリストを取得する
+func getPollings() []pollingEnt {
+	ret := []pollingEnt{}
+	pollings.Range(func(_, p interface{}) bool {
+		ret = append(ret, *p.(*pollingEnt))
+		return true
+	})
+	return ret
+}
+
 // getLogPollings : ログを監視するポーリングリストを取得する
 func getLogPollings() []pollingEnt {
 	ret := []pollingEnt{}

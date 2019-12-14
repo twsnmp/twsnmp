@@ -452,6 +452,15 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			logWindow.Show()
 			return "ok", nil
 		}
+	case"showPollingList":
+		{
+			if err := bootstrap.SendMessage(pollingListWindow, "show",""); err != nil {
+				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
+				return "ng",err
+			}	
+			pollingListWindow.Show()
+			return "ok", nil
+		}
 	case"checkAllPoll":
 		checkAllPoll()
 		return "ok", nil
