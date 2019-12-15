@@ -522,7 +522,7 @@ func doPollingTCP(p *pollingEnt){
 	}
 	ok = false
 	var rTime int64
-	for i:=0  ; !ok && i < p.Retry;i++{
+	for i:=0  ; !ok && i <= p.Retry;i++{
 		startTime := time.Now().UnixNano()
 		conn, err := net.DialTimeout("tcp", n.IP +":" + p.Polling, time.Duration(p.Timeout) *time.Second)
 		endTime := time.Now().UnixNano()
@@ -553,7 +553,7 @@ func doPollingHTTP(p *pollingEnt){
 	}
 	ok = false
 	var rTime int64
-	for i:=0  ; !ok && i < p.Retry;i++{
+	for i:=0  ; !ok && i <= p.Retry;i++{
 		startTime := time.Now().UnixNano()
 		err := doHTTPGet(p)
 		endTime := time.Now().UnixNano()
@@ -620,7 +620,7 @@ func doPollingTLS(p *pollingEnt){
 	ok = false
 	var rTime int64
 	var cs tls.ConnectionState
-	for i:=0  ; !ok && i < p.Retry;i++{
+	for i:=0  ; !ok && i <= p.Retry;i++{
 		startTime := time.Now().UnixNano()
 		conn, err := tls.DialWithDialer(d,"tcp",n.IP +":"+ p.Polling, conf)
 		endTime := time.Now().UnixNano()
@@ -705,7 +705,7 @@ func doPollingDNS(p *pollingEnt){
 	ok = false
 	var rTime int64
 	var ip string
-	for i:=0  ; !ok && i < p.Retry;i++{
+	for i:=0  ; !ok && i <= p.Retry;i++{
 		startTime := time.Now().UnixNano()
 		addr, err := net.ResolveIPAddr("ip", p.Polling)
 		endTime := time.Now().UnixNano()
