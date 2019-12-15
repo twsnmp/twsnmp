@@ -181,7 +181,7 @@ function mousePressed() {
         </span>
         <span class="nav-group-item deleteNode">
           <i class="fas fa-trash-alt"></i>
-          削除
+          削除...
         </span>
       </nav>
       `;
@@ -206,7 +206,7 @@ function mousePressed() {
         </span>
         <span class="nav-group-item checkAllPoll">
         <i class="fas fa-check-square"></i>
-          全て再確認
+          全て再確認...
         </span>
         <span class="nav-group-item showPollingList">
           <i class="fas fa-exchange-alt"></i>

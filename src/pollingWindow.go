@@ -15,6 +15,19 @@ func pollingMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interf
 		case "close":
 			pollingWindow.Hide()
 			return "ok",nil
+		case "clear":
+			if len(m.Payload) > 0 {
+				var pollingID  string
+				if err := json.Unmarshal(m.Payload, &pollingID); err != nil {
+					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+					return "ng", errInvalidParams
+				}
+				if err := clearPollingLog(pollingID); err != nil {
+					return "ng",err
+				}
+				return "ok", nil
+			}
+			return "ng", errInvalidParams
 		case "get":
 			if len(m.Payload) > 0 {
 				var param = struct {

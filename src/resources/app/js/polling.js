@@ -6,10 +6,11 @@ let logTable;
 let logChart;
 let stateChart;
 let resultChart;
+let aiChart;
 let currentPage;
 
 function showPage(mode) {
-  const pages = ["log", "state", "result"];
+  const pages = ["log", "state", "result","ai"];
   pages.forEach(p => {
     if (mode == p) {
       $("#" + p + "_page").removeClass("hidden");
@@ -216,6 +217,55 @@ function makeResultChart() {
   resultChart.setOption(option);
 }
 
+function makeAIChart() {
+  const option = {
+    title: {
+      show: false,
+    },
+    tooltip: {
+      trigger: 'axis',
+      formatter: function (params) {
+        const p = params[0];
+        return p.name + ' : ' + p.value[1];
+      },
+      axisPointer: {
+        type: 'shadow'
+      }
+    },
+    grid: {
+      left: "10%",
+      right:"5%",
+      top: 30,
+      buttom: 0,
+    },
+    xAxis: {
+      type: 'time',
+      axisLabel:{
+        fontSize: "8px",
+        formatter: function (value, index) {
+          var date = new Date(value);
+          return echarts.format.formatTime('MM/dd hh:mm', date)
+        }
+      },
+      splitLine: {
+        show: false
+      },
+    },
+    yAxis: {
+      type: 'value',
+    },
+    series: [{
+      color: "#1f78b4",
+      type: 'line',
+      showSymbol: false,
+      hoverAnimation: false,
+      data: [],
+    }]
+  };
+  aiChart = echarts.init(document.getElementById('ai_chart'));
+  aiChart.setOption(option);
+}
+
 
 function setupTimeVal() {
   $(".toolbar-actions input[name=start]").val(moment().subtract(12, "h").format("Y-MM-DDTHH:00"));
@@ -261,21 +311,28 @@ document.addEventListener('astilectron-ready', function () {
   makeLogChart();
   makeStateChart();
   makeResultChart();
+  makeAIChart();
   logChart.resize();
   stateChart.resize();
   resultChart.resize();
+  aiChart.resize();
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "setParams":
-        if (message.payload && message.payload.Polling) {
+        if(message.payload && message.payload.Polling) {
           polling = message.payload.Polling;
           node = message.payload.Node;
+          if(polling.LogMode == 3){
+            $('#ai').removeClass('hidden');
+          } else {
+            $('#ai').addClass('hidden');
+          }
           setWindowTitle(node.Name,polling.Name);
           clearData();
           setupTimeVal();
           showPage("log");
           $('.toolbar-actions button.get').click();
-          logChart.resize();      
+          logChart.resize();
         }
         return { name: "setParams", payload: "ok" };
       case "error":
@@ -297,8 +354,19 @@ document.addEventListener('astilectron-ready', function () {
     showPage("result");
     resultChart.resize();
   });
+  $('#ai').click(()=>{
+    showPage("ai");
+    aiChart.resize();
+  });
   $('.toolbar-actions button.close').click(() => {
     astilectron.sendMessage({ name: "close", payload: "" }, message => {
+    });
+  });
+  $('.toolbar-actions button.clear').click(() => {
+    if (!confirm("ポーリングログをクリアしますか?")) {
+      return;
+    }
+    astilectron.sendMessage({ name: "clear", payload: polling.ID }, message => {
     });
   });
   $('.toolbar-actions button.get').click(() => {

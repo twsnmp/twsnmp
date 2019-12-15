@@ -796,6 +796,23 @@ func getPollingLog(startTime, endTime, pollingID string) []pollingLogEnt {
 	return ret
 }
 
+func clearPollingLog(pollingID string) error {
+	return db.Batch(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("pollingLogs"))
+		if b == nil {
+			return fmt.Errorf("Bucket pollingLogs not found")
+		}
+		c := b.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			if !bytes.Contains(v, []byte(pollingID)) {
+				continue
+			}
+			c.Delete()
+		}
+		return nil
+	})
+}
+
 func deleteOldLog(bucket string, days int) error {
 	st := fmt.Sprintf("%016x", time.Now().AddDate(0, 0, -days))
 	return db.Batch(func(tx *bbolt.Tx) error {
