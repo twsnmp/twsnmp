@@ -352,6 +352,7 @@ function createEditPollingPane(id){
       "TLS": "tls",
       "DNS": "dns",
       "SYSLOG": "syslog",
+      "SYSLOGPRI": "syslogpri",
       "TRAP":   "trap",
       "NetFlow": "netflow",
       "IPFIX":  "ipfix",
@@ -391,6 +392,7 @@ function createEditPollingPane(id){
       "記録しない": 0,
       "常に記録": 1,
       "状態変化時のみ記録": 2,
+      "AI分析": 3,
     },
   });
   pane.addButton({

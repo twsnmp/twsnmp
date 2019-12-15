@@ -139,8 +139,12 @@ func doPolling(p *pollingEnt){
 	case "syslog","trap","netflow","ipfix":
 		doPollingLog(p)
 		updatePolling(p)
+	case "syslogpri":
+		if !doPollingSyslogPri(p) {
+			return
+		}
 	}
-	if p.LogMode == 1 || (p.LogMode == 2 && oldState != p.State) {
+	if p.LogMode == 1 || p.LogMode == 3 || (p.LogMode == 2 && oldState != p.State) {
 		if err := addPollingLog(p);err != nil {
 			astilog.Errorf("addPollingLog err=%v",err)
 		}
@@ -512,6 +516,56 @@ func cmpVal(op string,a,b float64) bool {
 	default:
 		return false
 	}
+}
+
+var syslogPriFilter = regexp.MustCompile(`"priority":(\d+),`)
+
+func doPollingSyslogPri(p *pollingEnt) bool {
+	_,err := regexp.Compile(p.Polling)
+	if err != nil {
+		astilog.Errorf("Invalid syslogpri watch format Polling=%s err=%v",p.Polling,err)
+		p.LastResult = "Invalid syslogpri watch format"
+		setPollingState(p,"unkown")
+		updatePolling(p)
+		return false
+	}
+	endTime := time.Unix((time.Now().Unix()/3600)*3600,0)
+	startTime := endTime.Add(-time.Hour * 1)
+	if int64(p.LastVal) >= startTime.UnixNano() {
+		// Skip
+		return false
+	}
+	p.LastVal = float64(startTime.UnixNano())
+	st := startTime.Format("2006-01-02T15:04")
+	et := endTime.Format("2006-01-02T15:04")
+	logs := getLogs( &filterEnt {
+		Filter: p.Polling,
+		StartTime: st,
+		EndTime: et,
+		LogType: "syslog",
+	})
+	priMap := make(map[int]int)
+	for _,l := range logs {
+		pa := syslogPriFilter.FindAllStringSubmatch(string(l.Log),-1)
+		if pa == nil || len(pa) < 1 || len(pa[0]) < 2 {
+			continue
+		}
+		pri,err := strconv.ParseInt(pa[0][1],10,64)
+		if err != nil || pri < 0 || pri > 256 {
+			continue
+		}
+		priMap[int(pri)]++
+	}
+	p.LastResult = ""
+	for pri,c := range priMap{
+		if p.LastResult != ""{
+			p.LastResult += ";"
+		}
+		p.LastResult += fmt.Sprintf("%d=%d",pri,c)
+	}
+	setPollingState(p,"normal")
+	updatePolling(p)
+	return true
 }
 
 func doPollingTCP(p *pollingEnt){
