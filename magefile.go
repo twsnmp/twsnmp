@@ -51,7 +51,7 @@ func buildInternal(bWindows bool) error {
 	if bWindows {
 		err = sh.Run("astilectron-bundler", "-w")
 	} else {
-		err = sh.RunV("astilectron-bundler", "-v")
+		err = sh.RunV("astilectron-bundler")
 	}
 	if err != nil {
 		return err

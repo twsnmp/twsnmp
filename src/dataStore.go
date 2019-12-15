@@ -546,19 +546,6 @@ func getPollings() []pollingEnt {
 	return ret
 }
 
-// getLogPollings : ログを監視するポーリングリストを取得する
-func getLogPollings() []pollingEnt {
-	ret := []pollingEnt{}
-	pollings.Range(func(_, p interface{}) bool {
-		t := p.(*pollingEnt).Type
-		if t == "syslog" || t == "trap" || t == "netflow" || t == "ipfix" {
-			ret = append(ret, *p.(*pollingEnt))
-		}
-		return true
-	})
-	return ret
-}
-
 func addEventLog(e eventLogEnt) {
 	e.Time = time.Now().UnixNano()
 	eventLogCh <- e

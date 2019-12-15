@@ -16,7 +16,6 @@ polling.go :ポーリング処理を行う
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 	"strings"
 	"fmt"
@@ -117,7 +116,7 @@ func setPollingState(p *pollingEnt,newState string){
 			Level: p.State,
 			NodeID: p.NodeID,
 			NodeName: nodeName,
-			Event: "ポーリング状態変化:" + p.Name,
+			Event: fmt.Sprintf("ポーリング状態変化:%s(%s):%f:%s",p.Name,p.Type,p.LastVal,p.LastResult),
 		})
 	}
 }
@@ -131,7 +130,7 @@ func doPolling(p *pollingEnt){
 		doPollingSnmp(p)
 	case "tcp":
 		doPollingTCP(p)
-	case "http":
+	case "http","https":
 		doPollingHTTP(p)
 	case "tls":
 		doPollingTLS(p)
@@ -155,18 +154,14 @@ func doPollingPing(p *pollingEnt){
 		return
 	}
 	r := doPing(n.IP,p.Timeout,p.Retry,64)
+	p.LastVal = float64(r.Time)
 	if r.Stat == pingOK {
+		p.LastResult = ""
 		setPollingState(p,"normal")
 	}	else {
+		p.LastResult = fmt.Sprintf("%v",r.Error)
 		setPollingState(p,p.Level)
 	}
-	js,err := json.Marshal(&r)
-	if err != nil {
-		astilog.Errorf("ping Marshal err=%v",err)
-		return
-	}
-	p.LastVal = float64(r.Time)
-	p.LastResult = string(js)
 	updatePolling(p)
 }
 
@@ -225,6 +220,7 @@ func doPollingSnmpSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){
 	oids := []string{mib.NameToOID("sysUpTime.0")}
 	result, err := agent.Get(oids)
 	if err != nil {
+		p.LastResult = fmt.Sprintf("%v",err)
 		setPollingState(p,"unkown")
 		return
 	}
@@ -236,6 +232,7 @@ func doPollingSnmpSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){
 		}
 	}
 	if uptime == 0 {
+		p.LastResult = ""
 		setPollingState(p,"unkown")
 		return
 	}
@@ -260,12 +257,14 @@ func doPollingSnmpSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){
 func doPollingSnmpIF(p *pollingEnt,ps string,agent *gosnmp.GoSNMP) {
 	a := strings.Split(ps,".")
 	if len(a) < 2 {
+		p.LastResult = "Invalid format"
 		setPollingState(p,"unkown")
 		return
 	}
 	oids := []string{mib.NameToOID("ifOperStatus."+a[1]),mib.NameToOID("ifAdminState."+a[1])}
 	result, err := agent.Get(oids)
 	if err != nil {
+		p.LastResult = "Invalid MIB Name"
 		setPollingState(p,"unkown")
 		return
 	}
@@ -279,7 +278,7 @@ func doPollingSnmpIF(p *pollingEnt,ps string,agent *gosnmp.GoSNMP) {
 		}
 	}
 	p.LastVal = float64(oper)
-	p.LastResult = fmt.Sprintf("{oper:%d, admin:%d}",oper,admin)
+	p.LastResult = fmt.Sprintf("oper=%d;admin=%d",oper,admin)
 	if oper == 1 {
 		setPollingState(p,"normal")
 		return
@@ -297,6 +296,7 @@ func doPollingSnmpIF(p *pollingEnt,ps string,agent *gosnmp.GoSNMP) {
 func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
 	a := strings.Split(ps," ")
 	if len(a) < 3 {
+		p.LastResult = "Invalid format"
 		setPollingState(p,"unkown")
 		return
 	}
@@ -309,6 +309,7 @@ func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
 	}
 	result, err := agent.Get(oids)
 	if err != nil {
+		p.LastResult = fmt.Sprintf("%v",err)
 		setPollingState(p,"unkown")
 		return
 	}
@@ -334,6 +335,7 @@ func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
 		}
 	}
 	if !hitIv && !hitSv {
+		p.LastResult = "Invalid MIB"
 		setPollingState(p,"unkown")
 		return
 	}
@@ -341,7 +343,7 @@ func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
 		sv = fmt.Sprintf("%d,%d",iv,sut)
 	}
 	if mode == "ps" || mode == "delta" {
-		if p.LastResult == "" {
+		if !strings.Contains(p.LastResult,",") {
 			p.LastResult =  sv
 			return
 		}
@@ -358,6 +360,7 @@ func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
 		case ">":
 			r = strings.Compare(sv,cv) > 0
 		default:
+			p.LastResult = "Invalid Operator"
 			setPollingState(p,"unkown")
 			return
 		}
@@ -402,6 +405,7 @@ func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
 		case ">=":
 			r = iv >= civ
 		default:
+			p.LastResult = "Invalid Operator"
 			setPollingState(p,"unkown")
 			return
 		}
@@ -531,13 +535,13 @@ func doPollingTCP(p *pollingEnt){
 		rTime = endTime - startTime
 		ok = true
 	}
+	p.LastVal = float64(rTime)
 	if ok {
-		setPollingState(p,"normal")
 		p.LastResult = ""
+		setPollingState(p,"normal")
 	}	else {
 		setPollingState(p,p.Level)
 	}
-	p.LastVal = float64(rTime)
 	updatePolling(p)
 }
 
@@ -561,15 +565,20 @@ func doPollingHTTP(p *pollingEnt){
 		rTime = endTime - startTime
 		ok = true
 	}
+	p.LastVal = float64(rTime)
 	if ok {
 		setPollingState(p,"normal")
-		p.LastResult = ""
 	}	else {
 		setPollingState(p,p.Level)
 	}
-	p.LastVal = float64(rTime)
 	updatePolling(p)
 }
+
+var insecureTransport = &http.Transport{
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+}
+
+var insecureClient = &http.Client{Transport: insecureTransport}
 
 func doHTTPGet(p *pollingEnt) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.Timeout) * time.Second)
@@ -578,7 +587,16 @@ func doHTTPGet(p *pollingEnt) error {
 	if err != nil {
 		return err
 	}
-	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+	if p.Type == "https" {
+		resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		p.LastResult = resp.Status
+		return nil
+	}
+	resp, err := insecureClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return err
 	}
@@ -616,13 +634,13 @@ func doPollingTLS(p *pollingEnt){
 		cs = conn.ConnectionState()
 		ok = true
 	}
+	p.LastVal = float64(rTime)
 	if ok {
-		setPollingState(p,"normal")
 		p.LastResult = getTLSConnectioStateInfo(&cs)
+		setPollingState(p,"normal")
 	}	else {
 		setPollingState(p,p.Level)
 	}
-	p.LastVal = float64(rTime)
 	updatePolling(p)
 }
 
@@ -703,13 +721,13 @@ func doPollingDNS(p *pollingEnt){
 	if ok && p.LastResult != ""  && !strings.HasPrefix(p.LastResult,"ERR") && ip != p.LastResult {
 		ok = false
 	}
+	p.LastVal = float64(rTime)
 	if ok {
-		setPollingState(p,"normal")
 		p.LastResult = ip
+		setPollingState(p,"normal")
 	}	else {
 		setPollingState(p,p.Level)
 	}
-	p.LastVal = float64(rTime)
 	updatePolling(p)
 }
 

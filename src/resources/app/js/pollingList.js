@@ -100,16 +100,8 @@ function makePollingTable() {
     }
   });
   $('.polling_btns button.delete').click(function () {
-    const r = polling.row('.selected');
-    if( !r ){
-      return;
-    }
-    const d = r.data();
-    if (!d || d.length < 10){
-      return;
-    }
-    const id = d[9];
-    if(!pollingList[id]){
+    const id = getSelectedPollingID()
+    if(!id){
       return;
     }
     if (!confirm(`${pollingList[id].Name}を削除しますか?`)) {
@@ -124,16 +116,8 @@ function makePollingTable() {
     });
   });
   $('.polling_btns button.poll').click(function () {
-    const r = polling.row('.selected');
-    if( !r ){
-      return;
-    }
-    const d = r.data();
-    if (!d || d.length < 10){
-      return;
-    }
-    const id = d[9];
-    if(!pollingList[id]){
+    const id = getSelectedPollingID()
+    if(!id){
       return;
     }
     astilectron.sendMessage({ name: "pollNow", payload: id }, message => {
@@ -145,16 +129,8 @@ function makePollingTable() {
     });
   });
   $('.polling_btns button.edit').click(function () {
-    const r = polling.row('.selected');
-    if( !r ){
-      return;
-    }
-    const d = r.data();
-    if (!d || d.length < 10){
-      return;
-    }
-    const id = d[9];
-    if(!pollingList[id]){
+    const id = getSelectedPollingID()
+    if(!id){
       return;
     }
     createEditPollingPane(id);
@@ -163,16 +139,8 @@ function makePollingTable() {
     createEditPollingPane("");
   });
   $('.polling_btns button.show').click(function () {
-    const r = polling.row('.selected');
-    if( !r ){
-      return;
-    }
-    const d = r.data();
-    if (!d || d.length < 10){
-      return;
-    }
-    const id = d[9];
-    if(!pollingList[id]){
+    const id = getSelectedPollingID()
+    if(!id){
       return;
     }
     astilectron.sendMessage({ name: "showPolling", payload: id }, message => {
@@ -184,6 +152,21 @@ function makePollingTable() {
   });
 }
 
+function getSelectedPollingID() {
+  const r = polling.row('.selected');
+  if (!r) {
+    return undefined;
+  }
+  const d = r.data();
+  if (!d || d.length < 10) {
+    return undefined;
+  }
+  const id = d[9];
+  if (!pollingList[id]) {
+    return undefined;
+  }
+  return id
+}
 
 document.addEventListener('astilectron-ready', function () {
   makePollingTable();
@@ -254,6 +237,7 @@ function createEditPollingPane(id){
       "SNMP": "snmp",
       "TCP": "tcp",
       "HTTP": "http",
+      "HTTPS": "https",
       "TLS": "tls",
       "DNS": "dns",
       "SYSLOG": "syslog",

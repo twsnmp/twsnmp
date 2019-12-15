@@ -27,13 +27,9 @@
       <h1 class="title">TWSNMP - ログ表示</h1>
     </header>
     <div class="tab-group">
-      <div class="tab-item active" id="polling">
-        <i class="fab fa-tripadvisor"></i>
-        ログ監視
-      </div>
       <div class="tab-item" id="log">
         <i class="fas fa-warehouse"></i>
-        Event Log
+        イベントログ
       </div>
       <div class="tab-item" id="syslog">
         <i class="fas fa-clipboard-list"></i>
@@ -50,25 +46,6 @@
       <div class="tab-item" id="ipfix">
         <i class="fas fa-network-wired"></i>
         IPFIX
-      </div>
-    </div>
-    <div class="window-content hidden" id="polling_page">
-      <div class="table_base">
-        <table id="polling_table" class="display compact">
-          <thead>
-            <tr>
-              <th>状態</th>
-              <th>名前</th>
-              <th>レベル</th>
-              <th>種別</th>
-              <th>ポーリング</th>
-              <th>最終実施</th>
-              <th>ID</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
       </div>
     </div>
     <div class="window-content hidden" id="log_page">
@@ -173,33 +150,7 @@
       </div>
     </div>
     <footer class="toolbar toolbar-footer">
-      <div class="toolbar-actions polling_btns hidden">
-        <button class="btn btn-primary add">
-          <i class="fas fa-plus-circle"></i>
-          新規
-        </button>
-        <button class="btn btn-primary edit">
-          <i class="fas fa-edit"></i>
-          編集
-        </button>
-        <button class="btn btn-negative delete">
-          <i class="fas fa-trash-alt"></i>
-          削除
-        </button>
-        <button class="btn btn-default poll">
-          <i class="fas fa-sync"></i>
-          確認
-        </button>
-        <button class="btn btn-default show">
-          <i class="fas fa-chart-area"></i>
-          分析
-        </button>
-        <button class="btn btn-default pull-right close">
-          <i class="fas fa-times"></i>
-          閉じる
-        </button>
-      </div>
-      <div class="toolbar-actions log_btns hidden">
+      <div class="toolbar-actions log_btns">
         <input name="start" type="datetime-local" value="">
         -
         <input name="end" type="datetime-local" value="">

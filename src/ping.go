@@ -47,6 +47,7 @@ type pingEnt struct {
 	Stat     pingStat
 	Time     int64
 	lastSend int64
+	Error    error
 	done     chan bool
 }
 
@@ -152,6 +153,7 @@ func pingBackend(ctx context.Context) {
 				}
 				pingMap[p.Tracker] = p
 				if err := p.sendICMP(conn); err != nil {
+					p.Error = err
 					astilog.Debugf("sendICMP err=%v", err)
 				}
 			}
@@ -162,10 +164,14 @@ func pingBackend(ctx context.Context) {
 					p.sequence++
 					if p.sequence > p.Retry {
 						delete(pingMap, k)
+						if p.Error == nil {
+							p.Error = fmt.Errorf("Timeout")
+						}
 						p.done <- true
 						continue
 					}
 					if err := p.sendICMP(conn); err != nil {
+						p.Error = err
 						astilog.Debugf("sendICMP err=%v", err)
 					}
 				}
@@ -197,6 +203,7 @@ func pingBackend(ctx context.Context) {
 					delete(pingMap, tracker)
 					p.Stat = pingOK
 					p.Time = tm
+					p.Error = nil
 					p.done <- true
 				}
 			}

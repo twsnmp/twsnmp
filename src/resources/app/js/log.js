@@ -1,8 +1,6 @@
 'use strict';
 
 let currentPage = "";
-let nodes;
-let polling;
 let logTable;
 let syslogTable;
 let trapTable;
@@ -13,37 +11,7 @@ let syslogChart;
 let trapChart;
 let netflowChart;
 let ipfixChart;
-let pane;
-let pollingList;
 const searchHistory = [];
-
-function setupPollingPage() {
-  astilectron.sendMessage({ name: "getLogPollings", payload: "" }, message => {
-    if (message.payload === "ng") {
-      astilectron.showErrorBox("ログ表示", "ログポーリングを取得できません。");
-      return;
-    }
-    polling.rows().remove();
-    pollingList = {};
-    for (let i = message.payload.length - 1; i >= 0; i--) {
-      const p = message.payload[i];
-      const lt = moment(p.LastTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
-      const level = getStateHtml(p.Level);
-      const state = getStateHtml(p.State);
-      polling.row.add([state, p.Name, level, p.Type, p.Polling, lt, p.ID]);
-      pollingList[p.ID] = p;
-    }
-    polling.draw();
-    setPollingBtns(false);
-  });
-  astilectron.sendMessage({ name: "getNodes", payload: "" }, message => {
-    if (message.payload === "ng") {
-      astilectron.showErrorBox("ログ表示", "ノードを取得できません。");
-      return;
-    }
-    nodes = message.payload;
-  });
-}
 
 function searchLog() {
   const filter = {
@@ -55,6 +23,10 @@ function searchLog() {
   astilectron.sendMessage({ name: "searchLog", payload: filter }, message => {
     if (message.payload == "ng") {
       astilectron.showErrorBox("ログ表示", "ログを取得できません。");
+      return;
+    }
+    if (message.payload.length < 1 ) {
+      astilectron.showErrorBox("ログ表示", "該当するログがありません。");
       return;
     }
     if(filter.Filter &&  !searchHistory.includes(filter.Filter)){
@@ -334,7 +306,7 @@ function showIpfix(logList) {
 }
 
 function showPage(mode) {
-  const pages = ["polling", "log", "syslog", "trap", "netflow", "ipfix"];
+  const pages = ["log", "syslog", "trap", "netflow", "ipfix"];
   pages.forEach(p => {
     if (mode == p) {
       $("#" + p + "_page").removeClass("hidden");
@@ -344,145 +316,7 @@ function showPage(mode) {
       $("#" + p).removeClass("active");
     }
   });
-  if (mode == "polling") {
-    $(".toolbar-footer .log_btns").addClass("hidden");
-    $(".toolbar-footer .polling_btns").removeClass("hidden");
-  } else {
-    $(".toolbar-footer .log_btns").removeClass("hidden");
-    $(".toolbar-footer .polling_btns").addClass("hidden");
-  }
   currentPage = mode;
-}
-
-
-function setPollingBtns(show) {
-  const btns = ["edit", "delete", "poll", "show"];
-  btns.forEach(b => {
-    if (!show) {
-      $('.polling_btns button.' + b).addClass("hidden");
-    } else {
-      $('.polling_btns button.' + b).removeClass("hidden");
-    }
-  });
-}
-
-function makePollingTable() {
-  polling = $('#polling_table').DataTable({
-    "paging": false,
-    "info": false,
-    "ordering": false,
-    "searching": true,
-    "autoWidth": true,
-    "language": {
-      "decimal": "",
-      "emptyTable": "ポーリングがありません。",
-      "thousands": "",
-      "loadingRecords": "読み込み中...",
-      "processing": "処理中...",
-      "search": "検索:",
-      "zeroRecords": "一致するポーリングがありません。",
-      "aria": {
-        "sortAscending": ": 昇順でソート",
-        "sortDescending": ": 降順でソート"
-      }
-    },
-  });
-  $('#polling_table tbody').on('click', 'tr', function () {
-    if ($(this).hasClass('selected')) {
-      $(this).removeClass('selected');
-      setPollingBtns(false);
-    } else {
-      polling.$('tr.selected').removeClass('selected');
-      $(this).addClass('selected');
-      setPollingBtns(true);
-    }
-  });
-  $('.polling_btns button.delete').click(function () {
-    const r = polling.row('.selected');
-    if (!r) {
-      return;
-    }
-    const d = r.data();
-    if (!d || d.length < 7) {
-      return;
-    }
-    const id = d[6];
-    if (!pollingList[id]) {
-      return;
-    }
-    if (!confirm(`${pollingList[id].Name}を削除しますか?`)) {
-      return;
-    }
-    astilectron.sendMessage({ name: "deletePolling", payload: id }, message => {
-      if (message.payload != "ok") {
-        astilectron.showErrorBox("ポーリング削除", "削除できません。");
-        return;
-      }
-      r.remove().draw(false);
-    });
-  });
-  $('.polling_btns button.poll').click(function () {
-    const r = polling.row('.selected');
-    if (!r) {
-      return;
-    }
-    const d = r.data();
-    if (!d || d.length < 7) {
-      return;
-    }
-    const id = d[6];
-    if (!pollingList[id]) {
-      return;
-    }
-    astilectron.sendMessage({ name: "pollNow", payload: id }, message => {
-      if (message.payload != "ok") {
-        astilectron.showErrorBox("ポーリング確認", "ポーリングの再実行に失敗しました。");
-        return;
-      }
-      setTimeout(()=> {
-        setupPollingPage();
-        showPage("polling");
-      },1000);
-    });
-  });
-  $('.polling_btns button.edit').click(function () {
-    const r = polling.row('.selected');
-    if (!r) {
-      return;
-    }
-    const d = r.data();
-    if (!d || d.length < 7) {
-      return;
-    }
-    const id = d[6];
-    if (!pollingList[id]) {
-      return;
-    }
-    createEditPollingPane(id);
-  });
-  $('.polling_btns button.add').click(function () {
-    createEditPollingPane("");
-  });
-  $('.polling_btns button.show').click(function () {
-    const r = polling.row('.selected');
-    if (!r) {
-      return;
-    }
-    const d = r.data();
-    if (!d || d.length < 7) {
-      return;
-    }
-    const id = d[6];
-    if (!pollingList[id]) {
-      return;
-    }
-    astilectron.sendMessage({ name: "showPolling", payload: id }, message => {
-      if (message.payload != "ok") {
-        astilectron.showErrorBox("ノード情報", "ログを取得できません。");
-        return;
-      }
-    });
-  });
 }
 
 function makeLogTables() {
@@ -582,22 +416,21 @@ function makeCharts() {
 }
 
 function setupTimeVal() {
-  $(".log_btns input[name=start]").val(moment().subtract(3, "h").format("Y-MM-DDTHH:00"));
+  $(".log_btns input[name=start]").val(moment().subtract(1, "h").format("Y-MM-DDTHH:00"));
   $(".log_btns input[name=end]").val(moment().add(1,"h").format("Y-MM-DDTHH:00"));
 }
 
 document.addEventListener('astilectron-ready', function () {
-  makePollingTable();
   makeLogTables();
   makeCharts();
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "show":
         setTimeout(()=>{
-          setupPollingPage();
-          showPage("polling");
           setupTimeVal();
-        },1000);
+          $('#log').click();
+          $('.log_btns button.search').click();
+        },100);
         return { name: "show", payload: "ok" };
       case "error":
         setTimeout(() => {
@@ -610,45 +443,23 @@ document.addEventListener('astilectron-ready', function () {
     astilectron.sendMessage({ name: "close", payload: "" }, message => {
     });
   });
-  $('#polling').click(() => {
-    if (pane) {
-      return true;
-    }
-    setupPollingPage();
-    showPage("polling");
-  });
   $('#log').click(() => {
-    if (pane) {
-      return true;
-    }
     showPage("log");
     logChart.resize();
   });
   $('#syslog').click(() => {
-    if (pane) {
-      return true;
-    }
     showPage("syslog");
     syslogChart.resize();
   });
   $('#trap').click(() => {
-    if (pane) {
-      return true;
-    }
     showPage("trap");
     trapChart.resize();
   });
   $('#netflow').click(() => {
-    if (pane) {
-      return true;
-    }
     showPage("netflow");
     netflowChart.resize();
   });
   $('#ipfix').click(() => {
-    if (pane) {
-      return true;
-    }
     showPage("ipfix");
     ipfixChart.resize();
   });
@@ -683,87 +494,3 @@ document.addEventListener('astilectron-ready', function () {
     source: sh()
   });  
 });
-
-function createEditPollingPane(id) {
-  if (pane) {
-    pane.dispose();
-    pane = undefined;
-  }
-  let p;
-  if (pollingList[id]) {
-    p = pollingList[id];
-  } else {
-    p = {
-      ID: "",
-      Name: "",
-      NodeID: "",
-      Type: "syslog",
-      Polling: "",
-      Level: "low",
-      PollInt: 60,
-      Timeout: 1,
-      Retry: 1,
-      LastTime: 0,
-      LastResult: "",
-      State: "",
-    };
-  }
-  pane = new Tweakpane({
-    title: id === "" ? "ログ監視" : "ログ監視編集",
-  });
-  pane.addInput(p, 'Name', { label: "名前" });
-  pane.addInput(p, 'Type', {
-    label: "種別",
-    options: {
-      "SYSLOG":  "syslog",
-      "TRAP":    "trap",
-      "NetFlow": "netflow",
-      "IPFIX":   "ipfix",
-    },
-  });
-  pane.addInput(p, 'NodeID', {
-    label: "関連ノード",
-    options: nodes
-  });
-  pane.addInput(p, 'Level', {
-    label: "レベル",
-    options: {
-      "重度": "high",
-      "軽度": "low",
-      "警告": "warn",
-      "情報": "info",
-    },
-  });
-  pane.addInput(p, 'Polling', { label: "定義" });
-  pane.addInput(p, 'PollInt', {
-    label: "間隔",
-    min: 60,
-    max: 3600,
-    step: 10,
-  });
-  pane.addButton({
-    title: 'Cancel',
-  }).on('click', (value) => {
-    pane.dispose();
-    pane = undefined;
-  });
-  pane.addButton({
-    title: 'Save',
-  }).on('click', (value) => {
-    // Check Values
-    if (p.Name == "") {
-      astilectron.showErrorBox("ポーリング編集", "名前を指定してください。");
-      return;
-    }
-    astilectron.sendMessage({ name: "savePolling", payload: p }, message => {
-      if (message.payload !== "ok") {
-        astilectron.showErrorBox("ポーリング編集", "保存に失敗しました。");
-        return;
-      }
-      setupPollingPage();
-      showPage("polling");
-    });
-    pane.dispose();
-    pane = undefined;
-  });
-}

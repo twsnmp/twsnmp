@@ -32,12 +32,10 @@ func logMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{
 			logWindow.Hide()
 			logWindow.CloseDevTools()
 			return "ok",nil
-		case "getLogPollings":
-			return getLogPollings(),nil
-		case "getNodes":
-			return getNodes(),nil
 		case "searchLog":
 			return searchLog(&m)
+		case "showPolling":
+			return showPolling(&m)
 		case "savePolling":
 			return savePolling(&m)
 		case "deletePolling":
