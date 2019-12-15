@@ -581,7 +581,7 @@ func doPollingTCP(p *pollingEnt){
 		conn, err := net.DialTimeout("tcp", n.IP +":" + p.Polling, time.Duration(p.Timeout) *time.Second)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			astilog.Error(err)
+			astilog.Debugf("doPollingTCP err=%v",err)
 			p.LastResult = fmt.Sprintf("%v",err)
 			continue
 		}
@@ -612,7 +612,7 @@ func doPollingHTTP(p *pollingEnt){
 		err := doHTTPGet(p)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			astilog.Error(err)
+			astilog.Debugf("doPollingHTTP err=%v",err)
 			p.LastResult = fmt.Sprintf("%v",err)
 			continue
 		}
@@ -679,7 +679,7 @@ func doPollingTLS(p *pollingEnt){
 		conn, err := tls.DialWithDialer(d,"tcp",n.IP +":"+ p.Polling, conf)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			astilog.Error(err)
+			astilog.Debugf("doPollingTLS err=%v",err)
 			p.LastResult = fmt.Sprintf("%v",err)
 			continue
 		}
@@ -764,7 +764,7 @@ func doPollingDNS(p *pollingEnt){
 		addr, err := net.ResolveIPAddr("ip", p.Polling)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			astilog.Error(err)
+			astilog.Debugf("doPollingDNS err=%v",err)
 			p.LastResult = fmt.Sprintf("ERR:%v",err)
 			continue
 		}

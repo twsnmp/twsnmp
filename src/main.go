@@ -174,6 +174,21 @@ func main() {
 						return false
 					},
 				},
+				{
+					Label: astilectron.PtrStr("AI分析"),
+					Type:  astilectron.MenuItemTypeCheckbox,
+					OnClick: func(e astilectron.Event) bool {
+						setWindowsShowOrHide(aiWindow, *e.MenuItemOptions.Checked)
+						if *debug {
+							if *e.MenuItemOptions.Checked {
+								aiWindow.OpenDevTools()
+							} else {
+								aiWindow.CloseDevTools()
+							}
+						}
+						return false
+					},
+				},
 			},
 		}},
 		OnWait: func(a *astilectron.Astilectron, w []*astilectron.Window, m *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
@@ -208,7 +223,9 @@ func main() {
 				if err != nil {
 					continue
 				}
-				mi.SetVisible(false)
+				if w != aiWindow {
+					mi.SetVisible(false)
+				}
 				w.On(astilectron.EventNameWindowEventHide, func(e astilectron.Event) (deleteListener bool) {
 					mi.SetChecked(false)
 					return
@@ -345,7 +362,7 @@ func main() {
 			},
 			{
 				Homepage:       "ai.html",
-				MessageHandler: mibMessageHandler,
+				MessageHandler: aiMessageHandler,
 				Options: &astilectron.WindowOptions{
 					Center:         astilectron.PtrBool(true),
 					Frame:          astilectron.PtrBool(false),
@@ -354,8 +371,8 @@ func main() {
 					Fullscreenable: astilectron.PtrBool(false),
 					Maximizable:    astilectron.PtrBool(false),
 					Minimizable:    astilectron.PtrBool(true),
-					Width:          astilectron.PtrInt(10),
-					Height:         astilectron.PtrInt(10),
+					Width:          astilectron.PtrInt(800),
+					Height:         astilectron.PtrInt(600),
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},
