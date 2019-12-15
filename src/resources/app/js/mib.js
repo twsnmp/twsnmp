@@ -93,6 +93,7 @@ document.addEventListener('astilectron-ready', function () {
         if (message.payload && message.payload.NodeID) {
           nodeID = message.payload.NodeID;
           mibNames = message.payload.MibNames;
+          console.log(mibNames);
           setWindowTitle(message.payload.NodeName);
           makeMibTable([
             {title:"Index" },
@@ -168,10 +169,11 @@ document.addEventListener('astilectron-ready', function () {
   $('.mib_btns input[name=mib]').typeahead({
     hint: true,
     highlight: true,
-    minLength: 1
+    minLength: 3
   },
   {
     name: 'MibName',
+    limit: 20,
     source: mn()
   });  
 });
