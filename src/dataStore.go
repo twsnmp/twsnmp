@@ -162,7 +162,7 @@ func openDB(path string) error {
 }
 
 func initDB() error {
-	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "mibdb"}
+	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "mibdb", "arp"}
 	mapConf.Community = "public"
 	mapConf.PollInt = 60
 	mapConf.Retry = 1
@@ -980,4 +980,33 @@ func saveLogList(list []eventLogEnt) {
 // bboltに保存する場合のキーを時刻から生成する。
 func makeKey() string {
 	return fmt.Sprintf("%016x", time.Now().UnixNano())
+}
+
+func loadArpTableFromDB() error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	return db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("arp"))
+		if b == nil {
+			return nil
+		}
+		b.ForEach(func(k, v []byte) error {
+			arpTable[string(k)] = string(v)
+			return nil
+		})
+		return nil
+	})
+}
+
+func updateArpEnt(ip, mac string) error {
+	arpTable[ip] = mac
+	if db == nil {
+		return errDBNotOpen
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("arp"))
+		b.Put([]byte(ip), []byte(mac))
+		return nil
+	})
 }

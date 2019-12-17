@@ -1,0 +1,120 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"os/exec"
+	"runtime"
+	"strings"
+	"time"
+
+	astilog "github.com/asticode/go-astilog"
+)
+
+var arpTable = make(map[string]string)
+
+func arpWatcher(ctx context.Context) {
+	astilog.Debug("start arpWacher")
+	loadArpTableFromDB()
+	checkArpTable()
+	timer := time.NewTicker(time.Second * 300)
+	for {
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			astilog.Debug("Stop logger")
+			return
+		case <-timer.C:
+			checkArpTable()
+		}
+	}
+}
+
+func checkArpTable() {
+	if runtime.GOOS == "windows" {
+		checkArpTableWindows()
+		return
+	}
+	checkArpTableUnix()
+}
+
+func checkArpTableWindows() {
+	out, err := exec.Command("arp", "-a").Output()
+	if err != nil {
+		astilog.Errorf("checkArpTable err=%v", err)
+		return
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		updateArpTable(fields[0], fields[1])
+	}
+}
+
+func checkArpTableUnix() {
+	out, err := exec.Command("arp", "-an").Output()
+	if err != nil {
+		astilog.Errorf("checkArpTable err=%v", err)
+		return
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		// strip brackets around IP
+		ip := strings.Replace(fields[1], "(", "", -1)
+		ip = strings.Replace(ip, ")", "", -1)
+		updateArpTable(ip, fields[3])
+	}
+}
+
+func updateArpTable(ip, mac string) {
+	if !strings.Contains(ip, ".") || !strings.ContainsAny(mac, ":-") {
+		return
+	}
+	mac = normMACAddr(mac)
+	m, ok := arpTable[ip]
+	if !ok {
+		// New
+		updateArpEnt(ip, mac)
+		logCh <- &logEnt{
+			Time: time.Now().UnixNano(),
+			Type: "arp",
+			Log:  fmt.Sprintf("New %s %s", ip, mac),
+		}
+		astilog.Infof("New %s %s", ip, mac)
+		return
+	}
+	if mac != m {
+		// Change
+		updateArpEnt(ip, mac)
+		logCh <- &logEnt{
+			Time: time.Now().UnixNano(),
+			Type: "arp",
+			Log:  fmt.Sprintf("Change %s %s -> %s", ip, m, mac),
+		}
+		astilog.Infof("Change %s %s -> %s", ip, m, mac)
+		return
+	}
+	// No Change
+}
+
+func normMACAddr(m string) string {
+	m = strings.Replace(m, "-", ":", -1)
+	a := strings.Split(m, ":")
+	r := ""
+	for _, e := range a {
+		if r != "" {
+			r += ":"
+		}
+		if len(e) == 1 {
+			r += "0"
+		}
+		r += e
+	}
+	return strings.ToUpper(r)
+}

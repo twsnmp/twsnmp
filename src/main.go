@@ -456,6 +456,7 @@ func startBackend(ctx context.Context) {
 		go pollingBackend(ctx)
 		go logger(ctx)
 		go notifyBackend(ctx)
+		go arpWatcher(ctx)
 		startWindow.Hide()
 		mainWindow.Show()
 	}()
