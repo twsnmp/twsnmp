@@ -22,7 +22,7 @@ func arpWatcher(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			astilog.Debug("Stop logger")
+			astilog.Debug("Stop arpWatch")
 			return
 		case <-timer.C:
 			checkArpTable()
@@ -33,9 +33,9 @@ func arpWatcher(ctx context.Context) {
 func checkArpTable() {
 	if runtime.GOOS == "windows" {
 		checkArpTableWindows()
-		return
+	} else {
+		checkArpTableUnix()
 	}
-	checkArpTableUnix()
 }
 
 func checkArpTableWindows() {
@@ -83,8 +83,8 @@ func updateArpTable(ip, mac string) {
 		updateArpEnt(ip, mac)
 		logCh <- &logEnt{
 			Time: time.Now().UnixNano(),
-			Type: "arp",
-			Log:  fmt.Sprintf("New %s %s", ip, mac),
+			Type: "arplog",
+			Log:  fmt.Sprintf("New,%s,%s", ip, mac),
 		}
 		astilog.Infof("New %s %s", ip, mac)
 		return
@@ -94,8 +94,8 @@ func updateArpTable(ip, mac string) {
 		updateArpEnt(ip, mac)
 		logCh <- &logEnt{
 			Time: time.Now().UnixNano(),
-			Type: "arp",
-			Log:  fmt.Sprintf("Change %s %s -> %s", ip, m, mac),
+			Type: "arplog",
+			Log:  fmt.Sprintf("Change,%s,%s,%s", ip, m, mac),
 		}
 		astilog.Infof("Change %s %s -> %s", ip, m, mac)
 		return

@@ -31,7 +31,9 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			return fmt.Sprintf("%v",err),err
 		}
 		return "ok",nil
-
+	case "resetArpTable":
+		resetArpTable()
+		return "ok",nil
 	case "mapConf":
 		{
 			if len(m.Payload) > 0 {

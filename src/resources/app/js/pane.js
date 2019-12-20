@@ -13,7 +13,9 @@ function createMapConfPane() {
     title: '背景画像ファイル選択',
   }).on('click', (value) => {
     astilectron.showOpenDialog({ properties: ['openFile'], title: "背景画像ファイル" }, function (paths) {
-      mapConfTmp.BackImg = paths[0];
+      if(pasts && paths.length > 0) {
+        mapConfTmp.BackImg = paths[0];
+      }
       pane.refresh();
     });
   }); 
@@ -80,7 +82,20 @@ function createMapConfPane() {
     max:365,
     step:1,
   });
-
+  f4.addButton({
+    title: 'Reset ARP...',
+  }).on('click', (value) => {
+    if (!confirm("ARP監視をリセットしますか？")){
+      return
+    }
+    astilectron.sendMessage({ name: "resetArpTable", payload: "" }, message => {
+      if(message.payload !== "ok") {
+        astilectron.showErrorBox("マップ設定", "ARP監視をリセットできません。");
+        return;
+      }
+      pane.dispose();
+    });
+  });
   pane.addButton({
     title: 'Cancel',
   }).on('click', (value) => {

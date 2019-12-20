@@ -47,6 +47,10 @@
         <i class="fas fa-network-wired"></i>
         IPFIX
       </div>
+      <div class="tab-item" id="arp">
+        <i class="fas fa-network-wired"></i>
+        ARP
+      </div>
     </div>
     <div class="window-content hidden" id="log_page">
       <div id="log_chart" class="chart_base"></div>
@@ -147,6 +151,39 @@
           <tbody>
           </tbody>
         </table>
+      </div>
+    </div>
+    <div class="window-content hidden" id="arp_page">
+      <div id="arplog_chart" class="chart_base"></div>
+      <div class="arpTables">
+        <div class="table_base">
+          <table id="arp_table" class="display compact">
+            <thead>
+              <tr>
+                <th>IP</th>
+                <th>MAC</th>
+                <th>Vendor</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+        </div>
+        <div class="table_base">
+          <table id="arplog_table" class="display compact">
+            <thead>
+              <tr>
+                <th>記録日時</th>
+                <th>状態</th>
+                <th>IP</th>
+                <th>MAC</th>
+                <th>Old MAC</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
     <footer class="toolbar toolbar-footer">

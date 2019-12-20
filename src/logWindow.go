@@ -25,6 +25,17 @@ type logCountEnt struct {
 	Time int64
 }
 
+type arpEnt struct {
+	IP string
+	MAC string
+	Vendor string
+}
+
+type arpResEnt struct {
+	Arps []arpEnt
+	Logs []logEnt
+}
+
 // logMessageHandler handles messages
 func logMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{},error) {
 	switch m.Name {
@@ -57,9 +68,29 @@ func searchLog(m *bootstrap.MessageIn) (interface{}, error) {
 		if filter.LogType == "log"{
 			return getEventLogs(&filter),nil
 		}
+		if filter.LogType == "arp"{
+			return getArpRes(&filter)
+		}
 		return getLogs(&filter),nil
 	}
 	return []eventLogEnt{}, errInvalidParams
+}
+
+func getArpRes(filter *filterEnt) (arpResEnt,error) {
+	arps := []arpEnt{} 
+	for ip,mac := range arpTable{
+		arps = append(arps,arpEnt{
+			IP:ip,
+			MAC:mac,
+			Vendor:oui.Find(mac),
+		})
+	}
+	filter.LogType = "arplog"
+	logs := getLogs(filter)
+	return arpResEnt{
+		Arps: arps,
+		Logs: logs,
+	},nil
 }
 
 func getNodes() map[string]string{

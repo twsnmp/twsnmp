@@ -34,6 +34,7 @@ var (
 	mibWindow         *astilectron.Window
 	aiWindow          *astilectron.Window
 	mib               *mibdb.MIBDB
+	oui               = &OUIMap{}
 	app               *astilectron.Astilectron
 	aboutText         = `TWSNMP Manager
 Version 5.0.0
@@ -209,6 +210,8 @@ func main() {
 			}
 			path = filepath.Join(app.Paths().DataDirectory(), "resources", "tlsparams.csv")
 			loadTLSParamsMap(path)
+			path = filepath.Join(app.Paths().DataDirectory(), "resources", "oui.txt")
+			oui.Open(path)
 			startBackend(ctx)
 			mainWindow.On(astilectron.EventNameWindowEventClosed, func(e astilectron.Event) (deleteListener bool) {
 				astilog.Debug("Main Window Closed")

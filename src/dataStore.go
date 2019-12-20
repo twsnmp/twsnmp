@@ -162,7 +162,7 @@ func openDB(path string) error {
 }
 
 func initDB() error {
-	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "mibdb", "arp"}
+	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "arplog", "mibdb", "arp"}
 	mapConf.Community = "public"
 	mapConf.PollInt = 60
 	mapConf.Retry = 1
@@ -836,7 +836,7 @@ func deleteOldLogs() {
 		astilog.Error("mapConf.LogDays < 1 ")
 		return
 	}
-	buckets := []string{"logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix"}
+	buckets := []string{"logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "arplog"}
 	for _, b := range buckets {
 		if err := deleteOldLog(b, mapConf.LogDays); err != nil {
 			astilog.Errorf("deleteOldLog err=%v")
@@ -1007,6 +1007,21 @@ func updateArpEnt(ip, mac string) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("arp"))
 		b.Put([]byte(ip), []byte(mac))
+		return nil
+	})
+}
+
+func resetArpTable() error {
+	arpTable = make(map[string]string)
+	return db.Batch(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("arp"))
+		if b == nil {
+			return fmt.Errorf("Bucket arp not found")
+		}
+		c := b.Cursor()
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			c.Delete()
+		}
 		return nil
 	})
 }

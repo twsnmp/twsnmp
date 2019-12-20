@@ -6,11 +6,14 @@ let syslogTable;
 let trapTable;
 let netflowTable;
 let ipfixTable;
+let arpTable;
+let arpLogTable;
 let logChart;
 let syslogChart;
 let trapChart;
 let netflowChart;
 let ipfixChart;
+let arpLogChart;
 const searchHistory = [];
 
 function searchLog() {
@@ -47,6 +50,9 @@ function searchLog() {
         break;
       case "ipfix":
         showIpfix(message.payload);
+        break;
+      case "arp":
+        showArp(message.payload);
         break;
       default:
         astilectron.showErrorBox("ログ表示", "内部エラー表示内容の不整合");
@@ -305,8 +311,80 @@ function showIpfix(logList) {
   ipfixChart.resize();
 }
 
+function getArpLogStateHtml(s) {
+  if(s == "New"){
+    return('<i class="fas fa-plus-circle state state_info"></i>新規');
+  }
+  if(s == "Change"){
+    return('<i class="fas fa-sync state state_high"></i>変化');
+  }
+  return('<i class="fas fa-check-circle state state_unknown"></i>未定義');
+}
+
+function showArp(arpResEnt) {
+  const data = [];
+  let count = 0;
+  let ctm;
+  if(!arpResEnt || !arpResEnt.Arps){
+    return;
+  }
+  arpTable.rows().remove();
+  for(let i =0;i < arpResEnt.Arps.length;i++ ) {
+    arpTable.row.add([arpResEnt.Arps[i].IP, arpResEnt.Arps[i].MAC,arpResEnt.Arps[i].Vendor]);
+  }
+  arpLogTable.rows().remove();
+  for (let i = arpResEnt.Logs.length - 1; i >= 0; i--) {
+    const l = arpResEnt.Logs[i]
+    if (!l) {
+      continue;
+    }
+    const ll = l.Log.split(',');
+    if (ll.length < 2) {
+      continue;
+    }
+    const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
+    if(ll.length > 3){
+      arpLogTable.row.add([ts, getArpLogStateHtml(ll[0]),  ll[1],ll[3],ll[2]]);
+    } else {
+      arpLogTable.row.add([ts, getArpLogStateHtml(ll[0]),  ll[1],ll[2],""]);
+    }
+    if(!ctm ) {
+      ctm = Math.floor(l.Time / (1000 * 1000 * 1000 * 60));
+      count++;
+      continue;
+    }
+    const newCtm = Math.floor(l.Time / (1000 * 1000 * 1000 * 60));
+    if (ctm != newCtm) {
+      let t = new Date(ctm * 60 * 1000);
+      data.push({
+        name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
+        value: [t,count]
+      });
+      ctm--;
+      for(;ctm > newCtm;ctm--) {
+        t = new Date(ctm * 60 * 1000);
+        data.push({
+          name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
+          value: [t,0]
+        });
+      }
+      count=0;
+    }
+    count++;
+  }
+  arpTable.draw();
+  arpLogTable.draw();
+  arpLogChart.setOption({
+    series: [{
+      data: data
+    }]
+  });
+  arpLogChart.resize();
+}
+
+
 function showPage(mode) {
-  const pages = ["log", "syslog", "trap", "netflow", "ipfix"];
+  const pages = ["log", "syslog", "trap", "netflow", "ipfix","arp"];
   pages.forEach(p => {
     if (mode == p) {
       $("#" + p + "_page").removeClass("hidden");
@@ -357,6 +435,8 @@ function makeLogTables() {
   trapTable = $('#trap_table').DataTable(logOpt);
   netflowTable = $('#netflow_table').DataTable(logOpt);
   ipfixTable = $('#ipfix_table').DataTable(logOpt);
+  arpTable = $('#arp_table').DataTable(logOpt);
+  arpLogTable = $('#arplog_table').DataTable(logOpt);
 }
 
 function makeCharts() {
@@ -413,6 +493,8 @@ function makeCharts() {
   netflowChart.setOption(option);
   ipfixChart = echarts.init(document.getElementById('ipfix_chart'));
   ipfixChart.setOption(option);
+  arpLogChart = echarts.init(document.getElementById('arplog_chart'));
+  arpLogChart.setOption(option);
 }
 
 function setupTimeVal() {
@@ -462,6 +544,10 @@ document.addEventListener('astilectron-ready', function () {
   $('#ipfix').click(() => {
     showPage("ipfix");
     ipfixChart.resize();
+  });
+  $('#arp').click(() => {
+    showPage("arp");
+    arpLogChart.resize();
   });
   $('.log_btns button.search').click(function () {
     searchLog();

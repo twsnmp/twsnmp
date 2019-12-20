@@ -119,6 +119,7 @@ func saveLogBuffer(logBuffer []*logEnt) {
 		netflow := tx.Bucket([]byte("netflow"))
 		ipfix := tx.Bucket([]byte("ipfix"))
 		trap := tx.Bucket([]byte("trap"))
+		arplog := tx.Bucket([]byte("arplog"))
 		for _, l := range logBuffer {
 			k := fmt.Sprintf("%016x", l.Time)
 			s, err := json.Marshal(l)
@@ -134,6 +135,8 @@ func saveLogBuffer(logBuffer []*logEnt) {
 				ipfix.Put([]byte(k), []byte(s))
 			case "trap":
 				trap.Put([]byte(k), []byte(s))
+			case "arplog":
+				arplog.Put([]byte(k), []byte(s))
 			}
 		}
 		return nil
