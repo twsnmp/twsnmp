@@ -169,11 +169,11 @@ document.addEventListener('astilectron-ready', function () {
   $('.mib_btns input[name=mib]').typeahead({
     hint: true,
     highlight: true,
-    minLength: 3
+    minLength: 2
   },
   {
     name: 'MibName',
-    limit: 20,
+    limit: 200,
     source: mn()
   });  
 });

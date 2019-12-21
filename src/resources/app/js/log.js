@@ -394,7 +394,9 @@ function showPage(mode) {
       $("#" + p).removeClass("active");
     }
   });
+  $(".log_btns input[name=filter]").val("");
   currentPage = mode;
+  $('.log_btns button.search').click();
 }
 
 function makeLogTables() {
@@ -511,7 +513,6 @@ document.addEventListener('astilectron-ready', function () {
         setTimeout(()=>{
           setupTimeVal();
           $('#log').click();
-          $('.log_btns button.search').click();
         },100);
         return { name: "show", payload: "ok" };
       case "error":
@@ -527,27 +528,21 @@ document.addEventListener('astilectron-ready', function () {
   });
   $('#log').click(() => {
     showPage("log");
-    logChart.resize();
   });
   $('#syslog').click(() => {
     showPage("syslog");
-    syslogChart.resize();
   });
   $('#trap').click(() => {
     showPage("trap");
-    trapChart.resize();
   });
   $('#netflow').click(() => {
     showPage("netflow");
-    netflowChart.resize();
   });
   $('#ipfix').click(() => {
     showPage("ipfix");
-    ipfixChart.resize();
   });
   $('#arp').click(() => {
     showPage("arp");
-    arpLogChart.resize();
   });
   $('.log_btns button.search').click(function () {
     searchLog();
@@ -577,6 +572,7 @@ document.addEventListener('astilectron-ready', function () {
   },
   {
     name: 'SearchHistory',
+    limit: 200,
     source: sh()
   });  
 });
