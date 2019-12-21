@@ -285,7 +285,7 @@ func main() {
 					Maximizable:    astilectron.PtrBool(false),
 					Minimizable:    astilectron.PtrBool(true),
 					Width:          astilectron.PtrInt(850),
-					Height:         astilectron.PtrInt(500),
+					Height:         astilectron.PtrInt(450),
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astilectron.PtrBool(true),
 					},
