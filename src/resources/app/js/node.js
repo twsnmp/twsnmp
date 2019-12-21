@@ -162,7 +162,10 @@ function makePollingTable() {
         astilectron.showErrorBox("ポーリング削除", "削除できません。");
         return;
       }
-      r.remove().draw(false);     
+      const r = polling.row('.selected');
+      if (r) {
+        r.remove().draw(false);
+      }
     });
   });
   $('.polling_btns button.poll').click(function () {
