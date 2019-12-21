@@ -58,6 +58,7 @@ div.pane-group div.sidebar {
 
 #nodeFilter {
   font-size: 10px;
+  min-height: 20px;
 }
 
 #status {
