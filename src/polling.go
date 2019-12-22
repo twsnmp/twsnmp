@@ -42,8 +42,6 @@ var (
 func pollingBackend(ctx context.Context) {
 	go pingBackend(ctx)
 	time.Sleep(time.Millisecond*100)
-	skip1 := 0
-	skip2 := 0
 	var nextPoll int64
 	for {
 		select {
@@ -53,7 +51,6 @@ func pollingBackend(ctx context.Context) {
 			{
 				now := time.Now().UnixNano()
 				if nextPoll > now {
-					skip1++
 					continue
 				}
 				nextPoll = now + (1000 * 1000 * 1000) * 2
@@ -66,10 +63,9 @@ func pollingBackend(ctx context.Context) {
 					return true
 				})
 				if len(list) < 1 {
-					skip2++
 					continue
 				}
-				astilog.Infof("polling Len=%d NumGoroutine=%d skip1=%d skip2=%d",len(list),runtime.NumGoroutine(),skip1,skip2)
+				astilog.Infof("New Polling %d NumGoroutine %d",len(list),runtime.NumGoroutine())
 				sort.Slice(list,func (i,j int)bool {
 					return list[i].LastTime < list[j].LastTime 
 				})

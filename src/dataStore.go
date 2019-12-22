@@ -813,8 +813,10 @@ func clearPollingLog(pollingID string) error {
 	})
 }
 
+var delCount int
+
 func deleteOldLog(bucket string, days int) error {
-	st := fmt.Sprintf("%016x", time.Now().AddDate(0, 0, -days))
+	st := fmt.Sprintf("%016x", time.Now().AddDate(0, 0, -days).UnixNano())
 	return db.Batch(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
@@ -822,16 +824,18 @@ func deleteOldLog(bucket string, days int) error {
 		}
 		c := b.Cursor()
 		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			if st > string(k) {
+			if st < string(k) || delCount > 1000000 {
 				break
 			}
 			c.Delete()
+			delCount++
 		}
 		return nil
 	})
 }
 
 func deleteOldLogs() {
+	delCount = 0
 	if mapConf.LogDays < 1 {
 		astilog.Error("mapConf.LogDays < 1 ")
 		return
@@ -841,6 +845,9 @@ func deleteOldLogs() {
 		if err := deleteOldLog(b, mapConf.LogDays); err != nil {
 			astilog.Errorf("deleteOldLog err=%v")
 		}
+	}
+	if delCount > 0 {
+		astilog.Infof("Delete Old Logs %d", delCount)
 	}
 }
 
@@ -920,7 +927,7 @@ func closeDB() {
 }
 
 func eventLogger(ctx context.Context) {
-	timer1 := time.NewTicker(time.Minute * 5)
+	timer1 := time.NewTicker(time.Minute * 3)
 	timer2 := time.NewTicker(time.Second * 5)
 	list := []eventLogEnt{}
 	for {
