@@ -6,7 +6,10 @@ polling.go :ポーリング処理を行う
 (1)能動的なポーリング
  ping
  snmp - sysUptime,ifOperStatus,
- wget
+ http
+ https
+ tls
+ dns
 （２）受動的なポーリング
  syslog
  trap
@@ -26,7 +29,9 @@ import (
 	"net"
 	"net/http"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/csv"
+	"encoding/json"
 	"os"
 	gosnmp "github.com/soniah/gosnmp"
 
@@ -65,7 +70,7 @@ func pollingBackend(ctx context.Context) {
 				if len(list) < 1 {
 					continue
 				}
-				astilog.Infof("New Polling %d NumGoroutine %d",len(list),runtime.NumGoroutine())
+				astilog.Infof("doPolling %d NumGoroutine %d",len(list),runtime.NumGoroutine())
 				sort.Slice(list,func (i,j int)bool {
 					return list[i].LastTime < list[j].LastTime 
 				})
@@ -664,6 +669,24 @@ func doPollingTLS(p *pollingEnt){
 	conf := &tls.Config{
 		InsecureSkipVerify: true,
 	}
+	if strings.Contains(p.Polling,"Verify"){
+		conf.InsecureSkipVerify = false
+	}
+	if  strings.Contains(p.Polling,"Version") {
+		if strings.Contains(p.Polling,"1.0"){
+			conf.MaxVersion = tls.VersionTLS10
+		} else if strings.Contains(p.Polling,"1.1"){
+			conf.MinVersion = tls.VersionTLS11
+			conf.MaxVersion = tls.VersionTLS11
+		} else if strings.Contains(p.Polling,"1.2") {
+			conf.MinVersion = tls.VersionTLS12
+			conf.MaxVersion = tls.VersionTLS12
+		} else if strings.Contains(p.Polling,"1.3") {
+			conf.MinVersion = tls.VersionTLS13
+			conf.MaxVersion = tls.VersionTLS13
+		}
+	}
+
 	d := &net.Dialer{
 		Timeout:time.Duration(p.Timeout) *time.Second,
 	}
@@ -686,9 +709,26 @@ func doPollingTLS(p *pollingEnt){
 	}
 	p.LastVal = float64(rTime)
 	if ok {
-		p.LastResult = getTLSConnectioStateInfo(&cs)
+		p.LastResult = getTLSConnectioStateInfo(n.Name,&cs)
+		if strings.Contains(p.Polling,"Expire") {
+			var d int
+			if _,err := fmt.Sscanf(p.Polling,"Expire %d",&d);err !=nil && d > 0{
+				cert := getServerCert(n.Name,&cs)
+				if cert != nil {
+					na := cert.NotAfter.Unix()
+					ct := time.Now().AddDate(0,0,d).Unix()
+					if ct > na {
+						ok = false
+					}
+				} else {
+					ok = false
+				}
+			}
+		}
+	}
+	if (ok && !strings.Contains(p.Polling,"!")) || (!ok && strings.Contains(p.Polling,"!")){
 		setPollingState(p,"normal")
-	}	else {
+	} else {
 		setPollingState(p,p.Level)
 	}
 	updatePolling(p)
@@ -723,27 +763,66 @@ func loadTLSParamsMap(path string) {
 	}
 }
 
-func  getTLSConnectioStateInfo(cs *tls.ConnectionState) string{
-	var v string
+func getServerCert(host string,cs *tls.ConnectionState) *x509.Certificate {
+	for _,cl := range cs.VerifiedChains{
+		for _,c := range cl {
+			if c.VerifyHostname(host) == nil {
+				return c
+			}
+		}
+	}
+	for _,c := range cs.PeerCertificates {
+		if c.VerifyHostname(host) == nil {
+			return c
+		}
+	}
+	return nil
+}
+
+func  getTLSConnectioStateInfo(host string,cs *tls.ConnectionState) string{
+	var tlsInfo = struct {
+		Version string
+		CipherSuite string
+		NotAfter  time.Time
+		Subject   string
+		SubjectKeyID string
+		Issuer     string
+		Valid bool
+	}{}
 	switch cs.Version {
 	case tls.VersionSSL30:
-		v = "SSLv3"
+		tlsInfo.Version = "SSLv3"
 	case tls.VersionTLS10:
-		v = "TLSv1.0"
+		tlsInfo.Version = "TLSv1.0"
 	case tls.VersionTLS11:
-		v = "TLSv1.1"
+		tlsInfo.Version = "TLSv1.1"
 	case tls.VersionTLS12:
-		v = "TLSv1.2"
+		tlsInfo.Version = "TLSv1.2"
 	case tls.VersionTLS13:
-		v = "TLSv1.3"
+		tlsInfo.Version = "TLSv1.3"
 	default:
-		v = "Unknown"
+		tlsInfo.Version = "Unknown"
 	}
 	id := fmt.Sprintf("%04x",cs.CipherSuite)
 	if n,ok := tlsCSMap[id];ok {
-		return fmt.Sprintf("%v %s",v,n)
+		tlsInfo.CipherSuite = n
+	} else {
+		tlsInfo.CipherSuite = id
 	}
-	return fmt.Sprintf("%v 0x%s",v,id)
+	if len(cs.VerifiedChains) > 0 {
+		tlsInfo.Valid = true
+	}
+	if cert := getServerCert(host,cs); cert != nil {
+		tlsInfo.Issuer  = cert.Issuer.String()
+		tlsInfo.Subject  = cert.Subject.String()
+		tlsInfo.NotAfter = cert.NotAfter
+		tlsInfo.SubjectKeyID  = fmt.Sprintf("%x",cert.SubjectKeyId)
+	}
+	ret,err := json.Marshal(tlsInfo)
+	if err != nil {
+		return fmt.Sprintf("%v",err)
+	}	 
+	return string(ret)
 }
 
 func doPollingDNS(p *pollingEnt){
