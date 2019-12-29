@@ -39,7 +39,7 @@ func splitCmd(p string) []string {
 }
 
 func makeLastResult(lr map[string]string) string {
-	if js, err := json.Marshal(lr); err != nil {
+	if js, err := json.Marshal(lr); err == nil {
 		return string(js)
 	}
 	return ""
