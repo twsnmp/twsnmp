@@ -363,12 +363,13 @@ let log;
 
 function addOrUpdateNode(n) {
   const node = $(`li.list-group-item[data-id=${n.ID}]`);
+  const keyword = `${n.State}:${n.Name}`.replace(`"`, ``);
   if (node.length > 0) {
     $(node).find("i").attr('class', `fas fa-${n.Icon} state state_${n.State}`);
     $(node).find("media-body strong").html(n.Name);
     $(node).find("media-body p").html(n.Descr);
+    $(node).attr('data-keyword',keyword);
   } else {
-    const keyword = `${n.State}:${n.Name}`.replace(`"`, ``);
     const newnode = `
       <li class="list-group-item" data-id="${n.ID}" data-keyword="${keyword}">
         <div class="media-object pull-left">
