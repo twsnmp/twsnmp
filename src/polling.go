@@ -35,6 +35,12 @@ var (
 	pollingStateChangeCh = make(chan *pollingEnt,10)
 	doPollingCh = make(chan bool,10)
 )
+const (
+	logModeNone = iota
+	logModeAlways
+	logModeOnChange
+	logModeAI
+)
 
 func pollingBackend(ctx context.Context) {
 	go pingBackend(ctx)
@@ -137,7 +143,7 @@ func doPolling(p *pollingEnt){
 			return
 		}
 	}
-	if p.LogMode == 1 || p.LogMode == 3 || (p.LogMode == 2 && oldState != p.State) {
+	if p.LogMode == logModeAlways || p.LogMode == logModeAI || (p.LogMode == logModeOnChange && oldState != p.State) {
 		if err := addPollingLog(p);err != nil {
 			astilog.Errorf("addPollingLog err=%v",err)
 		}

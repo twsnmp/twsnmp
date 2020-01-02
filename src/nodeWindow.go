@@ -109,6 +109,9 @@ func deletePollingMsg(m *bootstrap.MessageIn) (interface{}, error) {
 			astilog.Errorf("deletePolling  error=%v", err)
 			return "ng", err
 		}
+		if err := bootstrap.SendMessage(aiWindow, "deleteModel",id); err != nil {
+			astilog.Errorf("sendSendMessage deleteModel error=%v", err)
+		}
 		return "ok", nil
 	}
 	return "ng", errInvalidNode

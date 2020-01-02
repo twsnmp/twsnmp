@@ -82,20 +82,6 @@ function createMapConfPane() {
     max:365,
     step:1,
   });
-  f4.addButton({
-    title: 'Reset ARP...',
-  }).on('click', (value) => {
-    if (!confirm("ARP監視をリセットしますか？")){
-      return
-    }
-    astilectron.sendMessage({ name: "resetArpTable", payload: "" }, message => {
-      if(message.payload !== "ok") {
-        astilectron.showErrorBox("マップ設定", "ARP監視をリセットできません。");
-        return;
-      }
-      pane.dispose();
-    });
-  });
   pane.addButton({
     title: 'Cancel',
   }).on('click', (value) => {
@@ -510,4 +496,41 @@ function createMIBDBPane() {
       pane.dispose();
     });  
   }); 
+}
+
+function createActionPane() {
+  const pane = new Tweakpane({
+    title: "削除操作"
+  });
+  pane.addButton({
+    title: 'Reset ARP...',
+  }).on('click', (value) => {
+    if (!confirm("ARP監視をリセットしますか？")){
+      return
+    }
+    astilectron.sendMessage({ name: "resetArpTable", payload: "" }, message => {
+      if(message.payload !== "ok") {
+        astilectron.showErrorBox("ARPリセット", "ARP監視をリセットできません。");
+        return;
+      }
+      pane.dispose();
+    });
+  });
+  pane.addButton({
+    title: 'Clear AI Model...',
+  }).on('click', (value) => {
+    if (!confirm("全てのAIモデルをクリアしますか？")){
+      return
+    }
+    astilectron.sendMessage({ name: "clearAllAIMoldes", payload: "" }, message => {
+      pane.dispose();
+      return
+    });
+  });
+  pane.addButton({
+    title: 'Close',
+  }).on('click', (value) => {
+    pane.dispose();
+  });
+  return;
 }

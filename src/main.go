@@ -460,6 +460,7 @@ func startBackend(ctx context.Context) {
 		go logger(ctx)
 		go notifyBackend(ctx)
 		go arpWatcher(ctx)
+		go aiWindowBackend(ctx)
 		startWindow.Hide()
 		mainWindow.Show()
 	}()

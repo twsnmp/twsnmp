@@ -127,6 +127,13 @@ type discoverConfEnt struct {
 	Y         int
 }
 
+type aiResult struct {
+	PollingID string
+	LastTime  int64
+	LossData  [][]float64
+	ScoreData [][]float64
+}
+
 func checkDB(path string) error {
 	var err error
 	d, err := bbolt.Open(path, 0600, nil)
@@ -162,7 +169,7 @@ func openDB(path string) error {
 }
 
 func initDB() error {
-	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "arplog", "mibdb", "arp"}
+	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "arplog", "mibdb", "arp", "ai"}
 	mapConf.Community = "public"
 	mapConf.PollInt = 60
 	mapConf.Retry = 1
@@ -796,6 +803,37 @@ func getPollingLog(startTime, endTime, pollingID string) []pollingLogEnt {
 	return ret
 }
 
+func getAllPollingLog(pollingID string) []pollingLogEnt {
+	ret := []pollingLogEnt{}
+	db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("pollingLogs"))
+		if b == nil {
+			astilog.Errorf("getPollingLog no Bucket getPollingLog")
+			return nil
+		}
+		c := b.Cursor()
+		i := 0
+		for k, v := c.First(); k != nil && i < 1000000; k, v = c.Next() {
+			if !bytes.Contains(v, []byte(pollingID)) {
+				continue
+			}
+			var l pollingLogEnt
+			err := json.Unmarshal(v, &l)
+			if err != nil {
+				astilog.Errorf("getPollingLog err=%v", err)
+				continue
+			}
+			if l.PollingID != pollingID {
+				continue
+			}
+			ret = append(ret, l)
+			i++
+		}
+		return nil
+	})
+	return ret
+}
+
 func clearPollingLog(pollingID string) error {
 	return db.Batch(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollingLogs"))
@@ -1031,4 +1069,41 @@ func resetArpTable() error {
 		}
 		return nil
 	})
+}
+
+func saveAIResultToDB(res *aiResult) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	s, err := json.Marshal(res)
+	if err != nil {
+		return err
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("ai"))
+		if b == nil {
+			return fmt.Errorf("Bucket ai is nil")
+		}
+		b.Put([]byte(res.PollingID), s)
+		return nil
+	})
+}
+
+func loadAIReesult(id string) string {
+	r := ""
+	if db == nil {
+		return r
+	}
+	db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("ai"))
+		if b == nil {
+			return nil
+		}
+		tmp := b.Get([]byte(id))
+		if tmp != nil {
+			r = string(tmp)
+		}
+		return nil
+	})
+	return r
 }

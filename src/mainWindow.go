@@ -34,6 +34,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 	case "resetArpTable":
 		resetArpTable()
 		return "ok",nil
+	case "clearAllAIMoldes":
+		if err := bootstrap.SendMessage(aiWindow, "clearAllAIMoldes",""); err != nil {
+			astilog.Errorf("sendSendMessage clearAllAIMoldes error=%v", err)
+		}
+		return "ok",nil
 	case "mapConf":
 		{
 			if len(m.Payload) > 0 {

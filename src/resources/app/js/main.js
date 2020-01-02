@@ -204,6 +204,10 @@ function mousePressed() {
           <i class="fas fa-mail-bulk"></i>
           通知設定
         </span>
+        <span class="nav-group-item actionPane">
+          <i class="fas fa-trash-restore"></i>
+          削除操作...
+        </span>
         <span class="nav-group-item checkAllPoll">
         <i class="fas fa-check-square"></i>
           全て再確認...
@@ -276,6 +280,9 @@ function mousePressed() {
     });
     $("#ctxMenu span.notifyConf").on("click", () => {
       createNotifyConfPane();
+    });
+    $("#ctxMenu span.actionPane").on("click", () => {
+      createActionPane();
     });
     $("#ctxMenu span.logDisp").on("click", () => {
       astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
@@ -431,6 +438,9 @@ document.addEventListener('astilectron-ready', function () {
   });
   $("header.toolbar-header button.notifyConf").on("click", () => {
     createNotifyConfPane();
+  });
+  $("header.toolbar-header button.actionPane").on("click", () => {
+    createActionPane();
   });
   $("header.toolbar-header button.mibDBConf").on("click", () => {
     createMIBDBPane();
