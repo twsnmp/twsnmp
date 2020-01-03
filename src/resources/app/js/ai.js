@@ -42,11 +42,12 @@ function deleteModel(PollingID){
 
 function clearAllAIMoldes(){
   try {
-    const models = tf.io.listModels();
-    for(let url in models){
-      console.log("clearAllAIMoldes "+ url)
-      tf.io.removeModel(url);
-    }
+    tf.io.listModels().then(models=>{
+      for(let url in models){
+        console.log("clearAllAIMoldes "+ url)
+        tf.io.removeModel(url);
+      }
+    });
   } catch (e) {
     console.log(e);
   }

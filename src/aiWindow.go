@@ -83,8 +83,7 @@ func aiWindowBackend(ctx context.Context) {
 			if aiBusy {
 				continue
 			}
-			aiBusy = true
-			go checkAI()
+			aiBusy = checkAI()
 		}
 	}
 }
@@ -108,7 +107,7 @@ func makeYasumiMap() {
 
 var checkAIMap = make(map[string]int64)
 
-func checkAI() {
+func checkAI() bool{
 	pollings.Range(func(_,v interface{}) bool {
 		p := v.(*pollingEnt)
 		if p.LogMode == logModeAI {
@@ -121,6 +120,7 @@ func checkAI() {
 	now := time.Now().Unix()
 	selID := ""
 	for id,n := range checkAIMap {
+		astilog.Debugf("checkAI %s = %d now=%d diff=%d",id,n,now,now-n)
 		if n > now {
 			continue
 		}
@@ -129,35 +129,36 @@ func checkAI() {
 		}
 	}
 	if selID == ""{
-		return
+		return false
 	}
-	checkAIMap[selID] = now + 60 * 10
-	doAI(selID)
-	return
+	checkAIMap[selID] = now + 60 * 2
+	return doAI(selID)
 }
 
 func checkLastAIResultTime(id string) bool {
 	last := loadAIReesult(id)
 	var r aiResult
 	if err := json.Unmarshal([]byte(last),&r);err != nil {
+		astilog.Infof("checkLastAIResultTime %s  err=%v",id)
 		return true
 	}
+	astilog.Debugf("checkLastAIResultTime %s = %d diff=%d",id,r.LastTime,time.Now().Unix()-r.LastTime)
 	if r.LastTime < time.Now().Unix() -60*60 {
 		return true
 	}
 	return false
 }
 
-func doAI(id string){
+func doAI(id string) bool{
 	var p *pollingEnt
 	if v,ok := pollings.Load(id);ok {
 		p = v.(*pollingEnt)
 	}
 	if p == nil {
-		return
+		return false
 	}
 	if !checkLastAIResultTime(id){
-		return
+		return false
 	}
 	req :=  &aiReq{
 		PollingID: p.ID,
@@ -167,11 +168,16 @@ func doAI(id string){
 	} else {
 		makeAIDataFromPolling(req)
 	}
-	astilog.Infof("doAI %d",len(req.Data))
+	if len(req.Data) < 10 {
+		astilog.Infof("doAI No data %s", id)
+		return false
+	}
+	astilog.Infof("doAI %s", id)
 	if err := bootstrap.SendMessage(aiWindow, "doAI",req); err != nil {
 		astilog.Errorf("sendSendMessage doAI error=%v", err)
-		return
+		return false
 	}
+	return true
 }
 
 func makeAIDataFromSyslogPriPolling(req *aiReq){
@@ -185,7 +191,7 @@ func makeAIDataFromSyslogPriPolling(req *aiReq){
 	for _,l := range logs {
 		ct := 3600*(time.Unix(0,l.Time).Unix()/3600)
 		if st != ct {
-			ts := time.Unix(st,0)
+			ts := time.Unix(ct,0)
 			ent[0] = float64(ts.Hour())/24.0
 			if _,ok := yasumiMap[ts.Format("2006-01-02")];ok {
 				ent[1] = 1.0
@@ -230,15 +236,20 @@ func makeAIDataFromPolling(req *aiReq){
 	st := 3600*(time.Unix(0,logs[0].Time).Unix()/3600)
 	ent := make([]float64,6)
 	maxVals := make([]float64,4)
+	var count float64
 	for _,l := range logs {
 		ct := 3600*(time.Unix(0,l.Time).Unix()/3600)
 		if st != ct {
-			ts := time.Unix(st,0)
+			ts := time.Unix(ct,0)
 			ent[0] = float64(ts.Hour())/24.0
 			if _,ok := yasumiMap[ts.Format("2006-01-02")];ok {
 				ent[1] = 1.0
 			}
+			if count == 0.0 {
+				count = 1.0
+			}
 			for i := 0;i < 4;i++ {
+				ent[i+2] /= count
 				if maxVals[i] < ent[i+2] {
 					maxVals[i] = ent[i+2]
 				}
@@ -247,7 +258,9 @@ func makeAIDataFromPolling(req *aiReq){
 			req.Data = append(req.Data,ent)
 			ent = make([]float64,6)
 			st = ct
+			count = 0.0
 		}
+		count += 1.0
 		ent[2] += float64(l.NumVal)
 		ent[3] += sumStr(l.State)
 		ent[4] += float64(len(l.StrVal))
@@ -286,7 +299,7 @@ func doneAI(m *bootstrap.MessageIn) {
 		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return
 	}
-	astilog.Infof("doneAI %d",len(res.ScoreData))
+	astilog.Infof("doneAI %s",res.PollingID)
 	if err:= saveAIResultToDB(&res);err != nil {
 		astilog.Errorf("saveAIResultToDB err=%v", err)
 	}
