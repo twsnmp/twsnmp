@@ -1089,10 +1089,10 @@ func saveAIResultToDB(res *aiResult) error {
 	})
 }
 
-func loadAIReesult(id string) string {
+func loadAIReesult(id string) (*aiResult, error) {
 	r := ""
 	if db == nil {
-		return r
+		return nil, errDBNotOpen
 	}
 	db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("ai"))
@@ -1105,5 +1105,9 @@ func loadAIReesult(id string) string {
 		}
 		return nil
 	})
-	return r
+	var ret aiResult
+	if err := json.Unmarshal([]byte(r), &ret); err != nil {
+		return nil, err
+	}
+	return &ret, nil
 }

@@ -136,14 +136,12 @@ func checkAI() bool{
 }
 
 func checkLastAIResultTime(id string) bool {
-	last := loadAIReesult(id)
-	var r aiResult
-	if err := json.Unmarshal([]byte(last),&r);err != nil {
-		astilog.Infof("checkLastAIResultTime %s  err=%v",id)
+	last,err := loadAIReesult(id)
+	if err != nil {
 		return true
 	}
-	astilog.Debugf("checkLastAIResultTime %s = %d diff=%d",id,r.LastTime,time.Now().Unix()-r.LastTime)
-	if r.LastTime < time.Now().Unix() -60*60 {
+	astilog.Debugf("checkLastAIResultTime %s = %d diff=%d",id,last.LastTime,time.Now().Unix()-last.LastTime)
+	if last.LastTime < time.Now().Unix() -60*60 {
 		return true
 	}
 	return false

@@ -28,6 +28,16 @@ func pollingMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interf
 				return "ok", nil
 			}
 			return "ng", errInvalidParams
+		case "getai":
+			if len(m.Payload) > 0 {
+				var id string
+				if err := json.Unmarshal(m.Payload, &id); err != nil {
+					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+					return &aiResult{}, errInvalidParams
+				}
+				return loadAIReesult(id)
+			}
+			return &aiResult{}, errInvalidParams
 		case "get":
 			if len(m.Payload) > 0 {
 				var param = struct {

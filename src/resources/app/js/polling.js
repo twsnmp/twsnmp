@@ -6,7 +6,8 @@ let logTable;
 let logChart;
 let stateChart;
 let resultChart;
-let aiChart;
+let aiLossChart;
+let aiHeatmap;
 let currentPage;
 
 function showPage(mode) {
@@ -20,6 +21,15 @@ function showPage(mode) {
       $("#" + p).removeClass("active");
     }
   });
+  if(mode == "ai"){
+    $('.toolbar-actions input').addClass("hidden");
+    $('.toolbar-actions button.get').addClass("hidden");
+    $('.toolbar-actions button.clear').addClass("hidden");
+  } else {
+    $('.toolbar-actions input').removeClass("hidden");
+    $('.toolbar-actions button.get').removeClass("hidden");
+    $('.toolbar-actions button.clear').removeClass("hidden");
+  }
   currentPage = mode;
 }
 
@@ -217,7 +227,7 @@ function makeResultChart() {
   resultChart.setOption(option);
 }
 
-function makeAIChart() {
+function makeAILossChart() {
   const option = {
     title: {
       show: false,
@@ -240,11 +250,12 @@ function makeAIChart() {
     },
     xAxis: {
       type: 'time',
+      name: '時刻',
       axisLabel:{
         fontSize: "8px",
         formatter: function (value, index) {
           var date = new Date(value);
-          return echarts.format.formatTime('MM/dd hh:mm', date)
+          return echarts.format.formatTime('hh:mm:ss', date)
         }
       },
       splitLine: {
@@ -253,6 +264,7 @@ function makeAIChart() {
     },
     yAxis: {
       type: 'value',
+      name: '誤差',
     },
     series: [{
       color: "#1f78b4",
@@ -262,10 +274,72 @@ function makeAIChart() {
       data: [],
     }]
   };
-  aiChart = echarts.init(document.getElementById('ai_chart'));
-  aiChart.setOption(option);
+  aiLossChart = echarts.init(document.getElementById('ai_loss_chart'));
+  aiLossChart.setOption(option);
 }
 
+function makeAIHeatmap() {
+  var hours = ['0時', '1時', '2時', '3時', '4時', '5時', '6時',
+        '7時', '8時', '9時','10時','11時',
+        '12時', '13時', '14時', '15時', '16時', '17時',
+        '18時', '19時', '20時', '21時', '22時', '23時'];
+
+  const option = {
+    title: {
+      show: false,
+    },
+    grid: {
+      left: "10%",
+      right:"5%",
+      top: 30,
+      buttom: 0,
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: function (params) {
+        console.log(params)
+        return  params.name + ' ' + params.data[1] +  '時 : '+ params.data[2] ;
+      },
+      axisPointer: {
+        type: 'shadow'
+      }
+    },
+    xAxis: {
+        type: 'category',
+        name: '日付',
+        data: []
+    },
+    yAxis: {
+        type: 'category',
+        name: '時間帯',
+        data: hours
+    },
+    visualMap: {
+        min: 40,
+        max: 100,
+        calculable: true,
+        realtime: false,
+        inRange: {
+            color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026']
+        }
+    },
+    series: [{
+        name: 'Score',
+        type: 'heatmap',
+        data: [],
+        emphasis: {
+            itemStyle: {
+                borderColor: '#333',
+                borderWidth: 1
+            }
+        },
+        progressive: 1000,
+        animation: false
+    }]
+  };
+  aiHeatmap = echarts.init(document.getElementById('ai_heatmap'));
+  aiHeatmap.setOption(option);
+}
 
 function setupTimeVal() {
   $(".toolbar-actions input[name=start]").val(moment().subtract(12, "h").format("Y-MM-DDTHH:00"));
@@ -301,7 +375,21 @@ function clearData() {
     }]
   });
   resultChart.resize();
-
+  aiLossChart.setOption({
+    series: [{
+      data: []
+    }]
+  });
+  aiLossChart.resize();
+  aiHeatmap.setOption({
+    xAxis: {
+      data: []
+    },
+    series: [{
+      data: []
+    }]
+  });
+  aiHeatmap.resize();
 }
 
 document.addEventListener('astilectron-ready', function () {
@@ -311,11 +399,13 @@ document.addEventListener('astilectron-ready', function () {
   makeLogChart();
   makeStateChart();
   makeResultChart();
-  makeAIChart();
+  makeAILossChart();
+  makeAIHeatmap();
   logChart.resize();
   stateChart.resize();
   resultChart.resize();
-  aiChart.resize();
+  aiLossChart.resize();
+  aiHeatmap.resize();
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "setParams":
@@ -356,7 +446,7 @@ document.addEventListener('astilectron-ready', function () {
   });
   $('#ai').click(()=>{
     showPage("ai");
-    aiChart.resize();
+    updateAIPage();
   });
   $('.toolbar-actions button.close').click(() => {
     astilectron.sendMessage({ name: "close", payload: "" }, message => {
@@ -519,4 +609,53 @@ function setWindowTitle(n,p){
   const t = "ポーリング分析 - " + n +" - " + p;
   $("title").html(t);
   $("h1.title").html(t);
+}
+
+function updateAIPage() {
+  astilectron.sendMessage({ name: "getai", payload: polling.ID}, message => {
+    const aiData = message.payload;
+    if(typeof aiData === "string"){
+      setTimeout(() => {
+        astilectron.showErrorBox("エラー", message.payload);
+      }, 100);
+      return;
+    }
+    const lossChartData = [];
+    aiData.LossData.forEach(e =>{
+      const t = new Date(e[0]);
+      lossChartData.push({
+        name: echarts.format.formatTime('hh:mm:ss', t),
+        value: [t,e[1]]
+      });
+    });
+    aiLossChart.setOption({
+      series: [{
+        data: lossChartData
+      }]
+    });
+    aiLossChart.resize();
+    const heatmapX = [];
+    const heatmapVal = [];
+    let nD =0;
+    let x = -1;
+    aiData.ScoreData.forEach(e =>{
+      const t = new Date(e[0]*1000);
+      if( nD != t.getDate() ){
+        heatmapX.push(echarts.format.formatTime('yyyy/MM/dd', t))
+        nD = t.getDate()
+        x++;
+      }
+      heatmapVal.push([x,t.getHours(),e[1]])
+    });
+    aiHeatmap.setOption({
+      xAxis: {
+        data: heatmapX
+      },
+      series: [{
+        data: heatmapVal
+      }]
+    });
+  
+    aiHeatmap.resize();
+  });
 }
