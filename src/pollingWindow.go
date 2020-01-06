@@ -25,6 +25,9 @@ func pollingMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interf
 				if err := clearPollingLog(pollingID); err != nil {
 					return "ng",err
 				}
+				if err := bootstrap.SendMessage(aiWindow, "deleteModel",pollingID); err != nil {
+					astilog.Errorf("sendSendMessage deleteModel error=%v", err)
+				}
 				return "ok", nil
 			}
 			return "ng", errInvalidParams
