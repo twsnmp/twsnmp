@@ -67,7 +67,7 @@ func doPollingLog(p *pollingEnt) {
 	lr := make(map[string]string)
 	json.Unmarshal([]byte(p.LastResult), &lr)
 	st := lr["lastTime"]
-	if _, err := time.Parse("2006-01-02T15:04", p.LastResult); err != nil {
+	if _, err := time.Parse("2006-01-02T15:04", st); err != nil {
 		st = time.Now().Add(-time.Second * time.Duration(p.PollInt)).Format("2006-01-02T15:04")
 	}
 	et := time.Now().Format("2006-01-02T15:04")
@@ -81,6 +81,7 @@ func doPollingLog(p *pollingEnt) {
 	vm.Set("count", len(logs))
 	vm.Set("interval", p.PollInt)
 	lr["count"] = fmt.Sprintf("%d", len(logs))
+	p.LastVal = float64(len(logs))
 	if extractor == "" {
 		value, err := vm.Run(script)
 		if err == nil {

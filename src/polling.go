@@ -60,7 +60,7 @@ func pollingBackend(ctx context.Context) {
 				list := []*pollingEnt{}
 				pollings.Range(func(_,v interface{}) bool {
 					p := v.(*pollingEnt)
-					if p.LastTime + (int64(p.PollInt) * 1000 * 1000 * 1000) < now {
+					if p.NextTime  < now {
 						list = append(list,p)
 					}
 					return true
@@ -70,10 +70,10 @@ func pollingBackend(ctx context.Context) {
 				}
 				astilog.Infof("doPolling %d NumGoroutine %d",len(list),runtime.NumGoroutine())
 				sort.Slice(list,func (i,j int)bool {
-					return list[i].LastTime < list[j].LastTime 
+					return list[i].NextTime < list[j].NextTime 
 				})
 				for i:=0; i < len(list);i++ {
-					list[i].LastTime = time.Now().UnixNano()
+					list[i].NextTime = time.Now().UnixNano() + (int64(list[i].PollInt) * 1000 * 1000 * 1000)
 					go doPolling(list[i])
 					time.Sleep(time.Millisecond * 1)
 				}

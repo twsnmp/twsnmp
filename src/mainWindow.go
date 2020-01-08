@@ -598,7 +598,7 @@ func pollNowNode(nodeID string) {
 		p := v.(*pollingEnt)
 		if p.NodeID == nodeID && p.State != "normal" {
 			p.State = "unkown"
-			p.LastTime = 0
+			p.NextTime = 0
 			pollingStateChangeCh <- p
 			addEventLog(eventLogEnt{
 				Type:"user",
@@ -623,7 +623,7 @@ func checkAllPoll() {
 		p := v.(*pollingEnt)
 		if p.State != "normal" {
 			p.State = "unkown"
-			p.LastTime = 0
+			p.NextTime = 0
 			nodeName := "Unknown"
 			if n,ok := nodes[p.NodeID]; ok {
 				nodeName = n.Name

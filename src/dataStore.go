@@ -61,6 +61,8 @@ type pollingEnt struct {
 	Timeout    int
 	Retry      int
 	LogMode    int
+	NextTime   int64
+	DispType   string
 	LastTime   int64
 	LastResult string
 	LastVal    float64
@@ -496,6 +498,7 @@ func updatePolling(p *pollingEnt) error {
 	if _, ok := pollings.Load(p.ID); !ok {
 		return errInvalidID
 	}
+	p.LastTime = time.Now().UnixNano()
 	s, err := json.Marshal(p)
 	if err != nil {
 		return err

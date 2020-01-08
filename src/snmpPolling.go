@@ -84,15 +84,16 @@ func doPollingSnmpSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){
 		setPollingState(p,"unkown")
 		return
 	}
-	p.LastVal = float64(uptime)
 	if p.LastResult == "" {
 		p.LastResult = fmt.Sprintf("%d",uptime)
 		return
 	}
 	if lastUptime,err := strconv.ParseInt(p.LastResult,10,64);err != nil {
 		p.LastResult = fmt.Sprintf("%d",uptime)
+		p.LastVal = 0;
 		setPollingState(p,"unkown")
 	} else {
+		p.LastVal = float64(uptime - lastUptime);
 		p.LastResult = fmt.Sprintf("%d",uptime)
 		if lastUptime < uptime {
 			setPollingState(p,"normal")
