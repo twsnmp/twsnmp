@@ -857,6 +857,10 @@ func clearPollingLog(pollingID string) error {
 			}
 			c.Delete()
 		}
+		b = tx.Bucket([]byte("ai"))
+		if b != nil {
+			b.Delete([]byte(pollingID))
+		}
 		return nil
 	})
 }
@@ -1100,9 +1104,10 @@ func saveAIResultToDB(res *aiResult) error {
 }
 
 func loadAIReesult(id string) (*aiResult, error) {
+	var ret aiResult
 	r := ""
 	if db == nil {
-		return nil, errDBNotOpen
+		return &ret, errDBNotOpen
 	}
 	db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("ai"))
@@ -1115,9 +1120,8 @@ func loadAIReesult(id string) (*aiResult, error) {
 		}
 		return nil
 	})
-	var ret aiResult
 	if err := json.Unmarshal([]byte(r), &ret); err != nil {
-		return nil, err
+		return &ret, err
 	}
 	return &ret, nil
 }

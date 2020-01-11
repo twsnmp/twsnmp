@@ -203,6 +203,7 @@ function makeResultChart() {
     },
     xAxis: {
       type: 'time',
+      name: '日時',
       axisLabel:{
         fontSize: "8px",
         formatter: function (value, index) {
@@ -372,6 +373,9 @@ function clearData() {
   stateChart.setOption( optState);
   stateChart.resize();
   resultChart.setOption({
+    yAxis: {
+      name: '',
+    },
     series: [{
       data: []
     }]
@@ -459,6 +463,8 @@ document.addEventListener('astilectron-ready', function () {
       return;
     }
     astilectron.sendMessage({ name: "clear", payload: polling.ID }, message => {
+      clearData();
+      showPage("log");
     });
   });
   $('.toolbar-actions button.get').click(() => {
@@ -600,6 +606,9 @@ document.addEventListener('astilectron-ready', function () {
       stateChart.setOption( optState);
       stateChart.resize();
       resultChart.setOption({
+        yAxis: {
+          name: dp.axis
+        },
         series: [{
           data: dataResult
         }]
@@ -631,9 +640,9 @@ function getDispParams(){
 function updateAIPage() {
   astilectron.sendMessage({ name: "getai", payload: polling.ID}, message => {
     const aiData = message.payload;
-    if(typeof aiData === "string"){
+    if(!aiData || aiData.ScoreData.length < 1){
       setTimeout(() => {
-        astilectron.showErrorBox("エラー", message.payload);
+        astilectron.showErrorBox("AI分析", "該当する分析データがありません。");
       }, 100);
       return;
     }
