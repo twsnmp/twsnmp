@@ -42,7 +42,32 @@ function createMapConfPane() {
     step: 1,
   });
   f2.addInput(mapConfTmp, 'Community', { label: "Community" });
-  
+  f2.addInput(mapConfTmp, 'AILevel', { 
+    label: "AIレベル",
+    options: {
+      "重度": "high",
+      "軽度": "low",
+      "注意": "warn",
+      "情報": "info",
+    },
+  });
+  f2.addInput(mapConfTmp, 'AIThreshold', { 
+    label: "AI閾値",
+    options: {
+      "0.01%以下": 88,
+      "0.1%以下":  81,
+      "1%以下": 74,
+    },
+  });
+  f2.addInput(mapConfTmp, 'ArpWatchLevel', { 
+    label: "ARPレベル",
+    options: {
+      "重度": "high",
+      "軽度": "low",
+      "注意": "warn",
+      "情報": "info",
+    },
+  });
   const f3 = pane.addFolder({
     title: '受信',
   });

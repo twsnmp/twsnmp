@@ -37,6 +37,7 @@ type nodeEnt struct {
 	X         int
 	Y         int
 	IP        string
+	MAC       string
 	Community string
 }
 
@@ -105,6 +106,9 @@ type mapConfEnt struct {
 	EnableTrapd    bool
 	EnableNetflowd bool
 	BackImg        string
+	ArpWatchLevel  string
+	AILevel        string
+	AIThreshold    int
 }
 
 type notifyConfEnt struct {
@@ -178,6 +182,9 @@ func initDB() error {
 	mapConf.Timeout = 1
 	mapConf.LogDispSize = 5000
 	mapConf.LogDays = 14
+	mapConf.ArpWatchLevel = "info"
+	mapConf.AILevel = "info"
+	mapConf.AIThreshold = 81
 	discoverConf.Community = "public"
 	discoverConf.Retry = 1
 	discoverConf.Timeout = 1

@@ -91,6 +91,7 @@ function makeLogChart() {
     },
     xAxis: {
       type: 'time',
+      name: '日時',
       axisLabel:{
         fontSize: "8px",
         formatter: function (value, index) {
@@ -103,6 +104,7 @@ function makeLogChart() {
       },
     },
     yAxis: {
+      name: '件数',
       type: 'value',
     },
     series: [{
@@ -511,14 +513,16 @@ document.addEventListener('astilectron-ready', function () {
       let count = 0;
       let ctc;
       let cts;
+      let dp = getDispParams();
       logTable.rows().remove();
       logs.forEach(l => {
+        l.NumVal *= dp.mul;
         const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
         const state = getStateHtml(l.State)
         logTable.row.add([state, ts, l.NumVal, l.StrVal]);
         dataResult.push({
           name: ts,
-          value:[new Date(l.Time/(1000*1000)),l.NumVal],
+          value:[new Date(l.Time / (1000*1000)),l.NumVal],
         });
         const newCtc = Math.floor(l.Time / (1000 * 1000 * 1000 * 60 * intCount));
         if(!ctc) {
@@ -611,6 +615,19 @@ function setWindowTitle(n,p){
   $("h1.title").html(t);
 }
 
+function getDispParams(){
+  if (polling.DispType === "resp"){
+    return {
+      mul: 1.0/(1000*1000*1000),
+      axis: "応答時間(秒)"
+    }
+  }
+  return {
+    mul: 1.0,
+    axis: ""
+  }
+}
+
 function updateAIPage() {
   astilectron.sendMessage({ name: "getai", payload: polling.ID}, message => {
     const aiData = message.payload;
@@ -655,7 +672,6 @@ function updateAIPage() {
         data: heatmapVal
       }]
     });
-  
     aiHeatmap.resize();
   });
 }

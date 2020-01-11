@@ -108,3 +108,17 @@ function getFacilityName(f) {
   }
   return  "unkown";
 }
+
+const logModeHtml = [
+  '<i class="fas fa-stop-circle state state_unknown"></i>しない',
+  '<i class="fas fa-video state state_info"></i>常時',
+  '<i class="fas fa-ellipsis-h state state_info"></i>変化時',
+  '<i class="fas fa-brain state state_high"></i>AI分析',
+];
+
+function getLogModeHtml(m) {
+  if( m >=0 && m < logModeHtml.length){
+    return logModeHtml[m];
+  }
+  return  logModeHtml[0];
+}

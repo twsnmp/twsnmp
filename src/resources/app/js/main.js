@@ -370,11 +370,11 @@ let log;
 
 function addOrUpdateNode(n) {
   const node = $(`li.list-group-item[data-id=${n.ID}]`);
-  const keyword = `${n.State}:${n.Name}`.replace(`"`, ``);
+  const keyword = `${n.State}:${n.Name}:${n.IP}`.replace(`"`, ``);
   if (node.length > 0) {
     $(node).find("i").attr('class', `fas fa-${n.Icon} state state_${n.State}`);
-    $(node).find("media-body strong").html(n.Name);
-    $(node).find("media-body p").html(n.Descr);
+    $(node).find(".media-body strong").html(n.Name);
+    $(node).find(".media-body p").html(`${n.IP} ${n.Descr}`);
     $(node).attr('data-keyword',keyword);
   } else {
     const newnode = `
@@ -384,7 +384,7 @@ function addOrUpdateNode(n) {
         </div>
         <div class="media-body">
           <strong>${n.Name}</strong>
-          <p>${n.Descr}</p>
+          <p>${n.IP} ${n.Descr}</p>
         </div>
       </li>`
     $('#nodeList').append(newnode);

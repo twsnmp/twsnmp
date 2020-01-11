@@ -21,7 +21,8 @@ function setupPolling() {
       const lt = moment(p.LastTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
       const level = getStateHtml(p.Level);
       const state = getStateHtml(p.State);
-      polling.row.add([state,nodeName, p.Name, level, p.Type, p.Polling,lt,p.LastVal,p.LastResult, p.ID]);
+      const logMode = getLogModeHtml(p.LogMode);
+      polling.row.add([state,nodeName, p.Name, level, p.Type,logMode, p.Polling,lt,p.LastVal,p.LastResult, p.ID]);
       pollingList[p.ID] = p;
     }
     polling.draw();
@@ -89,8 +90,8 @@ function makePollingTable() {
       let bAn = false;
       if( r ){
         const d = r.data();
-        if (d && d.length > 9){
-          const id = d[9];
+        if (d){
+          const id = d[d.length-1];
           if(pollingList[id] && pollingList[id].LogMode ){
             bAn = true;
           }
@@ -161,10 +162,10 @@ function getSelectedPollingID() {
     return undefined;
   }
   const d = r.data();
-  if (!d || d.length < 10) {
+  if (!d) {
     return undefined;
   }
-  const id = d[9];
+  const id = d[d.length-1];
   if (!pollingList[id]) {
     return undefined;
   }
@@ -210,6 +211,8 @@ function createEditPollingPane(id){
       PollInt:   60,
       Timeout: 1,
       Retry: 1,
+      NextTime:0,
+      DispMode:"",
       LogMode: 0,
       LastTime: 0,
       LastResult: "",
@@ -285,6 +288,15 @@ function createEditPollingPane(id){
       "常に記録": 1,
       "状態変化時のみ記録": 2,
       "AI分析": 3,
+    },
+  });
+  pane.addInput(p, 'DispType', { 
+    label: "表示方法",
+    options: {
+      "応答時間": "resp",
+      "回数": "count",
+      "温度": "temp",
+      "その他": "",
     },
   });
   pane.addButton({

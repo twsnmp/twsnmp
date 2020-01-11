@@ -36,6 +36,7 @@ func checkArpTable() {
 	} else {
 		checkArpTableUnix()
 	}
+	checkNodeMAC()
 }
 
 func checkArpTableWindows() {
@@ -117,4 +118,28 @@ func normMACAddr(m string) string {
 		r += e
 	}
 	return strings.ToUpper(r)
+}
+
+// ノードリストのMACアドレスをチェックする
+func checkNodeMAC(){
+	for _,n := range nodes {
+		if m, ok := arpTable[n.IP];ok {
+			if !strings.Contains(n.MAC,m) {
+				new := m
+				v := oui.Find(m)
+				if v != "" {
+					new += fmt.Sprintf("(%s)",v)
+				}
+				addEventLog(eventLogEnt{
+					Type: "arpwatch",
+					Level: mapConf.ArpWatchLevel,
+					NodeID: n.ID,
+					NodeName: n.Name,
+					Event: fmt.Sprintf("MACアドレス変化 %s -> %s",n.MAC,new),
+				})
+				n.MAC = new
+				updateNode(n)
+			}
+		}
+	}
 }

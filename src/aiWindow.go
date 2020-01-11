@@ -301,5 +301,28 @@ func doneAI(m *bootstrap.MessageIn) {
 	if err:= saveAIResultToDB(&res);err != nil {
 		astilog.Errorf("saveAIResultToDB err=%v", err)
 	}
+	var p *pollingEnt
+	if v,ok := pollings.Load(res.PollingID);ok {
+		p = v.(*pollingEnt)
+	}
+	if p == nil {
+		return
+	}
+	if len(res.ScoreData) > 0 {
+		ls := res.ScoreData[len(res.ScoreData)-1][1]
+		if ls > float64(mapConf.AIThreshold) {
+			nodeName := "Unknown"
+			if n,ok := nodes[p.NodeID]; ok {
+				nodeName = n.Name
+			}
+			addEventLog(eventLogEnt{
+				Type:"ai",
+				Level: mapConf.AILevel,
+				NodeID: p.NodeID,
+				NodeName: nodeName,
+				Event: fmt.Sprintf("AI分析レポート:%s(%s):%f",p.Name,p.Type,ls),
+			})
+		}
+	}
 	return
 }

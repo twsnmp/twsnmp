@@ -112,6 +112,11 @@ func doPollingLog(p *pollingEnt) {
 		value, err := vm.Run(script)
 		if err == nil {
 			p.LastResult = makeLastResult(lr)
+			if lv, err := vm.Get("LastVal"); err == nil {
+				if lvf, err := lv.ToFloat(); err == nil {
+					p.LastVal = lvf
+				}
+			}
 			if ok, _ := value.ToBoolean(); !ok {
 				setPollingState(p, p.Level)
 				return
