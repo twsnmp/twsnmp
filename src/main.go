@@ -11,6 +11,7 @@ import (
 	"runtime/pprof"
 	"time"
 
+	astikit "github.com/asticode/go-astikit"
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
 	astilog "github.com/asticode/go-astilog"
@@ -98,13 +99,15 @@ func main() {
 			AppName:            AppName,
 			AppIconDarwinPath:  "resources/twsnmp.icns",
 			AppIconDefaultPath: "resources/twsnmp.png",
+			VersionAstilectron: "0.34.0",
+			VersionElectron:    "4.0.1",
 		},
 		Debug: *debug,
 		MenuOptions: []*astilectron.MenuItemOptions{{
-			Label: astilectron.PtrStr("File"),
+			Label: astikit.StrPtr("File"),
 			SubMenu: []*astilectron.MenuItemOptions{
 				{
-					Label: astilectron.PtrStr("TWSNMPについて"),
+					Label: astikit.StrPtr("TWSNMPについて"),
 					OnClick: func(e astilectron.Event) (deleteListener bool) {
 						if err := bootstrap.SendMessage(mainWindow, "about", aboutText, func(m *bootstrap.MessageIn) {
 						}); err != nil {
@@ -114,7 +117,7 @@ func main() {
 					},
 				},
 				{
-					Label: astilectron.PtrStr("TWSNMPを終了"),
+					Label: astikit.StrPtr("TWSNMPを終了"),
 					OnClick: func(e astilectron.Event) (deleteListener bool) {
 						go func() {
 							time.Sleep(time.Second * 1)
@@ -125,10 +128,10 @@ func main() {
 				},
 			},
 		}, {
-			Label: astilectron.PtrStr("Window"),
+			Label: astikit.StrPtr("Window"),
 			SubMenu: []*astilectron.MenuItemOptions{
 				{
-					Checked: astilectron.PtrBool(true), Label: astilectron.PtrStr("マップ"),
+					Checked: astikit.BoolPtr(true), Label: astikit.StrPtr("マップ"),
 					Type: astilectron.MenuItemTypeCheckbox,
 					OnClick: func(e astilectron.Event) bool {
 						setWindowsShowOrHide(mainWindow, *e.MenuItemOptions.Checked)
@@ -136,7 +139,7 @@ func main() {
 					},
 				},
 				{
-					Label: astilectron.PtrStr("ノード情報"),
+					Label: astikit.StrPtr("ノード情報"),
 					Type:  astilectron.MenuItemTypeCheckbox,
 					OnClick: func(e astilectron.Event) bool {
 						setWindowsShowOrHide(nodeWindow, *e.MenuItemOptions.Checked)
@@ -144,7 +147,7 @@ func main() {
 					},
 				},
 				{
-					Label: astilectron.PtrStr("ポーリングリスト"),
+					Label: astikit.StrPtr("ポーリングリスト"),
 					Type:  astilectron.MenuItemTypeCheckbox,
 					OnClick: func(e astilectron.Event) bool {
 						setWindowsShowOrHide(pollingListWindow, *e.MenuItemOptions.Checked)
@@ -152,7 +155,7 @@ func main() {
 					},
 				},
 				{
-					Label: astilectron.PtrStr("ログ表示"),
+					Label: astikit.StrPtr("ログ表示"),
 					Type:  astilectron.MenuItemTypeCheckbox,
 					OnClick: func(e astilectron.Event) bool {
 						setWindowsShowOrHide(logWindow, *e.MenuItemOptions.Checked)
@@ -160,7 +163,7 @@ func main() {
 					},
 				},
 				{
-					Label: astilectron.PtrStr("ポーリング"),
+					Label: astikit.StrPtr("ポーリング"),
 					Type:  astilectron.MenuItemTypeCheckbox,
 					OnClick: func(e astilectron.Event) bool {
 						setWindowsShowOrHide(pollingWindow, *e.MenuItemOptions.Checked)
@@ -168,7 +171,7 @@ func main() {
 					},
 				},
 				{
-					Label: astilectron.PtrStr("MIBブラウザー"),
+					Label: astikit.StrPtr("MIBブラウザー"),
 					Type:  astilectron.MenuItemTypeCheckbox,
 					OnClick: func(e astilectron.Event) bool {
 						setWindowsShowOrHide(mibWindow, *e.MenuItemOptions.Checked)
@@ -176,7 +179,7 @@ func main() {
 					},
 				},
 				{
-					Label: astilectron.PtrStr("AI分析"),
+					Label: astikit.StrPtr("AI分析"),
 					Type:  astilectron.MenuItemTypeCheckbox,
 					OnClick: func(e astilectron.Event) bool {
 						setWindowsShowOrHide(aiWindow, *e.MenuItemOptions.Checked)
@@ -251,43 +254,43 @@ func main() {
 				Homepage:       "start.html",
 				MessageHandler: startMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:         astilectron.PtrBool(true),
-					Modal:          astilectron.PtrBool(true),
-					Show:           astilectron.PtrBool(true),
-					Frame:          astilectron.PtrBool(false),
-					Closable:       astilectron.PtrBool(false),
-					Fullscreenable: astilectron.PtrBool(false),
-					Maximizable:    astilectron.PtrBool(false),
-					Minimizable:    astilectron.PtrBool(false),
-					Width:          astilectron.PtrInt(450),
-					Height:         astilectron.PtrInt(500),
+					Center:         astikit.BoolPtr(true),
+					Modal:          astikit.BoolPtr(true),
+					Show:           astikit.BoolPtr(true),
+					Frame:          astikit.BoolPtr(false),
+					Closable:       astikit.BoolPtr(false),
+					Fullscreenable: astikit.BoolPtr(false),
+					Maximizable:    astikit.BoolPtr(false),
+					Minimizable:    astikit.BoolPtr(false),
+					Width:          astikit.IntPtr(450),
+					Height:         astikit.IntPtr(500),
 				},
 			},
 			{
 				Homepage:       "main.html",
 				MessageHandler: mainWindowMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center: astilectron.PtrBool(true),
-					Show:   astilectron.PtrBool(false),
-					Width:  astilectron.PtrInt(1024),
-					Height: astilectron.PtrInt(800),
+					Center: astikit.BoolPtr(true),
+					Show:   astikit.BoolPtr(false),
+					Width:  astikit.IntPtr(1024),
+					Height: astikit.IntPtr(800),
 				},
 			},
 			{
 				Homepage:       "node.html",
 				MessageHandler: nodeMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:         astilectron.PtrBool(true),
-					Frame:          astilectron.PtrBool(false),
-					Modal:          astilectron.PtrBool(false),
-					Show:           astilectron.PtrBool(false),
-					Fullscreenable: astilectron.PtrBool(false),
-					Maximizable:    astilectron.PtrBool(false),
-					Minimizable:    astilectron.PtrBool(true),
-					Width:          astilectron.PtrInt(850),
-					Height:         astilectron.PtrInt(450),
+					Center:         astikit.BoolPtr(true),
+					Frame:          astikit.BoolPtr(false),
+					Modal:          astikit.BoolPtr(false),
+					Show:           astikit.BoolPtr(false),
+					Fullscreenable: astikit.BoolPtr(false),
+					Maximizable:    astikit.BoolPtr(false),
+					Minimizable:    astikit.BoolPtr(true),
+					Width:          astikit.IntPtr(850),
+					Height:         astikit.IntPtr(450),
 					Custom: &astilectron.WindowCustomOptions{
-						HideOnClose: astilectron.PtrBool(true),
+						HideOnClose: astikit.BoolPtr(true),
 					},
 				},
 			},
@@ -295,17 +298,17 @@ func main() {
 				Homepage:       "pollingList.html",
 				MessageHandler: pollingListMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:         astilectron.PtrBool(true),
-					Frame:          astilectron.PtrBool(false),
-					Modal:          astilectron.PtrBool(false),
-					Show:           astilectron.PtrBool(false),
-					Fullscreenable: astilectron.PtrBool(false),
-					Maximizable:    astilectron.PtrBool(false),
-					Minimizable:    astilectron.PtrBool(true),
-					Width:          astilectron.PtrInt(1000),
-					Height:         astilectron.PtrInt(500),
+					Center:         astikit.BoolPtr(true),
+					Frame:          astikit.BoolPtr(false),
+					Modal:          astikit.BoolPtr(false),
+					Show:           astikit.BoolPtr(false),
+					Fullscreenable: astikit.BoolPtr(false),
+					Maximizable:    astikit.BoolPtr(false),
+					Minimizable:    astikit.BoolPtr(true),
+					Width:          astikit.IntPtr(1000),
+					Height:         astikit.IntPtr(500),
 					Custom: &astilectron.WindowCustomOptions{
-						HideOnClose: astilectron.PtrBool(true),
+						HideOnClose: astikit.BoolPtr(true),
 					},
 				},
 			},
@@ -313,17 +316,17 @@ func main() {
 				Homepage:       "log.html",
 				MessageHandler: logMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:         astilectron.PtrBool(true),
-					Frame:          astilectron.PtrBool(false),
-					Modal:          astilectron.PtrBool(false),
-					Show:           astilectron.PtrBool(false),
-					Fullscreenable: astilectron.PtrBool(false),
-					Maximizable:    astilectron.PtrBool(false),
-					Minimizable:    astilectron.PtrBool(true),
-					Width:          astilectron.PtrInt(1000),
-					Height:         astilectron.PtrInt(650),
+					Center:         astikit.BoolPtr(true),
+					Frame:          astikit.BoolPtr(false),
+					Modal:          astikit.BoolPtr(false),
+					Show:           astikit.BoolPtr(false),
+					Fullscreenable: astikit.BoolPtr(false),
+					Maximizable:    astikit.BoolPtr(false),
+					Minimizable:    astikit.BoolPtr(true),
+					Width:          astikit.IntPtr(1000),
+					Height:         astikit.IntPtr(650),
 					Custom: &astilectron.WindowCustomOptions{
-						HideOnClose: astilectron.PtrBool(true),
+						HideOnClose: astikit.BoolPtr(true),
 					},
 				},
 			},
@@ -331,17 +334,17 @@ func main() {
 				Homepage:       "polling.html",
 				MessageHandler: pollingMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:         astilectron.PtrBool(true),
-					Frame:          astilectron.PtrBool(false),
-					Modal:          astilectron.PtrBool(false),
-					Show:           astilectron.PtrBool(false),
-					Fullscreenable: astilectron.PtrBool(false),
-					Maximizable:    astilectron.PtrBool(false),
-					Minimizable:    astilectron.PtrBool(true),
-					Width:          astilectron.PtrInt(900),
-					Height:         astilectron.PtrInt(700),
+					Center:         astikit.BoolPtr(true),
+					Frame:          astikit.BoolPtr(false),
+					Modal:          astikit.BoolPtr(false),
+					Show:           astikit.BoolPtr(false),
+					Fullscreenable: astikit.BoolPtr(false),
+					Maximizable:    astikit.BoolPtr(false),
+					Minimizable:    astikit.BoolPtr(true),
+					Width:          astikit.IntPtr(900),
+					Height:         astikit.IntPtr(700),
 					Custom: &astilectron.WindowCustomOptions{
-						HideOnClose: astilectron.PtrBool(true),
+						HideOnClose: astikit.BoolPtr(true),
 					},
 				},
 			},
@@ -349,17 +352,17 @@ func main() {
 				Homepage:       "mib.html",
 				MessageHandler: mibMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:         astilectron.PtrBool(true),
-					Frame:          astilectron.PtrBool(false),
-					Modal:          astilectron.PtrBool(false),
-					Show:           astilectron.PtrBool(false),
-					Fullscreenable: astilectron.PtrBool(false),
-					Maximizable:    astilectron.PtrBool(false),
-					Minimizable:    astilectron.PtrBool(true),
-					Width:          astilectron.PtrInt(800),
-					Height:         astilectron.PtrInt(500),
+					Center:         astikit.BoolPtr(true),
+					Frame:          astikit.BoolPtr(false),
+					Modal:          astikit.BoolPtr(false),
+					Show:           astikit.BoolPtr(false),
+					Fullscreenable: astikit.BoolPtr(false),
+					Maximizable:    astikit.BoolPtr(false),
+					Minimizable:    astikit.BoolPtr(true),
+					Width:          astikit.IntPtr(800),
+					Height:         astikit.IntPtr(500),
 					Custom: &astilectron.WindowCustomOptions{
-						HideOnClose: astilectron.PtrBool(true),
+						HideOnClose: astikit.BoolPtr(true),
 					},
 				},
 			},
@@ -367,17 +370,17 @@ func main() {
 				Homepage:       "ai.html",
 				MessageHandler: aiMessageHandler,
 				Options: &astilectron.WindowOptions{
-					Center:         astilectron.PtrBool(true),
-					Frame:          astilectron.PtrBool(false),
-					Modal:          astilectron.PtrBool(false),
-					Show:           astilectron.PtrBool(false),
-					Fullscreenable: astilectron.PtrBool(false),
-					Maximizable:    astilectron.PtrBool(false),
-					Minimizable:    astilectron.PtrBool(true),
-					Width:          astilectron.PtrInt(800),
-					Height:         astilectron.PtrInt(600),
+					Center:         astikit.BoolPtr(true),
+					Frame:          astikit.BoolPtr(false),
+					Modal:          astikit.BoolPtr(false),
+					Show:           astikit.BoolPtr(false),
+					Fullscreenable: astikit.BoolPtr(false),
+					Maximizable:    astikit.BoolPtr(false),
+					Minimizable:    astikit.BoolPtr(true),
+					Width:          astikit.IntPtr(800),
+					Height:         astikit.IntPtr(600),
 					Custom: &astilectron.WindowCustomOptions{
-						HideOnClose: astilectron.PtrBool(true),
+						HideOnClose: astikit.BoolPtr(true),
 					},
 				},
 			},

@@ -15,6 +15,7 @@ var pkgList = []string{
 	"github.com/asticode/go-astilectron",
 	"github.com/asticode/go-astilectron-bundler/...",
 	"github.com/asticode/go-astilectron-bootstrap/...",
+	"github.com/asticode/go-astikit",
 	"github.com/twsnmp/go-mibdb",
 	"go.etcd.io/bbolt",
 	"github.com/signalsciences/ipv4",
@@ -24,6 +25,8 @@ var pkgList = []string{
 	"github.com/twsnmp/go-mibdb",
 	"github.com/konsorten/go-windows-terminal-sequences",
 	"github.com/mattn/go-colorable",
+	"github.com/robertkrimen/otto",
+	"github.com/vjeantet/grok",
 }
 
 // Build 実行ファイルのビルド
@@ -49,7 +52,7 @@ func buildInternal(bWindows bool) error {
 		return err
 	}
 	if bWindows {
-		err = sh.Run("astilectron-bundler", "-w")
+		err = sh.RunV("astilectron-bundler", "-w")
 	} else {
 		err = sh.RunV("astilectron-bundler")
 	}
