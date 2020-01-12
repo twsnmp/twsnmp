@@ -427,7 +427,7 @@ document.addEventListener('astilectron-ready', function () {
     }
 
     $('li[data-keyword]').hide();
-    $('li[data-keyword*=' + text + ']').show();
+    $('li[data-keyword*="' + text + '"]').show();
   }
   $('#nodeFilter').keyup(function () {
     nodeFilter();
