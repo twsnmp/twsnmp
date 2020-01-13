@@ -538,6 +538,7 @@ func deletePolling(pollingID string) error {
 			deleteLine(k)
 		}
 	}
+	clearPollingLog(pollingID)
 	return nil
 }
 
