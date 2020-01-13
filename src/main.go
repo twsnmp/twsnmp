@@ -128,6 +128,18 @@ func main() {
 				},
 			},
 		}, {
+			Label: astikit.StrPtr("Edit"),
+			SubMenu: []*astilectron.MenuItemOptions{
+				{
+					Label: astikit.StrPtr("コピー"),
+					Role:  astilectron.MenuItemRoleCopy,
+				},
+				{
+					Label: astikit.StrPtr("貼付け"),
+					Role:  astilectron.MenuItemRolePaste,
+				},
+			},
+		}, {
 			Label: astikit.StrPtr("Window"),
 			SubMenu: []*astilectron.MenuItemOptions{
 				{

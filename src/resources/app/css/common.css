@@ -59,3 +59,7 @@ table.dataTable thead th {
   font-size:  10px;
   padding: 8px 12px;
 }
+
+table.dataTable tbody td {
+  -webkit-user-select: text;
+}
