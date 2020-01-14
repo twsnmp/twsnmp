@@ -233,26 +233,26 @@ func main() {
 				app.Stop()
 				return
 			})
-			for i, w := range w {
+			for i := range w {
 				if i < 2 {
 					continue
 				}
-				mi, err := m.Item(1, i-1)
+				mi, err := m.Item(2, i-1)
 				if err != nil {
 					continue
 				}
-				if w != aiWindow {
+				if w[i] != aiWindow {
 					mi.SetVisible(false)
 				}
-				w.On(astilectron.EventNameWindowEventHide, func(e astilectron.Event) (deleteListener bool) {
+				w[i].On(astilectron.EventNameWindowEventHide, func(e astilectron.Event) (deleteListener bool) {
 					mi.SetChecked(false)
 					return
 				})
-				w.On(astilectron.EventNameWindowEventMinimize, func(e astilectron.Event) (deleteListener bool) {
+				w[i].On(astilectron.EventNameWindowEventMinimize, func(e astilectron.Event) (deleteListener bool) {
 					mi.SetChecked(false)
 					return
 				})
-				w.On(astilectron.EventNameWindowEventShow, func(e astilectron.Event) (deleteListener bool) {
+				w[i].On(astilectron.EventNameWindowEventShow, func(e astilectron.Event) (deleteListener bool) {
 					mi.SetChecked(true)
 					mi.SetVisible(true)
 					return
