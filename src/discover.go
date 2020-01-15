@@ -67,7 +67,7 @@ func startDiscover() error {
 		Event: fmt.Sprintf("自動発見開始 %s - %s",discoverConf.StartIP,discoverConf.EndIP),
 	})
 	discoverStat.Stop = false
-	discoverStat.Total = eip - sip
+	discoverStat.Total = eip - sip + 1
 	discoverStat.Sent  = 0
 	discoverStat.Found = 0 
 	discoverStat.Snmp  = 0
@@ -78,7 +78,7 @@ func startDiscover() error {
 	discoverStat.Y = discoverConf.Y
 	sem := make(chan bool, 10)
 	go func() {
-		for ; sip < eip && !discoverStat.Stop ;sip++ {
+		for ; sip <= eip && !discoverStat.Stop ;sip++ {
 			sem <- true
 			discoverStat.Sent++
 			discoverStat.Progress = (100 * discoverStat.Sent)/discoverStat.Total
@@ -97,7 +97,7 @@ func startDiscover() error {
 						IP: ipstr,
 						IfIndexList: []string{},
 					}
-					if names,err := net.LookupAddr(ipstr); err !=nil && len(names) > 0 {
+					if names,err := net.LookupAddr(ipstr); err == nil && len(names) > 0 {
 						dent.HostName = names[0]
 					}
 					discoverGetSnmpInfo(ipstr,&dent)

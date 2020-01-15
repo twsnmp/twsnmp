@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -182,7 +183,8 @@ func pingBackend(ctx context.Context) {
 			var n, ttl int
 			var err error
 			var cm *ipv4.ControlMessage
-			n, cm, _, err = conn.IPv4PacketConn().ReadFrom(bytes)
+			var src net.Addr
+			n, cm, src, err = conn.IPv4PacketConn().ReadFrom(bytes)
 			if cm != nil {
 				ttl = cm.TTL
 			}
@@ -200,6 +202,11 @@ func pingBackend(ctx context.Context) {
 				astilog.Debugf("pingBackend processPacket err=%v", err)
 			} else {
 				if p, ok := pingMap[tracker]; ok {
+					sa := strings.Split(src.String(), ":")
+					if p.Target != sa[0] {
+						astilog.Errorf("pingBackend target=%s src=%s", p.Target, src.String())
+						continue
+					}
 					delete(pingMap, tracker)
 					p.Stat = pingOK
 					p.Time = tm
