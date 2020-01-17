@@ -9,6 +9,7 @@ import (
 	"time"
 	"net"
 	"strings"
+	"sync"
 	"github.com/signalsciences/ipv4"
 	"github.com/soniah/gosnmp"
 	astilog "github.com/asticode/go-astilog"
@@ -34,6 +35,8 @@ type discoverInfoEnt struct {
 	SysName string
 	SysObjectID string
 	IfIndexList []string
+	X int
+	Y int
 }
 
 var discoverStat discoverStatEnt
@@ -74,9 +77,10 @@ func startDiscover() error {
 	discoverStat.Running = true
 	discoverStat.StartTime = time.Now().UnixNano()
 	discoverStat.EndTime = 0
-	discoverStat.X = discoverConf.X
-	discoverStat.Y = discoverConf.Y
-	sem := make(chan bool, 10)
+	discoverStat.X = (1 + discoverConf.X/100)*100
+	discoverStat.Y = (1 + discoverConf.Y/100)*100
+	var mu sync.Mutex
+	sem := make(chan bool, 20)
 	go func() {
 		for ; sip <= eip && !discoverStat.Stop ;sip++ {
 			sem <- true
@@ -90,9 +94,8 @@ func startDiscover() error {
 				if findNodeFromIP(ipstr) != nil {
 					return
 				}
-				r := doPing(ipstr,1,0,64)
+				r := doPing(ipstr,discoverConf.Timeout,discoverConf.Retry,64)
 				if r.Stat == pingOK {
-					discoverStat.Found++
 					dent := discoverInfoEnt{
 						IP: ipstr,
 						IfIndexList: []string{},
@@ -101,15 +104,20 @@ func startDiscover() error {
 						dent.HostName = names[0]
 					}
 					discoverGetSnmpInfo(ipstr,&dent)
+					mu.Lock()
+					dent.X = discoverStat.X
+					dent.Y = discoverStat.Y
+					discoverStat.Found++
+					discoverStat.X += 100
+					if discoverStat.X > 1100 {
+						discoverStat.X = 100
+						discoverStat.Y += 100
+					}
 					if dent.SysName != "" {
 						discoverStat.Snmp++
 					}
-					go addFoundNode(dent)
-					discoverStat.X += 96
-					if discoverStat.X > 1024 {
-						discoverStat.X = 32
-						discoverStat.Y += 64
-					}
+					mu.Unlock()
+					addFoundNode(dent)
 				}
 			}(sip)
 		}
@@ -176,8 +184,8 @@ func addFoundNode(dent discoverInfoEnt) {
 		Name: dent.HostName,
 		IP: dent.IP,
 		Icon: "desktop",
-		X: discoverStat.X,
-		Y: discoverStat.Y,
+		X: dent.X,
+		Y: dent.Y,
 		Descr: "自動登録:" + time.Now().Format(time.RFC3339),
 	}
 	if n.Name == "" {

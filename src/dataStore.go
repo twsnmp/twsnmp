@@ -28,6 +28,13 @@ var (
 	stopEventLoggerCh = make(chan bool)
 )
 
+const (
+	// MaxDispLog : ログの検索結果の最大値
+	MaxDispLog = 20000
+	// MaxDelLog : ログ削除処理の最大削除数
+	MaxDelLog = 500000
+)
+
 type nodeEnt struct {
 	ID        string
 	Name      string
@@ -677,7 +684,7 @@ func getEventLogs(filter *filterEnt) []eventLogEnt {
 		}
 		c := b.Cursor()
 		i := 0
-		for k, v := c.Seek([]byte(f.StartKey)); k != nil && i < 100000; k, v = c.Next() {
+		for k, v := c.Seek([]byte(f.StartKey)); k != nil && i < MaxDispLog; k, v = c.Next() {
 			var e eventLogEnt
 			err := json.Unmarshal(v, &e)
 			if err != nil {
@@ -715,7 +722,7 @@ func getLogs(filter *filterEnt) []logEnt {
 		}
 		c := b.Cursor()
 		i := 0
-		for k, v := c.Seek([]byte(f.StartKey)); k != nil && i < 100000; k, v = c.Next() {
+		for k, v := c.Seek([]byte(f.StartKey)); k != nil && i < MaxDispLog; k, v = c.Next() {
 			var l logEnt
 			err := json.Unmarshal(v, &l)
 			if err != nil {
@@ -787,7 +794,7 @@ func getPollingLog(startTime, endTime, pollingID string) []pollingLogEnt {
 		}
 		c := b.Cursor()
 		i := 0
-		for k, v := c.Seek([]byte(startKey)); k != nil && i < 100000; k, v = c.Next() {
+		for k, v := c.Seek([]byte(startKey)); k != nil && i < MaxDispLog; k, v = c.Next() {
 			if !bytes.Contains(v, []byte(pollingID)) {
 				continue
 			}
@@ -824,7 +831,7 @@ func getAllPollingLog(pollingID string) []pollingLogEnt {
 		}
 		c := b.Cursor()
 		i := 0
-		for k, v := c.First(); k != nil && i < 1000000; k, v = c.Next() {
+		for k, v := c.First(); k != nil && i < MaxDispLog*100; k, v = c.Next() {
 			if !bytes.Contains(v, []byte(pollingID)) {
 				continue
 			}
@@ -877,7 +884,7 @@ func deleteOldLog(bucket string, days int) error {
 		}
 		c := b.Cursor()
 		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			if st < string(k) || delCount > 1000000 {
+			if st < string(k) || delCount > MaxDelLog {
 				break
 			}
 			c.Delete()

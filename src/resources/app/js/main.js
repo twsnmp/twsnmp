@@ -22,7 +22,7 @@ function preload() {
 }
 
 function setup() {
-  var canvas = createCanvas(2000, 2000);
+  var canvas = createCanvas(2000, 10000);
   canvas.parent('mapDiv');
   noLoop();
 }

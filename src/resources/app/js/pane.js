@@ -1,8 +1,13 @@
 'use strict';
 
+let pane = undefined;
+
 function createMapConfPane() {
+  if(pane) {
+    return;
+  }
   const mapConfTmp = mapConf
-  const pane = new Tweakpane();
+  pane = new Tweakpane();
 
   const f1 = pane.addFolder({
     title: 'マップ設定',
@@ -111,6 +116,7 @@ function createMapConfPane() {
     title: 'Cancel',
   }).on('click', (value) => {
     pane.dispose();
+    pane = undefined;
   });
   pane.addButton({
     title: 'Save',
@@ -138,13 +144,17 @@ function createMapConfPane() {
       }
     });
     pane.dispose();
+    pane = undefined;
   });
   return;
 }
 
 function createNotifyConfPane() {
+  if (pane) {
+    return;
+  }
   const notifyConfTmp = notifyConf
-  const pane = new Tweakpane({
+  pane = new Tweakpane({
     title: "通知設定"
   });
   pane.addInput(notifyConfTmp, 'MailServer', { label: "サーバー" });
@@ -157,7 +167,6 @@ function createNotifyConfPane() {
       "する": false,
     },
   });
-
   pane.addInput(notifyConfTmp, 'MailFrom', { label: "送信元" });
   pane.addInput(notifyConfTmp, 'MailTo', { label: "宛先" });
   pane.addInput(notifyConfTmp, 'Subject', { label: "件名" });
@@ -180,6 +189,7 @@ function createNotifyConfPane() {
     title: 'Cancel',
   }).on('click', (value) => {
     pane.dispose();
+    pane = undefined;
   });
   pane.addButton({
     title: 'Test',
@@ -208,11 +218,15 @@ function createNotifyConfPane() {
       notifyConf = notifyConfTmp;
     });
     pane.dispose();
+    pane = undefined;
   });
   return;
 }
 
 function createStartDiscoverPane(x,y) {
+  if(pane){
+    return;
+  }
   astilectron.sendMessage({ name: "getDiscover", payload: "" }, message => {
     if(!message.payload.Conf) {
       astilectron.showErrorBox("自動発見", "設定を取得できません。");
@@ -226,7 +240,7 @@ function createStartDiscoverPane(x,y) {
     }
     discoverConf.X= Math.round(x);
     discoverConf.Y= Math.round(y);
-    const pane = new Tweakpane({
+    pane = new Tweakpane({
       title: "自動発見"
     });
     pane.addInput(discoverConf, 'StartIP', { label: "開始IP" });
@@ -248,6 +262,7 @@ function createStartDiscoverPane(x,y) {
       title: 'Cancel',
     }).on('click', (value) => {
       pane.dispose();
+      pane = undefined;
     });
     pane.addButton({
       title: 'Start',
@@ -264,18 +279,22 @@ function createStartDiscoverPane(x,y) {
         }
       });
       pane.dispose();
+      pane = undefined;
     });  
   });
 }
 
 function createDiscoverStatPane(ds){
+  if(pane){
+    return;
+  }
   let dt = new Date();
   let st = new Date(ds.StartTime/(1000*1000));
   let stats = ds;
   stats.Time = dt.toLocaleTimeString();
   stats.Start = st.toLocaleTimeString();
   stats.End = "";
-  const pane = new Tweakpane({
+  pane = new Tweakpane({
     title: '自動発見の状況',
   });
   pane.addMonitor(stats, 'Start');
@@ -295,6 +314,7 @@ function createDiscoverStatPane(ds){
     title: 'Close',
   }).on('click', (value) => {
     pane.dispose();
+    pane = undefined;
   });
   pane.addButton({
     title: 'Stop',
@@ -306,6 +326,7 @@ function createDiscoverStatPane(ds){
       }
     });
     pane.dispose();
+    pane = undefined;
   });  
   function updateStat() {
     astilectron.sendMessage({ name: "getDiscover", payload: "" }, message => {
@@ -314,11 +335,11 @@ function createDiscoverStatPane(ds){
       if(message.payload.Stat) {
         const s = message.payload.Stat;
         stats.Sent = s.Sent;
-        stats.Fond = s.Found;
+        stats.Found = s.Found;
         stats.Snmp = s.Snmp;
         stats.Progress = s.Progress;
         if (s.EndTime){
-          const et = new Date(ds.EndTime/(1000*1000));
+          const et = new Date(s.EndTime/(1000*1000));
           stats.End = et.toLocaleTimeString();
         }
         if (!s.Running) {
@@ -334,6 +355,9 @@ function createDiscoverStatPane(ds){
 
 
 function createEditNodePane(x,y,nodeID) {
+  if(pane){
+    return;
+  }
   let node;
   if(nodeID != "") {
     node = nodes[nodeID];
@@ -349,7 +373,7 @@ function createEditNodePane(x,y,nodeID) {
       Community: "",
     };
   }
-  const pane = new Tweakpane({
+  pane = new Tweakpane({
     title: nodeID === "" ? "新規ノード" : "ノード編集"
   });
   pane.addInput(node, 'Name', { label: "名前" });
@@ -376,6 +400,7 @@ function createEditNodePane(x,y,nodeID) {
     title: 'Cancel',
   }).on('click', (value) => {
     pane.dispose();
+    pane = undefined;
   });
   pane.addButton({
     title: 'Save',
@@ -392,10 +417,14 @@ function createEditNodePane(x,y,nodeID) {
       }
     });
     pane.dispose();
+    pane = undefined;
   });
 }
 
 function createEditLinePane(nodeID1,nodeID2) {
+  if(pane){
+    return;
+  }
   astilectron.sendMessage({ name: "getLine", payload: {NodeID1:nodeID1,NodeID2:nodeID2} }, message => {
     if(!message.payload) {
       astilectron.showErrorBox("ライン編集", "ライン情報を取得できません。");
@@ -403,7 +432,7 @@ function createEditLinePane(nodeID1,nodeID2) {
     }
     const lineDlg  = message.payload;
     const line = lineDlg.Line;
-    const pane = new Tweakpane({
+    pane = new Tweakpane({
       title: lineDlg.Line.ID  === "" ? "新規ライン" : "ライン編集"
     });
     const n1 = pane.addFolder({
@@ -432,6 +461,7 @@ function createEditLinePane(nodeID1,nodeID2) {
       title: 'Cancel',
     }).on('click', (value) => {
       pane.dispose();
+      pane = undefined;
     });
     if( line.ID != "" ){
       pane.addButton({
@@ -444,6 +474,7 @@ function createEditLinePane(nodeID1,nodeID2) {
           }
         });
         pane.dispose();
+        pane = undefined;
       });
     }
     pane.addButton({
@@ -461,11 +492,15 @@ function createEditLinePane(nodeID1,nodeID2) {
         }
       });
       pane.dispose();
+      pane = undefined;
     });
   });
 }
 
 function createMIBDBPane() {
+  if(pane){
+    return;
+  }
   astilectron.sendMessage({ name: "getMIBModuleList", payload: "" }, message => {
     if(!message.payload) {
       astilectron.showErrorBox("MIBデータベース", "リストを取得できません。");
@@ -476,7 +511,7 @@ function createMIBDBPane() {
     const tmpParams = {
       MIBModule: ""
     };
-    const pane = new Tweakpane({
+    pane = new Tweakpane({
       title: "MIBデータベース"
     });
     pane.addButton({
@@ -490,6 +525,7 @@ function createMIBDBPane() {
               return
             }
             pane.dispose();
+            pane = undefined;
             setTimeout(createMIBDBPane,100);
             return
           });
@@ -510,6 +546,7 @@ function createMIBDBPane() {
             return
           }
           pane.dispose();
+          pane = undefined;
           setTimeout(createMIBDBPane,100);
           return
         });
@@ -519,12 +556,13 @@ function createMIBDBPane() {
       title: 'Close',
     }).on('click', (value) => {
       pane.dispose();
+      pane = undefined;
     });  
   }); 
 }
 
 function createActionPane() {
-  const pane = new Tweakpane({
+  pane = new Tweakpane({
     title: "削除操作"
   });
   pane.addButton({
@@ -539,6 +577,7 @@ function createActionPane() {
         return;
       }
       pane.dispose();
+      pane = undefined;
     });
   });
   pane.addButton({
@@ -549,6 +588,7 @@ function createActionPane() {
     }
     astilectron.sendMessage({ name: "clearAllAIMoldes", payload: "" }, message => {
       pane.dispose();
+      pane = undefined;
       return
     });
   });
@@ -556,6 +596,7 @@ function createActionPane() {
     title: 'Close',
   }).on('click', (value) => {
     pane.dispose();
+    pane = undefined;
   });
   return;
 }
