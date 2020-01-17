@@ -233,10 +233,7 @@ function mousePressed() {
       dupNode();
     });
     $("#ctxMenu span.showNodeInfo").on("click", () => {
-      if (selectNode != "") {
-        astilectron.sendMessage({ name: "showNodeInfo", payload: selectNode }, function (message) {
-        });
-      }
+      showNodeInfo();
     });
     $("#ctxMenu span.showPolling").on("click", () => {
       if (selectNode != "") {
@@ -324,11 +321,25 @@ function keyReleased() {
   if (!focused) {
     return false;
   }
-  if (keyCode == DELETE) {
+  if (keyCode == DELETE || keyCode == BACKSPACE) {
     // Delete
     deleteNode();
   }
+  if( keyCode == ENTER){
+    doubleClicked();
+  }
   return true;
+}
+
+function doubleClicked() {
+  showNodeInfo();
+}
+
+function showNodeInfo(){
+  if (selectNode != "") {
+    astilectron.sendMessage({ name: "showNodeInfo", payload: selectNode }, function (message) {
+    });
+  }
 }
 
 function deleteNode() {
