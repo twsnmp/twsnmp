@@ -83,7 +83,7 @@ func sendMail(subject,body string) error {
 	}
 	defer c.Close()
 	if err = c.StartTLS(tlsconfig); err != nil {
-		return err
+		astilog.Warnf("StartTLS err=%s",err)
 	}
 	if notifyConf.User != "" {
 		auth := smtp.PlainAuth("", notifyConf.User,notifyConf.Password,notifyConf.MailServer)
@@ -134,7 +134,7 @@ func sendTestMail(testConf *notifyConfEnt) error {
 	}
 	defer c.Close()
 	if err = c.StartTLS(tlsconfig); err != nil {
-		return err
+		astilog.Warnf("StartTLS err=%s",err)
 	}
 	if testConf.User != "" {
 		auth := smtp.PlainAuth("", testConf.User,testConf.Password,testConf.MailServer)
