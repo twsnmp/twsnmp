@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dustin/go-humanize"
+
 	astilog "github.com/asticode/go-astilog"
 	"go.etcd.io/bbolt"
 )
@@ -21,6 +23,9 @@ var (
 	mapConf           mapConfEnt
 	notifyConf        notifyConfEnt
 	discoverConf      discoverConfEnt
+	prevDBStats       bbolt.Stats
+	dbStats           dbStatsEnt
+	dbOpenTime        time.Time
 	nodes             = make(map[string]*nodeEnt)
 	lines             = make(map[string]*lineEnt)
 	pollings          = sync.Map{}
@@ -147,6 +152,19 @@ type aiResult struct {
 	ScoreData [][]float64
 }
 
+type dbStatsEnt struct {
+	Time       string
+	Size       string
+	TotalWrite string
+	LastWrite  string
+	PeakWrite  string
+	AvgWrite   string
+	StartTime  string
+	Speed      string
+	Peak       string
+	Rate       float64
+}
+
 func checkDB(path string) error {
 	var err error
 	d, err := bbolt.Open(path, 0600, nil)
@@ -163,6 +181,8 @@ func openDB(path string) error {
 	if err != nil {
 		return err
 	}
+	prevDBStats = db.Stats()
+	dbOpenTime = time.Now()
 	err = initDB()
 	if err != nil {
 		db.Close()
@@ -987,7 +1007,7 @@ func closeDB() {
 }
 
 func eventLogger(ctx context.Context) {
-	timer1 := time.NewTicker(time.Minute * 3)
+	timer1 := time.NewTicker(time.Minute * 2)
 	timer2 := time.NewTicker(time.Second * 5)
 	list := []eventLogEnt{}
 	for {
@@ -1022,6 +1042,51 @@ func eventLogger(ctx context.Context) {
 			}
 		}
 	}
+}
+
+var peakPS float64
+var peakWrite int
+
+func updateDBStats() {
+	if db == nil {
+		return
+	}
+	s := db.Stats()
+	d := s.Sub(&prevDBStats)
+	var dbSize int64
+	db.View(func(tx *bbolt.Tx) error {
+		dbSize = tx.Size()
+		return nil
+	})
+	dbStats.Size = humanize.Bytes(uint64(dbSize))
+	dbStats.TotalWrite = humanize.Comma(int64(s.TxStats.Write))
+	dbStats.LastWrite = humanize.Comma(int64(d.TxStats.Write))
+	if peakWrite < d.TxStats.Write {
+		peakWrite = d.TxStats.Write
+		dbStats.PeakWrite = dbStats.LastWrite
+	}
+	// 初回は計算しない。
+	if peakWrite > 0 && dbStats.Time != "" {
+		dbStats.Rate = 100 * float64(d.TxStats.Write) / float64(peakWrite)
+		dbStats.StartTime = humanize.Time(dbOpenTime)
+		dbot := time.Now().Sub(dbOpenTime).Seconds()
+		if dbot > 0 {
+			dbStats.AvgWrite = humanize.SI(float64(s.TxStats.Write)/dbot, "Write/Sec")
+		}
+	}
+	dt := d.TxStats.WriteTime.Seconds()
+	if dt != 0 {
+		ps := float64(d.TxStats.Write) / dt
+		dbStats.Speed = humanize.SI(ps, "Write/Sec")
+		if peakPS < ps {
+			peakPS = ps
+			dbStats.Peak = dbStats.Speed
+		}
+	} else {
+		dbStats.Speed = "Unkown"
+	}
+	dbStats.Time = time.Now().Format("15:04:05")
+	prevDBStats = s
 }
 
 func saveLogList(list []eventLogEnt) {

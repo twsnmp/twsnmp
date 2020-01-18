@@ -508,6 +508,7 @@ func mainWindowBackend(ctx context.Context) {
 	applyMapConf()
 	applyMapData()
 	timer := time.NewTicker(time.Second * 10)
+	i := 6
 	for {
 		select {
 		case <-ctx.Done():
@@ -526,6 +527,15 @@ func mainWindowBackend(ctx context.Context) {
 				}
 				updateLineState()
 				applyMapData()
+			}
+			i++
+			if( i > 5 ){
+				updateDBStats()
+				i = 0
+				if err := bootstrap.SendMessage(mainWindow, "dbStats", dbStats); err != nil {
+					astilog.Errorf("sendSendMessage dbStats error=%v", err)
+					return
+				}
 			}
 		}
 	}

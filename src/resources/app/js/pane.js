@@ -294,18 +294,49 @@ function createDiscoverStatPane(ds){
   stats.Time = dt.toLocaleTimeString();
   stats.Start = st.toLocaleTimeString();
   stats.End = "";
+  // 表示を文字列にする
+  stats.Sent = ds.Sent + "";
+  stats.Found = ds.Found + "";
+  stats.Snmp = ds.Snmp + "";
+  stats.Total = ds.Total + "";
   pane = new Tweakpane({
     title: '自動発見の状況',
   });
-  pane.addMonitor(stats, 'Start');
-  pane.addMonitor(stats, 'Time');
-  pane.addMonitor(stats, 'End');
-  pane.addMonitor(stats, 'Total');
-  pane.addMonitor(stats, 'Sent');
-  pane.addMonitor(stats, 'Progress');
-  pane.addMonitor(stats, 'Found');
-  pane.addMonitor(stats, 'Snmp');
+  pane.addMonitor(stats, 'Start',{
+    label: "開始時刻",
+    interval: 1000,
+  });
+  pane.addMonitor(stats, 'Time',{
+    label: "現在時刻",
+    interval: 1000,
+  });
+  pane.addMonitor(stats, 'End',{
+    label: "終了時刻",
+    interval: 1000,
+  });
+  pane.addMonitor(stats, 'Total',{
+    label: "検索総数",
+    interval: 1000,
+  });
+  pane.addMonitor(stats, 'Sent',{
+    label: "送信済み",
+    interval: 1000,
+  });
+  pane.addMonitor(stats, 'Progress',{
+    label: "完了率",
+    interval: 1000,
+  });
+  pane.addMonitor(stats, 'Found',{
+    label: "発見数",
+    interval: 1000,
+  });
+  pane.addMonitor(stats, 'Snmp',{
+    label: "SNMP",
+    interval: 1000,
+  });
   pane.addMonitor(stats, 'Progress', {
+    label: "完了率",
+    interval: 1000,
     type: 'graph',
     min: 0,
     max: 100,
@@ -334,16 +365,20 @@ function createDiscoverStatPane(ds){
       stats.Time = dt.toLocaleTimeString();
       if(message.payload.Stat) {
         const s = message.payload.Stat;
-        stats.Sent = s.Sent;
-        stats.Found = s.Found;
-        stats.Snmp = s.Snmp;
+        stats.Sent = s.Sent + "";
+        stats.Found = s.Found + "";
+        stats.Snmp = s.Snmp + "";
         stats.Progress = s.Progress;
         if (s.EndTime){
           const et = new Date(s.EndTime/(1000*1000));
           stats.End = et.toLocaleTimeString();
         }
         if (!s.Running) {
-          astilectron.showMessageBox({message: "自動発見完了しました。", title: "自動発見完了"});
+          setTimeout(()=>{
+            astilectron.showMessageBox({message: "自動発見完了しました。", title: "自動発見完了"});
+            pane.dispose();
+            pane = undefined;
+          },1500);
           return;
         }
       }
@@ -599,4 +634,62 @@ function createActionPane() {
     pane = undefined;
   });
   return;
+}
+
+function createDBStatsPane(){
+  if(pane || !dbStats){
+    return;
+  }
+  pane = new Tweakpane({
+    title: 'DB統計',
+  });
+  pane.addMonitor(dbStats, 'Time',{
+    label: "更新時刻",
+    interval: 30000,
+  });
+  pane.addMonitor(dbStats, 'Size',{
+    label: "サイズ",
+    interval: 30000,
+  });
+  pane.addMonitor(dbStats, 'StartTime',{
+    label: "起動時期",
+    interval: 30000,
+  });
+  pane.addMonitor(dbStats, 'TotalWrite',{
+    label: "総件数",
+    interval: 30000,
+  });
+  pane.addMonitor(dbStats, 'AvgWrite',{
+    label: "平均件数",
+    interval: 30000,
+  });
+  pane.addMonitor(dbStats, 'LastWrite',{
+    label: "件数",
+    interval: 30000,
+  });
+  pane.addMonitor(dbStats, 'PeakWrite',{
+    label: "最大件数",
+    interval: 30000,
+  });
+  pane.addMonitor(dbStats, 'Rate', {
+    label: "傾向",
+    type: 'graph',
+    min: 0,
+    max: 100,
+    interval:30000,
+  });
+  pane.addMonitor(dbStats, 'Speed',{
+    label: "速度",
+    interval: 30000,
+  });
+  pane.addMonitor(dbStats, 'Peak',{
+    label: "最大速度",
+    interval: 30000,
+  });
+  pane.addButton({
+    title: 'Close',
+  }).on('click', (value) => {
+    pane.dispose();
+    pane = undefined;
+  });
 }

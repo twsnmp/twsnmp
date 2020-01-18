@@ -7,6 +7,7 @@ let notifyConf;
 let nodes = {};
 let lines = {};
 let backimg;
+let dbStats;
 
 const status = {
   High: 0,
@@ -456,6 +457,9 @@ document.addEventListener('astilectron-ready', function () {
   $("header.toolbar-header button.mibDBConf").on("click", () => {
     createMIBDBPane();
   });
+  $("header.toolbar-header button.dbStats").on("click", () => {
+    createDBStatsPane();
+  });
   $("header.toolbar-header button.showPollingList").on("click", () => {
     astilectron.sendMessage({ name: "showPollingList", payload: "" }, function (message) {
     });
@@ -540,6 +544,25 @@ document.addEventListener('astilectron-ready', function () {
         }, 100);
         return { name: "error", payload: "ok" };
       }
+      case "dbStats":{
+        if(message.payload && message.payload.Time ){
+          if(dbStats){
+            dbStats.Time = message.payload.Time
+            dbStats.Size = message.payload.Size
+            dbStats.TotalWrite = message.payload.TotalWrite
+            dbStats.LastWrite = message.payload.LastWrite
+            dbStats.PeakWrite = message.payload.PeakWrite
+            dbStats.AvgWrite = message.payload.AvgWrite
+            dbStats.StartTime = message.payload.StartTime
+            dbStats.Speed = message.payload.Speed
+            dbStats.Peak = message.payload.Peak
+            dbStats.Rate = message.payload.Rate
+          }else {
+            dbStats = message.payload;
+          }
+          showStatus();
+        }
+      }
       default:
         console.log(message.name)
         console.log(message.payload)
@@ -590,8 +613,12 @@ function updateStatus(n) {
       status.Unkown++;
   }
 }
+
 function showStatus() {
-  const s = "重度=" + status.High + " 軽度=" + status.Low + " 注意=" + status.Warn +
-            " 正常=" + status.Normal + " 復帰=" + status.Repair + " 不明="+ status.Unkown;
+  let s = "重度=" + status.High + " 軽度=" + status.Low + " 注意=" + status.Warn +
+  " 正常=" + status.Normal + " 復帰=" + status.Repair + " 不明="+ status.Unkown;
+  if( dbStats ){
+    s += " DBサイズ=" + dbStats.Size;
+  }
   $("#status").html(s);
 }
