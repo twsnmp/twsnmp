@@ -116,8 +116,8 @@ func startDiscover() error {
 					if dent.SysName != "" {
 						discoverStat.Snmp++
 					}
-					mu.Unlock()
 					addFoundNode(dent)
+					mu.Unlock()
 				}
 			}(sip)
 		}

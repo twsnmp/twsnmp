@@ -192,7 +192,9 @@ func makeAIDataFromSyslogPriPolling(req *aiReq){
 			ts := time.Unix(ct,0)
 			ent[0] = float64(ts.Hour())/24.0
 			if _,ok := yasumiMap[ts.Format("2006-01-02")];ok {
-				ent[1] = 1.0
+				ent[1] = 0.0
+			} else {
+				ent[1] = float64(ts.Weekday())
 			}
 			req.TimeStamp = append(req.TimeStamp,ts.Unix())
 			req.Data = append(req.Data,ent)
@@ -241,7 +243,9 @@ func makeAIDataFromPolling(req *aiReq){
 			ts := time.Unix(ct,0)
 			ent[0] = float64(ts.Hour())/24.0
 			if _,ok := yasumiMap[ts.Format("2006-01-02")];ok {
-				ent[1] = 1.0
+				ent[1] = 0.0
+			} else {
+				ent[1] = float64(ts.Weekday())
 			}
 			if count == 0.0 {
 				count = 1.0
@@ -260,7 +264,7 @@ func makeAIDataFromPolling(req *aiReq){
 		}
 		count += 1.0
 		ent[2] += float64(l.NumVal)
-		ent[3] += sumStr(l.State)
+		ent[3] += getStateNum(l.State)
 		ent[4] += float64(len(l.StrVal))
 		ent[5] += sumStr(l.StrVal)
 	}
@@ -285,6 +289,16 @@ func sumStr(s string)float64{
 		ret += float64(r)
 	}
 	return ret
+}
+
+func getStateNum(s string)float64 {
+	if s == "repair" || s == "normal" {
+		return 1.0
+	}
+	if s == "unknown" {
+		return 0.5
+	}
+	return 0.0
 }
 
 func doneAI(m *bootstrap.MessageIn) {
