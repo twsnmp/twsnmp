@@ -1,6 +1,6 @@
 'use strict';
 
-let epoch = 10;
+let epoch = 20;
 console.log(tf.getBackend());
 
 document.addEventListener('astilectron-ready', function () {

@@ -194,7 +194,7 @@ func makeAIDataFromSyslogPriPolling(req *aiReq){
 			if _,ok := yasumiMap[ts.Format("2006-01-02")];ok {
 				ent[1] = 0.0
 			} else {
-				ent[1] = float64(ts.Weekday())
+				ent[1] = float64(ts.Weekday())/6.0
 			}
 			req.TimeStamp = append(req.TimeStamp,ts.Unix())
 			req.Data = append(req.Data,ent)
@@ -245,7 +245,7 @@ func makeAIDataFromPolling(req *aiReq){
 			if _,ok := yasumiMap[ts.Format("2006-01-02")];ok {
 				ent[1] = 0.0
 			} else {
-				ent[1] = float64(ts.Weekday())
+				ent[1] = float64(ts.Weekday())/6.0
 			}
 			if count == 0.0 {
 				count = 1.0

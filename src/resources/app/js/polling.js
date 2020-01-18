@@ -300,7 +300,6 @@ function makeAIHeatmap() {
     tooltip: {
       trigger: 'item',
       formatter: function (params) {
-        console.log(params)
         return  params.name + ' ' + params.data[1] +  '時 : '+ params.data[2] ;
       },
       axisPointer: {
@@ -342,6 +341,15 @@ function makeAIHeatmap() {
   };
   aiHeatmap = echarts.init(document.getElementById('ai_heatmap'));
   aiHeatmap.setOption(option);
+  aiHeatmap.on('dblclick', function (params) {
+//    console.log(params);
+    const d = params.name + ' ' + params.data[1] + ":00:00"; 
+    $(".toolbar-actions input[name=start]").val(moment(d).subtract(1, "h").format("Y-MM-DDTHH:00"));
+    $(".toolbar-actions input[name=end]").val(moment(d).add(1,"h").format("Y-MM-DDTHH:00"));
+    showPage("log");
+    $('.toolbar-actions button.get').click();
+    logChart.resize();
+  });
 }
 
 function setupTimeVal() {
