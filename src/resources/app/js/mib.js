@@ -119,7 +119,9 @@ document.addEventListener('astilectron-ready', function () {
       Name: $(".mib_btns input[name=mib]").val()
     }
     $('.toolbar-actions button.get').prop("disabled", true);
+    $('#wait').removeClass("hidden");
     astilectron.sendMessage({ name: "get", payload: params }, message => {
+      $('#wait').addClass("hidden");
       $('.toolbar-actions button.get').prop("disabled", false);
       const vbl = message.payload;
       if(typeof vbl === "string"){

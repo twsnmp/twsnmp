@@ -27,15 +27,15 @@ function searchLog() {
     $('#wait').addClass("hidden");
     if (message.payload == "ng") {
       astilectron.showErrorBox("ログ表示", "ログを取得できません。");
-      return;
-    }
-    if (message.payload.length < 1 ) {
+      // ログ表示をクリアするため
+      message.payload = [];
+    } else if (message.payload.length < 1 ) {
       astilectron.showErrorBox("ログ表示", "該当するログがありません。");
-      return;
+    } else {
+      if(filter.Filter &&  !searchHistory.includes(filter.Filter)){
+        searchHistory.push(filter.Filter);
+      } 
     }
-    if(filter.Filter &&  !searchHistory.includes(filter.Filter)){
-      searchHistory.push(filter.Filter);
-    } 
     switch (currentPage) {
       case "log":
         showLog(message.payload);
