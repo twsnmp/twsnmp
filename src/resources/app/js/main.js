@@ -207,7 +207,7 @@ function mousePressed() {
         </span>
         <span class="nav-group-item actionPane">
           <i class="fas fa-trash-restore"></i>
-          削除操作...
+          操作...
         </span>
         <span class="nav-group-item checkAllPoll">
         <i class="fas fa-check-square"></i>
@@ -215,7 +215,7 @@ function mousePressed() {
         </span>
         <span class="nav-group-item showPollingList">
           <i class="fas fa-exchange-alt"></i>
-          ポーリングリスト
+          ポーリング
         </span>
         <span class="nav-group-item logDisp">
           <i class="fas fa-clipboard-list"></i>

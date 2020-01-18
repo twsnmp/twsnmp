@@ -604,10 +604,10 @@ function createMIBDBPane() {
 
 function createActionPane() {
   pane = new Tweakpane({
-    title: "削除操作"
+    title: "操作"
   });
   pane.addButton({
-    title: 'Reset ARP...',
+    title: 'ARPリセット...',
   }).on('click', (value) => {
     if (!confirm("ARP監視をリセットしますか？")){
       return
@@ -622,7 +622,7 @@ function createActionPane() {
     });
   });
   pane.addButton({
-    title: 'Clear AI Model...',
+    title: 'AIモデル削除...',
   }).on('click', (value) => {
     if (!confirm("全てのAIモデルをクリアしますか？")){
       return
