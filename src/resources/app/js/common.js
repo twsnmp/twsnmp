@@ -13,6 +13,12 @@ const iconArray =[
   ["print",0xf02f],
   ["sync",0xf021],
   ["mobile-alt",0xf3cd],
+  ["tv",0xf26c],
+  ["database",0xf1c0],
+  ["clock",0xf017],
+  ["phone",0xf095],
+  ["video",0xf03d],
+  ["globe",0xf0ac],
 ];
 const iconMap = new Map(iconArray);
 

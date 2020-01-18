@@ -427,6 +427,12 @@ function createEditNodePane(x,y,nodeID) {
       "有線LAN": "network-wired",
       "無線LAN": "wifi",
       "クラウド": "cloud",
+      "TV": "tv",
+      "データベース": "database",
+      "NTPサーバー": "clock",
+      "電話": "phone",
+      "ビデオカメラ": "video",
+      "地球": "globe",
     },
   });
   pane.addInput(node, 'Community', { label: "Community" });

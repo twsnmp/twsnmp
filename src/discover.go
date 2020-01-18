@@ -109,7 +109,7 @@ func startDiscover() error {
 					dent.Y = discoverStat.Y
 					discoverStat.Found++
 					discoverStat.X += 100
-					if discoverStat.X > 1100 {
+					if discoverStat.X > 2100 {
 						discoverStat.X = 100
 						discoverStat.Y += 100
 					}
