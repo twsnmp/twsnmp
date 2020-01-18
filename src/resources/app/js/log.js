@@ -24,6 +24,7 @@ function searchLog() {
     LogType: currentPage
   }
   astilectron.sendMessage({ name: "searchLog", payload: filter }, message => {
+    $('#wait').addClass("hidden");
     if (message.payload == "ng") {
       astilectron.showErrorBox("ログ表示", "ログを取得できません。");
       return;
@@ -545,7 +546,10 @@ document.addEventListener('astilectron-ready', function () {
     showPage("arp");
   });
   $('.log_btns button.search').click(function () {
-    searchLog();
+    $('#wait').removeClass("hidden");
+    setTimeout(()=>{
+      searchLog();
+    },100);
   });
   const sh = function() {
     return function findMatches(q, cb) {

@@ -63,3 +63,30 @@ table.dataTable thead th {
 table.dataTable tbody td {
   -webkit-user-select: text;
 }
+
+
+#wait {
+  display: table;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: #666;
+  opacity: 0.8;
+}
+
+#wait .waitMsg {
+  display: table-cell;
+  text-align: center;
+  vertical-align: middle;
+  padding-top: 140px;
+  color: #fff;
+  font-size: 1em;
+  background: url("../images/circles.svg") center center no-repeat;
+  background-size: 100px 100px;
+}
+
+#wait.hidden {
+  display: none;
+}

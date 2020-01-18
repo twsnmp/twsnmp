@@ -474,7 +474,9 @@ document.addEventListener('astilectron-ready', function () {
       EndTime:   $(".toolbar-actions input[name=end]").val()
     }
     $('.toolbar-actions button.get').prop("disabled", true);
+    $('#wait').removeClass("hidden");
     astilectron.sendMessage({ name: "get", payload: params }, message => {
+      $('#wait').addClass("hidden");
       $('.toolbar-actions button.get').prop("disabled", false);
       const logs = message.payload;
       if(typeof logs === "string"){
