@@ -32,6 +32,12 @@ This project is to revive the TWSNMP Manager that was developed in 1999 and is s
 * ログ検索表示
 * メール通知
 * ログ監視
+* ポーリング結果のグラフ表示
+* DNS監視
+* HTTP/HTTPS監視
+* TCP監視
+* TLS監視
+* AIによる異常診断
 
 
 ![TWSNMP](https://assets.st-note.com/production/uploads/images/15118776/picture_pc_9d8f9c01141ab53f0c72ec1384cb36c4.png)
@@ -86,5 +92,5 @@ $mage makeZip
 see ./LICENSE
 
 ```
-Copyright 2019 Masayuki Yamai
+Copyright 2019,2020 Masayuki Yamai
 ```
