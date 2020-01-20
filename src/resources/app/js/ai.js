@@ -78,8 +78,12 @@ async function doAI(req) {
     lossData.push([moment().valueOf(), h.history.loss[0]]);
     console.log("Loss after Epoch " + i + " : " + h.history.loss[0]);
   }
-  await autoencoder.save(modelPath);
-
+  // Saveできない場合も終了するため
+  try {
+    await autoencoder.save(modelPath);
+  } catch(e){
+    console.log(e);
+  }
   const evd = [];
   for (let i = 0; i < req.Data.length; i++) {
     const x_eval = tf.tensor2d(req.Data[i], [1, dataLen]);

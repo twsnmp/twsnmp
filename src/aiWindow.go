@@ -73,7 +73,7 @@ func aiMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}
 
 func aiWindowBackend(ctx context.Context) {
 	makeYasumiMap()
-	timer := time.NewTicker(time.Second * 60)
+	timer := time.NewTicker(time.Second * 10)
 	for {
 		select {
 		case <-ctx.Done():
@@ -119,25 +119,39 @@ func checkAI() bool{
 	})
 	now := time.Now().Unix()
 	selID := ""
+	selType := ""
+	delList := []string{}
 	for id,n := range checkAIMap {
+		v,ok := pollings.Load(id)
+		if !ok  || v == nil {
+			delList = append(delList,id)
+			continue
+		}
+		p := v.(*pollingEnt)
 		astilog.Debugf("checkAI %s = %d now=%d diff=%d",id,n,now,now-n)
 		if n > now {
 			continue
 		}
 		if selID == "" || checkAIMap[selID] > n {
 			selID = id
+			selType = p.Type
 		}
+	}
+	for _,id := range delList {
+		astilog.Debugf("checkAIMap delete %s",id)
+		delete(checkAIMap,id)
 	}
 	if selID == ""{
 		return false
 	}
-	checkAIMap[selID] = now + 60 * 2
-	return doAI(selID)
+	checkAIMap[selID] = now + 60 * 5
+	return doAI(selID,selType)
 }
 
 func checkLastAIResultTime(id string) bool {
 	last,err := loadAIReesult(id)
 	if err != nil {
+		astilog.Errorf("loadAIReesult  id=%s err=%v",id,err)
 		return true
 	}
 	astilog.Debugf("checkLastAIResultTime %s = %d diff=%d",id,last.LastTime,time.Now().Unix()-last.LastTime)
@@ -147,21 +161,14 @@ func checkLastAIResultTime(id string) bool {
 	return false
 }
 
-func doAI(id string) bool{
-	var p *pollingEnt
-	if v,ok := pollings.Load(id);ok {
-		p = v.(*pollingEnt)
-	}
-	if p == nil {
-		return false
-	}
+func doAI(id,t string) bool{
 	if !checkLastAIResultTime(id){
 		return false
 	}
 	req :=  &aiReq{
-		PollingID: p.ID,
+		PollingID: id,
 	}
-	if p.Type == "syslogpri" {
+	if t == "syslogpri" {
 		makeAIDataFromSyslogPriPolling(req)
 	} else {
 		makeAIDataFromPolling(req)
