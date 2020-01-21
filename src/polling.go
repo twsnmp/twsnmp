@@ -28,7 +28,7 @@ import (
 	"net"
 
 	astilog "github.com/asticode/go-astilog"
-
+	"github.com/beevik/ntp"
 )
 
 var (
@@ -135,6 +135,8 @@ func doPolling(p *pollingEnt){
 		doPollingTLS(p)
 	case "dns":
 		doPollingDNS(p)
+	case "ntp":
+		doPollingNTP(p)
 	case "syslog","trap","netflow","ipfix":
 		doPollingLog(p)
 		updatePolling(p)
@@ -203,3 +205,34 @@ func doPollingDNS(p *pollingEnt){
 	updatePolling(p)
 }
 
+
+func doPollingNTP(p *pollingEnt){
+	n,ok := nodes[p.NodeID]
+	if !ok {
+		astilog.Errorf("node not found nodeID=%s",p.NodeID)
+		return
+	}
+	ok = false
+	for i:=0  ; !ok && i <= p.Retry;i++{
+		options := ntp.QueryOptions{ Timeout: time.Duration(p.Timeout)*time.Second }
+		r, err := ntp.QueryWithOptions(n.IP, options)
+		if err != nil {
+			astilog.Debugf("doPollingNTP err=%v",err)
+			p.LastResult = fmt.Sprintf("ERR:%v",err)
+			continue
+		}
+		if p.Polling == "offset" {
+			p.LastVal = float64(r.ClockOffset.Nanoseconds())
+		} else {
+			p.LastVal = float64(r.RTT.Nanoseconds())
+		}
+		p.LastResult = fmt.Sprintf("Stratum=%d ReferenceID=%d",r.Stratum,r.ReferenceID)
+		ok = true
+	}
+	if ok {
+		setPollingState(p,"normal")
+	}	else {
+		setPollingState(p,p.Level)
+	}
+	updatePolling(p)
+}

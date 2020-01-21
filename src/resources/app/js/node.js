@@ -358,6 +358,7 @@ function createEditPollingPane(id){
       "HTTPS": "https",
       "TLS": "tls",
       "DNS": "dns",
+      "NTP": "ntp",
       "SYSLOG": "syslog",
       "SYSLOGPRI": "syslogpri",
       "TRAP":   "trap",
