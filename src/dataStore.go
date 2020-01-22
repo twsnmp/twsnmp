@@ -75,7 +75,6 @@ type pollingEnt struct {
 	Retry      int
 	LogMode    int
 	NextTime   int64
-	DispType   string
 	LastTime   int64
 	LastResult string
 	LastVal    float64
@@ -566,6 +565,7 @@ func deletePolling(pollingID string) error {
 		}
 	}
 	clearPollingLog(pollingID)
+	deleteAIReesult(pollingID)
 	return nil
 }
 
@@ -1193,8 +1193,22 @@ func loadAIReesult(id string) (*aiResult, error) {
 		}
 		return nil
 	})
+	if r == "" {
+		return &ret, nil
+	}
 	if err := json.Unmarshal([]byte(r), &ret); err != nil {
 		return &ret, err
 	}
 	return &ret, nil
+}
+
+func deleteAIReesult(id string) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("ai"))
+		b.Delete([]byte(id))
+		return nil
+	})
 }

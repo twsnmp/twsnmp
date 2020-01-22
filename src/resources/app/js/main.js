@@ -562,6 +562,7 @@ document.addEventListener('astilectron-ready', function () {
           }
           showStatus();
         }
+        return { name: "dbStats", payload: "ok" };
       }
       default:
         console.log(message.name)

@@ -635,15 +635,15 @@ function setWindowTitle(n,p){
 }
 
 function getDispParams(){
-  if (polling.DispType === "resp"){
+  if (polling.Type === "ping"){
     return {
       mul: 1.0/(1000*1000*1000),
       axis: "応答時間(秒)"
     }
   }
   return {
-    mul: 1.0,
-    axis: ""
+    mul: 1.0/(1000*1000*1000),
+    axis: "応答時間(秒)"
   }
 }
 

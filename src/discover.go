@@ -216,7 +216,6 @@ func addFoundNode(dent discoverInfoEnt) {
 		Type: "ping",
 		Level: "low",
 		State: "unkown",
-		DispType: "resp",
 		PollInt: mapConf.PollInt,
 		Timeout: mapConf.Timeout,
 		Retry: mapConf.Retry,

@@ -152,6 +152,7 @@ func checkLastAIResultTime(id string) bool {
 	last,err := loadAIReesult(id)
 	if err != nil {
 		astilog.Errorf("loadAIReesult  id=%s err=%v",id,err)
+		deleteAIReesult(id)
 		return true
 	}
 	astilog.Debugf("checkLastAIResultTime %s = %d diff=%d",id,last.LastTime,time.Now().Unix()-last.LastTime)
@@ -174,7 +175,7 @@ func doAI(id,t string) bool{
 		makeAIDataFromPolling(req)
 	}
 	if len(req.Data) < 10 {
-		astilog.Infof("doAI No data %s", id)
+		astilog.Infof("doAI No data %s %v", id,req)
 		return false
 	}
 	astilog.Infof("doAI %s", id)
@@ -235,67 +236,78 @@ func makeAIDataFromSyslogPriPolling(req *aiReq){
 	return
 }
 
+const entLen = 20
+const entOffset  = 4
+
 func makeAIDataFromPolling(req *aiReq){
 	logs := getAllPollingLog(req.PollingID)
 	if len(logs) < 1 {
 		return
 	}
 	st := 3600*(time.Unix(0,logs[0].Time).Unix()/3600)
-	ent := make([]float64,6)
-	maxVals := make([]float64,4)
+	ent := make([]float64,entLen)
+	maxVals := make([]float64,entLen)
 	var count float64
 	for _,l := range logs {
 		ct := 3600*(time.Unix(0,l.Time).Unix()/3600)
 		if st != ct {
 			ts := time.Unix(ct,0)
-			ent[0] = float64(ts.Hour())/24.0
+			ent[0] = float64(ts.Hour())
 			if _,ok := yasumiMap[ts.Format("2006-01-02")];ok {
 				ent[1] = 0.0
 			} else {
-				ent[1] = float64(ts.Weekday())/6.0
+				ent[1] = float64(ts.Weekday())
 			}
 			if count == 0.0 {
-				count = 1.0
+				continue
 			}
-			for i := 0;i < 4;i++ {
-				ent[i+2] /= count
-				if maxVals[i] < ent[i+2] {
-					maxVals[i] = ent[i+2]
+			for i := 0;i < len(ent);i++ {
+				if i >=4 {
+					ent[i] /= count
+				}
+				if maxVals[i] < ent[i] {
+					maxVals[i] = ent[i]
 				}
 			}
 			req.TimeStamp = append(req.TimeStamp,ts.Unix())
 			req.Data = append(req.Data,ent)
-			ent = make([]float64,6)
+			ent = make([]float64,entLen)
 			st = ct
 			count = 0.0
 		}
 		count += 1.0
-		ent[2] += float64(l.NumVal)
-		ent[3] += getStateNum(l.State)
-		ent[4] += float64(len(l.StrVal))
-		ent[5] += sumStr(l.StrVal)
+		if l.State == "normal" || l.State == "repair" {
+			if ent[2] < l.NumVal {
+				ent[2] = l.NumVal
+			}
+			if ent[3] == 0.0 || l.NumVal < ent[3] {
+				ent[3] = l.NumVal
+			}
+			ent[4] += float64(l.NumVal)
+		}
+		ent[5] += getStateNum(l.State)
+		ent[6] += float64(len(l.StrVal))
+		for i,e := range strings.Split(l.StrVal,";"){
+			if i > len(ent)-7 {
+				break
+			}
+			var n string
+			var v float64
+			if _,err := fmt.Sscanf(e,"%s=%f",&n,&v);err == nil {
+				ent[i+7] += v
+			}
+		}
 	}
 	for i := range req.Data {
 		for j := range req.Data[i] {
-			if j < 2 {
-				continue
-			}
-			if maxVals[j-2] > 0.0 {
-				req.Data[i][j] /= maxVals[j-2]
+			if maxVals[j] > 0.0 {
+				req.Data[i][j] /= maxVals[j]
 			} else {
 				req.Data[i][j] = 0.0
 			}
 		}
 	}
 	return
-}
-
-func sumStr(s string)float64{
-	var ret float64
-	for _,r := range s{
-		ret += float64(r)
-	}
-	return ret
 }
 
 func getStateNum(s string)float64 {

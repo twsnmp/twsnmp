@@ -85,16 +85,17 @@ func doPollingSnmpSysUpTime(p *pollingEnt,agent *gosnmp.GoSNMP){
 		return
 	}
 	if p.LastResult == "" {
-		p.LastResult = fmt.Sprintf("%d",uptime)
+		p.LastResult = fmt.Sprintf("sysUpTime=%d",uptime)
 		return
 	}
-	if lastUptime,err := strconv.ParseInt(p.LastResult,10,64);err != nil {
-		p.LastResult = fmt.Sprintf("%d",uptime)
+	var lastUptime int64
+	if _,err := fmt.Sscanf(p.LastResult,"sysUpTime=%d",&lastUptime);err != nil {
+		p.LastResult = fmt.Sprintf("sysUpTime=%d",uptime)
 		p.LastVal = 0;
 		setPollingState(p,"unkown")
 	} else {
 		p.LastVal = float64(uptime - lastUptime);
-		p.LastResult = fmt.Sprintf("%d",uptime)
+		p.LastResult = fmt.Sprintf("sysUpTime=%d",uptime)
 		if lastUptime < uptime {
 			setPollingState(p,"normal")
 			return
@@ -189,10 +190,10 @@ func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
 		return
 	}
 	if hitIv {
-		sv = fmt.Sprintf("%d,%d",iv,sut)
+		sv = fmt.Sprintf("%s=%d;sysUpTime=%d",m,iv,sut)
 	}
 	if mode == "ps" || mode == "delta" {
-		if !strings.Contains(p.LastResult,",") {
+		if !strings.Contains(p.LastResult,";") {
 			p.LastResult =  sv
 			return
 		}
@@ -217,22 +218,23 @@ func doPollingSnmpOther(p *pollingEnt,ps,mode string,agent *gosnmp.GoSNMP) {
 	} else {
 		civ,err :=  strconv.ParseInt(cv,10,64)
 		if err != nil {
-			p.LastResult = fmt.Sprintf("%d,%d",iv,sut)
+			p.LastResult = fmt.Sprintf("%s=%d;sysUpTime=%d",m,iv,sut)
 			setPollingState(p,"unkown")
 			return
 		}
 		var liv int64
 		var lsut int64
-		n,err :=  fmt.Sscanf(p.LastResult,"%d,%d",&liv,lsut)
-		if err != nil || n != 2 {
-			p.LastResult = fmt.Sprintf("%d,%d",iv,sut)
+		var n1,n2 string
+		n,err :=  fmt.Sscanf(p.LastResult,"%s=%d,%s=%d",&n1,&liv,&n2,lsut)
+		if err != nil || n != 4 {
+			p.LastResult = fmt.Sprintf("%s=%d;sysUpTime=%d",m,iv,sut)
 			setPollingState(p,"unkown")
 			return
 		}
 		if mode == "ps" {
 			dsut := sut -  lsut
 			if dsut <= 0 {
-				p.LastResult = fmt.Sprintf("%d,%d",iv,sut)
+				p.LastResult = fmt.Sprintf("%s=%d;sysUpTime=%d",m,iv,sut)
 				setPollingState(p,"unkown")
 				return
 			}

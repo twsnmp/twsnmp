@@ -128,3 +128,33 @@ function getLogModeHtml(m) {
   }
   return  logModeHtml[0];
 }
+
+const logModeList = {
+  "記録しない": 0,
+  "常に記録": 1,
+  "状態変化時のみ記録": 2,
+  "AI分析": 3,
+};
+
+const pollingTypeList = {
+  "PING": "ping",
+  "SNMP": "snmp",
+  "TCP": "tcp",
+  "HTTP": "http",
+  "HTTPS": "https",
+  "TLS": "tls",
+  "DNS": "dns",
+  "NTP": "ntp",
+  "SYSLOG": "syslog",
+  "SYSLOGPRI": "syslogpri",
+  "TRAP":   "trap",
+  "NetFlow": "netflow",
+  "IPFIX":  "ipfix",
+};
+
+const levelList = {
+  "重度": "high",
+  "軽度": "low",
+  "注意": "warn",
+  "情報": "info",
+};

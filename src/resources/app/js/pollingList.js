@@ -17,7 +17,10 @@ function setupPolling() {
     pollingList = {};
     for (let i = message.payload.Pollings.length - 1; i >= 0; i--) {
       const p = message.payload.Pollings[i];
-      const nodeName = nodes[p.NodeID].Name
+      let nodeName = "unkown";
+      if (p.NodeID && nodes[p.NodeID] ) {
+        nodeName = nodes[p.NodeID].Name;
+      }
       const lt = moment(p.LastTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
       const level = getStateHtml(p.Level);
       const state = getStateHtml(p.State);
@@ -238,30 +241,11 @@ function createEditPollingPane(id){
   pane.addInput(p, 'Name', { label: "名前" });
   pane.addInput(p, 'Type', { 
     label: "種別",
-    options: {
-      "PING": "ping",
-      "SNMP": "snmp",
-      "TCP": "tcp",
-      "HTTP": "http",
-      "HTTPS": "https",
-      "TLS": "tls",
-      "DNS": "dns",
-      "NTP": "ntp",
-      "SYSLOG": "syslog",
-      "SYSLOGPRI": "syslogpri",
-      "TRAP":   "trap",
-      "NetFlow": "netflow",
-      "IPFIX":  "ipfix",
-    },
+    options: pollingTypeList,
   });
   pane.addInput(p, 'Level', { 
     label: "レベル",
-    options: {
-      "重度": "high",
-      "軽度": "low",
-      "注意": "warn",
-      "情報": "info",
-    },
+    options: levelList,
   });
   pane.addInput(p, 'Polling', { label: "定義" });
   pane.addInput(p, 'PollInt', { 
@@ -284,21 +268,7 @@ function createEditPollingPane(id){
   });
   pane.addInput(p, 'LogMode', { 
     label: "ログモード",
-    options: {
-      "記録しない": 0,
-      "常に記録": 1,
-      "状態変化時のみ記録": 2,
-      "AI分析": 3,
-    },
-  });
-  pane.addInput(p, 'DispType', { 
-    label: "表示方法",
-    options: {
-      "応答時間": "resp",
-      "回数": "count",
-      "温度": "temp",
-      "その他": "",
-    },
+    options: logModeList,
   });
   pane.addButton({
     title: 'Cancel',

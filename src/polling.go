@@ -218,15 +218,11 @@ func doPollingNTP(p *pollingEnt){
 		r, err := ntp.QueryWithOptions(n.IP, options)
 		if err != nil {
 			astilog.Debugf("doPollingNTP err=%v",err)
-			p.LastResult = fmt.Sprintf("ERR:%v",err)
+			p.LastResult = fmt.Sprintf("%v",err)
 			continue
 		}
-		if p.Polling == "offset" {
-			p.LastVal = float64(r.ClockOffset.Nanoseconds())
-		} else {
-			p.LastVal = float64(r.RTT.Nanoseconds())
-		}
-		p.LastResult = fmt.Sprintf("Stratum=%d ReferenceID=%d",r.Stratum,r.ReferenceID)
+		p.LastVal = float64(r.RTT.Nanoseconds())
+		p.LastResult = fmt.Sprintf("Stratum=%d;ReferenceID=%d;ClockOffset=%d",r.Stratum,r.ReferenceID,r.ClockOffset.Nanoseconds())
 		ok = true
 	}
 	if ok {
