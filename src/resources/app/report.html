@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TWSNMP - ログ表示</title>
+  <link rel="stylesheet" href="./css/photon.css">
+  <link rel="stylesheet" href="./css/all.css">
+  <link rel="stylesheet" href="./css/common.css">
+  <link rel="stylesheet" href="./css/log.css">
+  <link rel="stylesheet" href="./css/datatables.css" />
+  <script src="./js/moment.js"></script>
+  <script>
+    window.jQuery = window.$ = require('./js/jquery-3.4.1.js');
+  </script>
+  <script src="./js/datatables.js"></script>
+  <script src="./js/tweakpane-1.0.5.js"></script>
+</head>
+
+<body>
+  <div class="window">
+    <header class="toolbar toolbar-header">
+      <h1 class="title">TWSNMP - レポート</h1>
+    </header>
+    <div class="tab-group">
+      <div class="tab-item" id="devices">
+        <i class="fas fa-warehouse"></i>
+        デバイス
+      </div>
+      <div class="tab-item" id="users">
+        <i class="fas fa-clipboard-list"></i>
+        ユーザー
+      </div>
+      <div class="tab-item" id="servers">
+        <i class="fas fa-poll-h"></i>
+        サーバー
+      </div>
+      <div class="tab-item" id="flows">
+        <i class="fas fa-poll-h"></i>
+        通信フロー
+      </div>
+      <div class="tab-item" id="allow">
+        <i class="fas fa-cog"></i>
+        許可ルール
+      </div>
+      <div class="tab-item" id="denny">
+        <i class="fas fa-cog"></i>
+        禁止ルール
+      </div>
+    </div>
+    <div class="window-content hidden" id="devices_page">
+      <div class="table_base">
+        <table id="devices_table" class="display compact">
+          <thead>
+            <tr>
+              <th>信用スコア</th>
+              <th>MACアドレス</th>
+              <th>名前</th>
+              <th>IPアドレス</th>
+              <th>情報</th>
+              <th>初回</th>
+              <th>最新</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="window-content hidden" id="users_page">
+      <div class="table_base">
+        <table id="users_table" class="display compact">
+          <thead>
+            <tr>
+              <th>信用スコア</th>
+              <th>名前</th>
+              <th>サービス</th>
+              <th>初回</th>
+              <th>最新</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="window-content hidden" id="servers_page">
+      <div class="table_base">
+        <table id="servers_table" class="display compact">
+          <thead>
+            <tr>
+              <th>信用スコア</th>
+              <th>サーバー</th>
+              <th>サーバー名</th>
+              <th>サービス</th>
+              <th>位置</th>
+              <th>初回</th>
+              <th>最新</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="window-content hidden" id="flows_page">
+      <div class="table_base">
+        <table id="flows_table" class="display compact">
+          <thead>
+            <tr>
+              <th>信用スコア</th>
+              <th>クライアント</th>
+              <th>クライアント名</th>
+              <th>クライアント位置</th>
+              <th>サーバー</th>
+              <th>サーバー名</th>
+              <th>サービス</th>
+              <th>サーバー位置</th>
+              <th>初回</th>
+              <th>最新</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="window-content hidden" id="denny_page">
+      <div class="table_base">
+        <h5>推奨ルール</h5>
+        <table id="denny_recomend_table" class="display compact">
+          <thead>
+            <tr>
+              <th>推奨スコア</th>
+              <th>サーバー</th>
+              <th>サーバー名</th>
+              <th>位置</th>
+              <th>サービス</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+      <div class="table_base">
+        <h5>設定済みルール</h5>
+        <table id="denny_table" class="display compact">
+          <thead>
+            <tr>
+              <th>サーバー</th>
+              <th>サーバー名</th>
+              <th>位置</th>
+              <th>サービス</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="window-content hidden" id="allow_page">
+      <div class="table_base">
+        <h5>推奨ルール</h5>
+        <table id="allow_recomend_table" class="display compact">
+          <thead>
+            <tr>
+              <th>推奨スコア</th>
+              <th>サーバー</th>
+              <th>サーバー名</th>
+              <th>サービス</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+      <div class="table_base">
+        <h5>設定済みルール</h5>
+        <table id="allow_table" class="display compact">
+          <thead>
+            <tr>
+              <th>サーバー</th>
+              <th>サーバー名</th>
+              <th>サービス</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <footer class="toolbar toolbar-footer">
+      <div class="toolbar-actions report_btns">
+        <button class="btn btn-primary add">
+          <i class="fas fa-plus-circle"></i>
+          ルール...
+        </button>
+        <button class="btn btn-negative reset">
+          <i class="fas fa-sync"></i>
+          リセット...
+        </button>
+        <button class="btn btn-negative delete">
+          <i class="fas fa-trash-alt"></i>
+          削除...
+        </button>
+        <button class="btn btn-default pull-right close">
+          <i class="fas fa-times"></i>
+          閉じる
+        </button>
+      </div>
+      <div class="toolbar-actions conf_btns hidden">
+        <button class="btn btn-primary add">
+          <i class="fas fa-plus-circle"></i>
+          追加
+        </button>
+        <button class="btn btn-negative delete">
+          <i class="fas fa-trash-alt"></i>
+          削除...
+        </button>
+        <button class="btn btn-default pull-right close">
+          <i class="fas fa-times"></i>
+          閉じる
+        </button>
+      </div>
+    </footer>
+  </div>
+  <div id='wait' class="hidden">
+    <div class='waitMsg'>
+      お待ちください.....
+    </div>
+  </div>
+  <script src="./js/common.js"></script>
+  <script src="./js/report.js"></script>
+</body>
+</html>

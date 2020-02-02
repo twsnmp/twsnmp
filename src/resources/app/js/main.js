@@ -219,7 +219,11 @@ function mousePressed() {
         </span>
         <span class="nav-group-item logDisp">
           <i class="fas fa-clipboard-list"></i>
-          ログ表示
+          ログ
+        </span>
+        <span class="nav-group-item reportDisp">
+          <i class="fas fa-clipboard-list"></i>
+          レポート
         </span>
       </nav>
       `;
@@ -284,6 +288,10 @@ function mousePressed() {
     });
     $("#ctxMenu span.logDisp").on("click", () => {
       astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
+      });
+    });
+    $("#ctxMenu span.reportDisp").on("click", () => {
+      astilectron.sendMessage({ name: "reportDisp", payload: "" }, function (message) {
       });
     });
     $("#ctxMenu span.showPollingList").on("click", () => {
@@ -466,6 +474,10 @@ document.addEventListener('astilectron-ready', function () {
   });
   $("header.toolbar-header button.logDisp").on("click", () => {
     astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
+    });
+  });
+  $("header.toolbar-header button.reportDisp").on("click", () => {
+    astilectron.sendMessage({ name: "reportDisp", payload: "" }, function (message) {
     });
   });
   $("header.toolbar-header button.checkAllPoll").on("click", () => {

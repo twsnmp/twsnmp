@@ -79,7 +79,7 @@ function showTable(vbl) {
     cols.push({title:n})
   })
   makeMibTable(cols);
-  mibTable.rows().remove();
+  mibTable.clear();
   rows.forEach(r => {
     mibTable.row.add(r);
   });
@@ -139,7 +139,7 @@ document.addEventListener('astilectron-ready', function () {
         {title:"名前" },
         {title:"値" },
       ]);    
-      mibTable.rows().remove();
+      mibTable.clear();
       let i = 1;
       vbl.forEach(vb => {
         const a = vb.split('=',2)

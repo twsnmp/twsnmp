@@ -201,7 +201,8 @@ func openDB(path string) error {
 }
 
 func initDB() error {
-	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "arplog", "mibdb", "arp", "ai"}
+	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "arplog", "mibdb", "arp", "ai", "report"}
+	reports := []string{"devices", "users", "flows", "servers", "allows", "dennys"}
 	mapConf.Community = "public"
 	mapConf.PollInt = 60
 	mapConf.Retry = 1
@@ -220,8 +221,16 @@ func initDB() error {
 	notifyConf.Level = "none"
 	return db.Update(func(tx *bbolt.Tx) error {
 		for _, b := range buckets {
-			if _, err := tx.CreateBucketIfNotExists([]byte(b)); err != nil {
+			pb, err := tx.CreateBucketIfNotExists([]byte(b))
+			if err != nil {
 				return err
+			}
+			if b == "report" {
+				for _, r := range reports {
+					if _, err := pb.CreateBucketIfNotExists([]byte(r)); err != nil {
+						return err
+					}
+				}
 			}
 		}
 		return nil

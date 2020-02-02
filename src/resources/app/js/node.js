@@ -15,7 +15,7 @@ function setupBasicPage() {
       astilectron.showErrorBox("ノード情報", "ノード情報を取得できません。");
       return;
     }
-    basic.rows().remove();
+    basic.clear();
     const node = message.payload;
     basic.row.add(["名前", node.Name]);
     basic.row.add(["IPアドレス", node.IP]);
@@ -34,7 +34,7 @@ function setupPollingPage() {
       astilectron.showErrorBox("ノード情報", "ポーリングを取得できません。");
       return;
     }
-    polling.rows().remove();
+    polling.clear();
     pollingList = {};
     for (let i = message.payload.length - 1; i >= 0; i--) {
       const p = message.payload[i];
@@ -56,7 +56,7 @@ function setupLogPage() {
       astilectron.showErrorBox("ノード情報", "ログを取得できません。");
       return;
     }
-    log.rows().remove();
+    log.clear();
     for (let i = message.payload.length - 1; i >= 0; i--) {
       const l = message.payload[i]
       const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");

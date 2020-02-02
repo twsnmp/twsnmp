@@ -34,6 +34,9 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 	case "resetArpTable":
 		resetArpTable()
 		return "ok",nil
+	case "clearAllReport":
+		clearAllReport()
+		return "ok",nil
 	case "clearAllAIMoldes":
 		if err := bootstrap.SendMessage(aiWindow, "clearAllAIMoldes",""); err != nil {
 			astilog.Errorf("sendSendMessage clearAllAIMoldes error=%v", err)
@@ -457,6 +460,15 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng",err
 			}	
 			logWindow.Show()
+			return "ok", nil
+		}
+	case"reportDisp":
+		{
+			if err := bootstrap.SendMessage(reportWindow, "show",""); err != nil {
+				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
+				return "ng",err
+			}	
+			reportWindow.Show()
 			return "ok", nil
 		}
 	case"showPollingList":

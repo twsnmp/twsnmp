@@ -51,7 +51,9 @@
   margin: 0;
 }
 
-.log_btns .tt-menu {
+.log_btns .tt-menu,
+.conf_btns .tt-menu,
+.report_btns .tt-menu {
   min-height: 60px;
   max-height: 60px;
   overflow-y: auto;

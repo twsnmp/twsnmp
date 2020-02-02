@@ -634,6 +634,18 @@ function createActionPane() {
     });
   });
   pane.addButton({
+    title: 'レポートクリア...',
+  }).on('click', (value) => {
+    if (!confirm("全てのレポートをクリアしますか？")){
+      return
+    }
+    astilectron.sendMessage({ name: "clearAllReport", payload: "" }, message => {
+      pane.dispose();
+      pane = undefined;
+      return
+    });
+  });
+  pane.addButton({
     title: 'Close',
   }).on('click', (value) => {
     pane.dispose();

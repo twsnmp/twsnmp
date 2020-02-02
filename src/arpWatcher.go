@@ -78,6 +78,14 @@ func updateArpTable(ip, mac string) {
 		return
 	}
 	mac = normMACAddr(mac)
+	if strings.HasPrefix(mac, "FF") || strings.HasPrefix(mac, "01") {
+		return
+	}
+	deviceReportCh <- &deviceReportEnt{
+		IP:ip,
+		MAC:mac,
+		Time: time.Now().UnixNano(),
+	}
 	m, ok := arpTable[ip]
 	if !ok {
 		// New

@@ -358,7 +358,7 @@ function setupTimeVal() {
 }
 
 function clearData() {
-  logTable.rows().remove();
+  logTable.clear();
   logTable.draw();
   logChart.setOption({
     series: [{
@@ -530,7 +530,7 @@ document.addEventListener('astilectron-ready', function () {
       let ctc;
       let cts;
       let dp = getDispParams();
-      logTable.rows().remove();
+      logTable.clear();
       logs.forEach(l => {
         l.NumVal *= dp.mul;
         const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");

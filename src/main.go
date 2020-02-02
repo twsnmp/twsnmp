@@ -33,6 +33,7 @@ var (
 	logWindow         *astilectron.Window
 	pollingWindow     *astilectron.Window
 	mibWindow         *astilectron.Window
+	reportWindow      *astilectron.Window
 	aiWindow          *astilectron.Window
 	mib               *mibdb.MIBDB
 	oui               = &OUIMap{}
@@ -191,6 +192,14 @@ func main() {
 					},
 				},
 				{
+					Label: astikit.StrPtr("レポート"),
+					Type:  astilectron.MenuItemTypeCheckbox,
+					OnClick: func(e astilectron.Event) bool {
+						setWindowsShowOrHide(reportWindow, *e.MenuItemOptions.Checked)
+						return false
+					},
+				},
+				{
 					Label: astikit.StrPtr("AI分析"),
 					Type:  astilectron.MenuItemTypeCheckbox,
 					OnClick: func(e astilectron.Event) bool {
@@ -215,7 +224,8 @@ func main() {
 			logWindow = w[4]
 			pollingWindow = w[5]
 			mibWindow = w[6]
-			aiWindow = w[7]
+			reportWindow = w[7]
+			aiWindow = w[8]
 			app = a
 			path := filepath.Join(app.Paths().DataDirectory(), "resources", "mib.txt")
 			var err error
@@ -227,6 +237,8 @@ func main() {
 			loadTLSParamsMap(path)
 			path = filepath.Join(app.Paths().DataDirectory(), "resources", "oui.txt")
 			oui.Open(path)
+			path = filepath.Join(app.Paths().DataDirectory(), "resources", "services.txt")
+			loadServices(path)
 			startBackend(ctx)
 			mainWindow.On(astilectron.EventNameWindowEventClosed, func(e astilectron.Event) (deleteListener bool) {
 				astilog.Debug("Main Window Closed")
@@ -379,6 +391,24 @@ func main() {
 				},
 			},
 			{
+				Homepage:       "report.html",
+				MessageHandler: reportMessageHandler,
+				Options: &astilectron.WindowOptions{
+					Center:         astikit.BoolPtr(true),
+					Frame:          astikit.BoolPtr(false),
+					Modal:          astikit.BoolPtr(false),
+					Show:           astikit.BoolPtr(false),
+					Fullscreenable: astikit.BoolPtr(false),
+					Maximizable:    astikit.BoolPtr(false),
+					Minimizable:    astikit.BoolPtr(true),
+					Width:          astikit.IntPtr(1200),
+					Height:         astikit.IntPtr(860),
+					Custom: &astilectron.WindowCustomOptions{
+						HideOnClose: astikit.BoolPtr(true),
+					},
+				},
+			},
+			{
 				Homepage:       "ai.html",
 				MessageHandler: aiMessageHandler,
 				Options: &astilectron.WindowOptions{
@@ -476,6 +506,7 @@ func startBackend(ctx context.Context) {
 		go notifyBackend(ctx)
 		go arpWatcher(ctx)
 		go aiWindowBackend(ctx)
+		go reportBackend(ctx)
 		startWindow.Hide()
 		mainWindow.Show()
 	}()

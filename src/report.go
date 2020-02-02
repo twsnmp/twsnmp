@@ -1,0 +1,895 @@
+package main
+
+import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net"
+	"os"
+	"strings"
+	"time"
+
+	astilog "github.com/asticode/go-astilog"
+	"github.com/montanaflynn/stats"
+	"go.etcd.io/bbolt"
+)
+
+var (
+	devices        = make(map[string]*deviceEnt)
+	users          = make(map[string]*userEnt)
+	flows          = make(map[string]*flowEnt)
+	servers        = make(map[string]*serverEnt)
+	dennyRules     = make(map[string]bool) // Server:Service:Loc
+	allowRules     = make(map[string]*allowRuleEnt)
+	deviceReportCh = make(chan *deviceReportEnt, 100)
+	userReportCh   = make(chan *userReportEnt, 100)
+	flowReportCh   = make(chan *flowReportEnt, 500)
+	services       = make(map[string]string)
+	protMap        = map[int]string{
+		1:  "icmp",
+		2:  "igmp",
+		6:  "tcp",
+		8:  "egp",
+		17: "udp",
+		112: "vrrp",
+	}
+)
+
+type deviceReportEnt struct {
+	Time int64
+	MAC  string
+	IP   string
+}
+
+type userReportEnt struct {
+	Time    int64
+	UserID  string
+	Service string
+	Bad     bool
+}
+
+type flowReportEnt struct {
+	Time    int64
+	SrcIP   string
+	SrcPort int
+	DstIP   string
+	DstPort int
+	Prot    int
+}
+
+type deviceEnt struct {
+	ID         string // MAC Addr
+	Name       string
+	IP         string
+	Info       string
+	Score      float64
+	Penalty    int64
+	FirstTime  int64
+	LastTime   int64
+	UpdateTime int64
+}
+
+type userEnt struct {
+	ID         string // User ID + Device
+	UserID     string
+	Service    string
+	Info       string
+	Score      float64
+	Penalty    int64
+	FirstTime  int64
+	LastTime   int64
+	UpdateTime int64
+}
+
+type serverEnt struct {
+	ID         string // Flow ID Client:Server:Service
+	Server     string
+	Service    string
+	ServerName string
+	Loc        string
+	Score      float64
+	Penalty    int64
+	FirstTime  int64
+	LastTime   int64
+	UpdateTime int64
+}
+
+type flowEnt struct {
+	ID         string // Flow ID Client:Server:Service
+	Client     string
+	Server     string
+	Service    string
+	ClientName string
+	ClientLoc  string
+	ServerName string
+	ServerLoc  string
+	Dir        int
+	Score      float64
+	Penalty    int64
+	FirstTime  int64
+	LastTime   int64
+	UpdateTime int64
+}
+
+// allowRuleEnt : 特定のサービスは特定のサーバーに限定するルール
+type allowRuleEnt struct {
+	Service    string // Service
+	Servers map[string]bool
+}
+
+func loadReport() error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	return db.View(func(tx *bbolt.Tx) error {
+		r := tx.Bucket([]byte("report"))
+		b := r.Bucket([]byte("devices"))
+		if b != nil {
+			b.ForEach(func(k, v []byte) error {
+				var d deviceEnt
+				if err := json.Unmarshal(v, &d); err == nil {
+					devices[d.ID] = &d
+				}
+				return nil
+			})
+		}
+		b = r.Bucket([]byte("users"))
+		if b != nil {
+			b.ForEach(func(k, v []byte) error {
+				var u userEnt
+				if err := json.Unmarshal(v, &u); err == nil {
+					users[u.ID] = &u
+				}
+				return nil
+			})
+		}
+		b = r.Bucket([]byte("servers"))
+		if b != nil {
+			b.ForEach(func(k, v []byte) error {
+				var s serverEnt
+				if err := json.Unmarshal(v, &s); err == nil {
+					servers[s.ID] = &s
+				}
+				return nil
+			})
+		}
+		b = r.Bucket([]byte("flows"))
+		if b != nil {
+			b.ForEach(func(k, v []byte) error {
+				var f flowEnt
+				if err := json.Unmarshal(v, &f); err == nil {
+					flows[f.ID] = &f
+				}
+				return nil
+			})
+		}
+		b = r.Bucket([]byte("dennys"))
+		if b != nil {
+			b.ForEach(func(k, v []byte) error {
+				var en bool
+				if err := json.Unmarshal(v, &en); err == nil {
+					dennyRules[string(k)] = en
+				}
+				return nil
+			})
+		}
+		b = r.Bucket([]byte("allows"))
+		if b != nil {
+			b.ForEach(func(k, v []byte) error {
+				var as allowRuleEnt
+				if err := json.Unmarshal(v, &as); err == nil {
+					allowRules[as.Service] = &as
+				}
+				return nil
+			})
+		}
+		return nil
+	})
+}
+
+func saveReport(last int64) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	return db.Batch(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("report"))
+		r := b.Bucket([]byte("devices"))
+		for _, d := range devices {
+			if d.UpdateTime < last {
+				continue
+			}
+			s, err := json.Marshal(d)
+			if err != nil {
+				return err
+			}
+			err = r.Put([]byte(d.ID), s)
+			if err != nil {
+				return err
+			}
+		}
+		r = b.Bucket([]byte("users"))
+		for _, u := range users {
+			if u.UpdateTime < last {
+				continue
+			}
+			s, err := json.Marshal(u)
+			if err != nil {
+				return err
+			}
+			err = r.Put([]byte(u.ID), s)
+			if err != nil {
+				return err
+			}
+		}
+		r = b.Bucket([]byte("servers"))
+		for _, s := range servers {
+			if s.UpdateTime < last {
+				continue
+			}
+			js, err := json.Marshal(s)
+			if err != nil {
+				return err
+			}
+			err = r.Put([]byte(s.ID), js)
+			if err != nil {
+				return err
+			}
+		}
+		r = b.Bucket([]byte("flows"))
+		for _, f := range flows {
+			if f.UpdateTime < last {
+				continue
+			}
+			s, err := json.Marshal(f)
+			if err != nil {
+				return err
+			}
+			err = r.Put([]byte(f.ID), s)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func reportBackend(ctx context.Context) {
+	loadReport()
+	timer := time.NewTicker(time.Minute * 5)
+	if len(devices) < 1 {
+		go checkOldArpLog()
+	} else {
+		calcScore()
+	}
+	last := int64(0)
+	for {
+		select {
+		case <-ctx.Done():
+			{
+				timer.Stop()
+				saveReport(0)
+				astilog.Info("Stop reportBackend")
+				return
+			}
+		case <-timer.C:
+			{
+				calcScore()
+				saveReport(last)
+				last = time.Now().UnixNano()
+			}
+		case r := <-deviceReportCh:
+			checkDeviceReport(r)
+		case r := <-userReportCh:
+			checkUserReport(r)
+		case r := <-flowReportCh:
+			checkFlowReport(r)
+		}
+	}
+}
+
+func checkUserReport(r *userReportEnt) {
+	now := time.Now().UnixNano()
+	id := fmt.Sprintf("%s:%s", r.UserID, r.Service)
+	u, ok := users[id]
+	if ok {
+		if r.Bad {
+			u.Penalty++
+		}
+		u.LastTime = r.Time
+		u.UpdateTime = now
+		return
+	}
+	u = &userEnt{
+		ID:         id,
+		UserID:     r.UserID,
+		Service:    r.Service,
+		FirstTime:  r.Time,
+		LastTime:   r.Time,
+		UpdateTime: now,
+	}
+	if r.Bad {
+		u.Penalty = 1
+	}
+	users[id] = u
+	astilog.Debugf("add users %v", u)
+}
+
+func checkFlowReport(r *flowReportEnt) {
+	// クライアント、サーバー、サービスを決定するアルゴリズム
+	var service string
+	var server string
+	var client string
+	dir:=1
+	s1, ok1 := getServiceName(r.Prot, r.SrcPort)
+	s2, ok2 := getServiceName(r.Prot, r.DstPort)
+	if ok1 {
+		if ok2 {
+			if r.SrcPort < r.DstPort {
+				// ポート番号の小さい方を優先
+				server = r.SrcIP
+				client = r.DstIP
+				service = s1
+				dir =2
+			} else {
+				server = r.DstIP
+				client = r.SrcIP
+				service = s2
+			}
+		} else {
+			server = r.SrcIP
+			client = r.DstIP
+			service = s1
+			dir = 2
+		}
+	} else {
+		if ok2 {
+			server = r.DstIP
+			client = r.SrcIP
+			service = s2
+		} else {
+			if r.SrcPort < r.DstPort {
+				server = r.SrcIP
+				client = r.DstIP
+				service = s1
+			} else {
+				server = r.DstIP
+				client = r.SrcIP
+				service = s2
+			}
+		}
+	}
+	checkServerReport(server,service,r.Time)
+	now := time.Now().UnixNano()
+	id := fmt.Sprintf("%s:%s:%s", client, server, service)
+	f, ok := flows[id]
+	if ok {
+		// Penaltyの再計算
+		if f.Penalty < 0 {
+			setFlowPenalty(f,ok1||ok2)
+		}
+		if f.Dir < 3 &&  (r.Time - f.FirstTime) > 1000*1000*1000*60{
+			f.Dir = 4
+			f.Penalty++
+		} else {
+			f.Dir |= dir
+		}
+		f.LastTime = r.Time
+		f.UpdateTime = now
+		return
+	}
+	f = &flowEnt{
+		ID:         id,
+		Client:     client,
+		Server:     server,
+		Service:    service,
+		Dir:        dir,
+		ServerName: findNameFromIP(server),
+		ClientName: findNameFromIP(client),
+		FirstTime:  r.Time,
+		LastTime:   r.Time,
+		UpdateTime: now,
+	}
+	setFlowPenalty(f,ok1||ok2)
+	flows[id] = f
+	astilog.Debugf("add flows %v", f)
+}
+
+func checkServerReport(server,service string,t int64){
+	if !strings.Contains(service,"/") {
+		return
+	}
+	now := time.Now().UnixNano()
+	id := fmt.Sprintf("%s:%s",server, service)
+	s, ok := servers[id]
+	if ok {
+		// Penaltyの再計算
+		if s.Penalty < 0 {
+			setServerPenalty(s)
+		}
+		s.LastTime = t
+		s.UpdateTime = now
+		return
+	}
+	s = &serverEnt{
+		ID:         id,
+		Server:     server,
+		Service:    service,
+		ServerName: findNameFromIP(server),
+		FirstTime:  t,
+		LastTime:   t,
+		UpdateTime: now,
+	}
+	setServerPenalty(s)
+	servers[id] = s
+	astilog.Debugf("add server %v", s)
+}
+
+func setFlowPenalty(f *flowEnt,ok bool) {
+	loc := ""
+	if f.ServerLoc != "" {
+		a := strings.Split(f.ServerLoc,",")
+		if len(a) > 0 {
+			loc = a[0]
+		}
+	}
+	f.Penalty = 0
+	if !ok {
+		f.Penalty++
+	}
+	ids := []string{}
+	ids = append(ids,fmt.Sprintf("*:%s:*", f.Service))
+	ids = append(ids,fmt.Sprintf("%s:*:*", f.Server))
+	ids = append(ids,fmt.Sprintf("%s:%s:*", f.Server, f.Service))
+	if loc != ""{
+		ids = append(ids,fmt.Sprintf("*:*:%s", loc))
+		ids = append(ids,fmt.Sprintf("*:%s:%s", f.Service,loc))
+	}
+	for _,id := range ids {
+		if e, ok := dennyRules[id]; ok {
+			if e {
+				f.Penalty++
+			}
+		}
+	}
+	if as, ok := allowRules[f.Service]; ok {
+		if e, ok := as.Servers[f.Server]; !ok {
+			if e {
+				f.Penalty++
+			}
+		}
+	}
+	// DNSで解決できない場合
+	if f.ServerName == f.Server {
+		f.Penalty++
+	}
+}
+
+func setServerPenalty(s *serverEnt) {
+	loc := ""
+	if s.Loc != "" {
+		a := strings.Split(s.Loc,",")
+		if len(a) > 0 {
+			loc = a[0]
+		}
+	}
+	s.Penalty = 0
+	ids := []string{}
+	ids = append(ids,fmt.Sprintf("*:%s:*", s.Service))
+	if loc != ""{
+		ids = append(ids,fmt.Sprintf("*:*:%s", loc))
+		ids = append(ids,fmt.Sprintf("*:%s:%s", s.Service,loc))
+	}
+	for _,id := range ids {
+		if e, ok := dennyRules[id]; ok {
+			if e {
+				s.Penalty++
+			}
+		}
+	}
+	if as, ok := allowRules[s.Service]; ok {
+		if e, ok := as.Servers[s.Server]; !ok {
+			if e {
+				s.Penalty++
+			}
+		}
+	}
+	// DNSで解決できない場合
+	if s.ServerName == s.Server {
+		s.Penalty++
+	}
+}
+
+func getServiceName(prot, port int) (string, bool) {
+	if p, ok := protMap[prot]; ok {
+		k := fmt.Sprintf("%d/%s", port, p)
+		if s, ok := services[k]; ok {
+			return s, true
+		}
+		return p, false
+	}
+	return fmt.Sprintf("prot=%d",prot), false
+}
+
+func checkDeviceReport(r *deviceReportEnt) {
+	ip := r.IP
+	mac := r.MAC
+	d, ok := devices[mac]
+	if ok {
+		// 再計算する
+		if d.Penalty < 0 {
+			setDevicePenalty(d)
+		}
+		if d.IP != ip {
+			d.IP = ip
+			d.Name = findNameFromIP(ip)
+			// IPアドレスが変わるもの
+			d.Penalty++
+			// ホスト名が不明なもの
+			if d.IP == d.Name {
+				d.Penalty++
+			}
+		}
+		d.LastTime = r.Time
+		d.UpdateTime = time.Now().UnixNano()
+		return
+	}
+	d = &deviceEnt{
+		ID:         mac,
+		IP:         ip,
+		Name:       findNameFromIP(ip),
+		Info:       oui.Find(mac),
+		FirstTime:  r.Time,
+		LastTime:   r.Time,
+		UpdateTime: time.Now().UnixNano(),
+	}
+	setDevicePenalty(d)
+	devices[mac] = d
+	astilog.Debugf("add devices %v", d)
+}
+
+func setDevicePenalty(d *deviceEnt) {
+	d.Penalty = 0
+	// ベンダー禁止のもの
+	if d.Info == "Unknown" {
+		d.Penalty++
+	}
+	// ホスト名が不明なもの
+	if d.IP == d.Name {
+		d.Penalty++
+	}
+}
+
+func checkOldArpLog() {
+	if db == nil {
+		return
+	}
+	db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("arplog"))
+		if b == nil {
+			astilog.Error("checkOldArpLog no arplog bucket")
+			return nil
+		}
+		b.ForEach(func(k, v []byte) error {
+			var l logEnt
+			if err := json.Unmarshal(v, &l); err == nil {
+				a := strings.Split(l.Log, ",")
+				if len(a) > 2 {
+					if strings.HasPrefix(a[2], "FF") || strings.HasPrefix(a[2], "01") {
+						return nil
+					}
+					deviceReportCh <- &deviceReportEnt{
+						IP:   a[1],
+						MAC:  a[2],
+						Time: l.Time,
+					}
+				}
+			}
+			return nil
+		})
+		return nil
+	})
+}
+
+func findNameFromIP(ip string) string {
+	if names, err := net.LookupAddr(ip); err == nil && len(names) > 0 {
+		return names[0]
+	}
+	for _, n := range nodes {
+		if n.IP == ip {
+			return n.Name
+		}
+	}
+	return ip
+}
+
+func calcScore() {
+	calcDeviceScore()
+	calcServerScore()
+	calcFlowScore()
+	calcUserScore()
+}
+
+func calcDeviceScore() {
+	var xs []float64
+	for _, d := range devices {
+		if  d.Penalty > 100 {
+			d.Penalty = 100
+		}
+		xs = append(xs,float64(100-d.Penalty))
+	}
+	m,sd := getMeanSD(&xs)
+	if sd == 0 {
+		return
+	}
+	for _, d := range devices {
+		d.Score = ((10 * (float64(100 - d.Penalty) - m) / sd) + 50)
+	}
+}
+
+func calcFlowScore() {
+	var xs []float64
+	for _, f := range flows {
+		if f.Penalty > 100 {
+			f.Penalty = 100
+		}
+		xs = append(xs,float64(100 - f.Penalty))
+	}
+	m,sd := getMeanSD(&xs)
+	if sd == 0 {
+		return
+	}
+	for _, f := range flows {
+		f.Score = ((10 * (float64(100 - f.Penalty) - m) / sd) + 50)
+	}
+}
+
+func calcUserScore() {
+	var xs []float64
+	for _, u := range users {
+		if u.Penalty > 100 {
+			u.Penalty = 100
+		}
+		xs = append(xs,float64(100- u.Penalty))
+	}
+	m,sd := getMeanSD(&xs)
+	if sd == 0 {
+		return
+	}
+	for _, u := range users {
+		u.Score = ((10 * (float64(100-u.Penalty) - m) / sd) + 50)
+	}
+}
+
+func calcServerScore() {
+	var xs []float64
+	for _, s := range servers {
+		if s.Penalty > 100{
+			s.Penalty = 100
+		}
+		xs = append(xs,float64(100 - s.Penalty))
+	}
+	m,sd := getMeanSD(&xs)
+	if sd == 0 {
+		return
+	}
+	for _, s := range servers {
+		s.Score = ((10 * (float64(100 - s.Penalty) - m) / sd) + 50)
+	}
+}
+
+func getMeanSD(xs *[]float64) (float64,float64) {
+	m, err := stats.Mean(*xs)
+	if err != nil {
+		return 0,0
+	}
+	sd, err := stats.StandardDeviation(*xs)
+	if err != nil  {
+		return 0,0
+	}
+	return m,sd
+}
+
+func deleteReport(report, id string) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("report"))
+		if b != nil {
+			r := b.Bucket([]byte(report))
+			if r != nil {
+				r.Delete([]byte(id))
+			}
+		}
+		return nil
+	})
+	if report == "devices" {
+		delete(devices, id)
+	} else if report == "users" {
+		delete(users, id)
+	} else if report == "servers" {
+		delete(servers, id)
+	} else if report == "flows" {
+		delete(flows, id)
+	}
+	return nil
+}
+
+func resetPenalty(report, id string) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	if report == "devices" {
+		if e,ok := devices[id];ok {
+			e.Penalty = -1
+		}
+	} else if report == "users" {
+		if e,ok := users[id];ok {
+			e.Penalty = 0
+		}
+	} else if report == "servers" {
+		if e,ok := servers[id];ok {
+			e.Penalty = -1
+		}
+	} else if report == "flows" {
+		if e,ok := flows[id];ok {
+			e.Penalty = -1
+		}
+	}
+	return nil
+}
+
+
+func clearAllReport() error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("report"))
+		if b != nil {
+			for _,r := range []string{"devices","flows","users","servers"} {
+				b.DeleteBucket([]byte(r))
+				b.CreateBucketIfNotExists([]byte(r))
+			}
+		}
+		return nil
+	})
+	devices        = make(map[string]*deviceEnt)
+	users          = make(map[string]*userEnt)
+	flows          = make(map[string]*flowEnt)
+	return nil
+}
+
+func loadServices(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		l := strings.TrimSpace(s.Text())
+		if len(l) < 1 || strings.HasPrefix(l, "#") {
+			continue
+		}
+		f := strings.Fields(l)
+		if len(f) < 2 {
+			continue
+		}
+		sn := f[0]
+		a := strings.Split(f[1], "/")
+		if len(a) > 1 {
+			sn += "/" + a[1]
+		}
+		services[f[1]] = sn
+	}
+	return nil
+}
+
+func addAllowRule(service,server string) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	as,ok := allowRules[service]
+	if ok {
+		as.Servers[server] = true
+	} else {
+		as = &allowRuleEnt {
+			Service: service,
+			Servers: map[string]bool{server:true},
+		}
+		allowRules[service] = as
+	}
+	js,err := json.Marshal(as)
+	if err != nil {
+		return err
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("report"))
+		if b != nil {
+			r := b.Bucket([]byte("allows"))
+			if r != nil {
+				r.Put([]byte(service),js)
+			}
+		}
+		return nil
+	})
+}
+
+func deleteAllowRule(id string) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	a := strings.Split(id,":")
+	if len(a) != 2 {
+		return fmt.Errorf("deleteAllowRule bad id %s",id)
+	}
+	server  := a[0]
+	service := a[1]
+	as,ok := allowRules[service]
+	if !ok {
+		return nil
+	}
+	delete(as.Servers,server)
+	js := []byte{}
+	if len(as.Servers) > 0 {
+		js,_ = json.Marshal(as)
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("report"))
+		if b != nil {
+			r := b.Bucket([]byte("allows"))
+			if r != nil {
+				if len(js) < 1 {
+					r.Delete([]byte(service))
+				} else {
+					r.Put([]byte(service),js)
+				}
+			}
+		}
+		return nil
+	})
+}
+
+func addDennyRule(id string) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	dennyRules[id] = true
+	js,err := json.Marshal(dennyRules[id])
+	if err != nil {
+		return err
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("report"))
+		if b != nil {
+			r := b.Bucket([]byte("dennys"))
+			if r != nil {	
+				r.Put([]byte(id),js)
+			}
+		}
+		return nil
+	})
+}
+
+func deleteDennyRule(id string) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	_,ok := dennyRules[id]
+	if !ok {
+		return nil
+	}
+	delete(dennyRules,id)
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("report"))
+		if b != nil {
+			r := b.Bucket([]byte("dennys"))
+			if r != nil {
+				r.Delete([]byte(id))
+			}
+		}
+		return nil
+	})
+}

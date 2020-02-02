@@ -65,7 +65,7 @@ function showLog(logList) {
   const data = [];
   let count = 0;
   let ctm;
-  logTable.rows().remove();
+  logTable.clear();
   for (let i = logList.length - 1; i >= 0; i--) {
     const l = logList[i]
     const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
@@ -108,7 +108,7 @@ function showSyslog(logList) {
   const data = [];
   let count = 0;
   let ctm;
-  syslogTable.rows().remove();
+  syslogTable.clear();
   for (let i = logList.length - 1; i >= 0; i--) {
     const l = logList[i]
     if (!l) {
@@ -157,7 +157,7 @@ function showTrap(logList) {
   const data = [];
   let count = 0;
   let ctm;
-  trapTable.rows().remove();
+  trapTable.clear();
   for (let i = logList.length - 1; i >= 0; i--) {
     const l = logList[i]
     const ll = JSON.parse(l.Log)
@@ -208,7 +208,7 @@ function showNetflow(logList) {
   const data = [];
   let count = 0;
   let ctm;
-  netflowTable.rows().remove();
+  netflowTable.clear();
   for (let i = logList.length - 1; i >= 0; i--) {
     const l = logList[i]
     const ll = JSON.parse(l.Log)
@@ -260,7 +260,7 @@ function showIpfix(logList) {
   const data = [];
   let count = 0;
   let ctm;
-  ipfixTable.rows().remove();
+  ipfixTable.clear();
   for (let i = logList.length - 1; i >= 0; i--) {
     const l = logList[i]
     const ll = JSON.parse(l.Log)
@@ -329,11 +329,11 @@ function showArp(arpResEnt) {
   if(!arpResEnt || !arpResEnt.Arps){
     return;
   }
-  arpTable.rows().remove();
+  arpTable.clear();
   for(let i =0;i < arpResEnt.Arps.length;i++ ) {
     arpTable.row.add([arpResEnt.Arps[i].IP, arpResEnt.Arps[i].MAC,arpResEnt.Arps[i].Vendor]);
   }
-  arpLogTable.rows().remove();
+  arpLogTable.clear();
   for (let i = arpResEnt.Logs.length - 1; i >= 0; i--) {
     const l = arpResEnt.Logs[i]
     if (!l) {

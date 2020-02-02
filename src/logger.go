@@ -268,6 +268,16 @@ func logIPFIX(p *ipfix.Message) {
 				Type: "ipfix",
 				Log: string(s),
 			}
+			if _,ok := record["sourceIPv4Address"];ok {
+				flowReportCh <- &flowReportEnt{
+					Time: time.Now().UnixNano(),
+					SrcIP: record["sourceIPv4Address"].(net.IP).String(),
+					SrcPort: int(record["sourceTransportPort"].(uint16)),
+					DstIP: record["destinationIPv4Address"].(net.IP).String(),
+					DstPort: int(record["destinationTransportPort"].(uint16)),
+					Prot: int(record["protocolIdentifier"].(uint8)),
+				}
+			}
 		}
 	}
 }
@@ -302,6 +312,15 @@ func logNetflow(p *netflow5.Packet) {
 			Type: "netflow",
 			Log:  string(s),
 		}
+		flowReportCh <- &flowReportEnt{
+			Time: time.Now().UnixNano(),
+			SrcIP: record["srcAddr"].(net.IP).String(),
+			SrcPort: int(record["srcPort"].(uint16)),
+			DstIP: record["dstAddr"].(net.IP).String(),
+			DstPort: int(record["dstPort"].(uint16)),
+			Prot: int(record["protocol"].(uint8)),
+		}
+
 	}
 }
 

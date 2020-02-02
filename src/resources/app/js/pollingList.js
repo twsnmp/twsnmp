@@ -13,7 +13,7 @@ function setupPolling() {
       return;
     }
     nodes = message.payload.Nodes
-    polling.rows().remove();
+    polling.clear();
     pollingList = {};
     for (let i = message.payload.Pollings.length - 1; i >= 0; i--) {
       const p = message.payload.Pollings[i];
