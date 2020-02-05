@@ -45,14 +45,8 @@ func reportMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interfa
 			return deleteReportEnt(&m,"servers")
 		case "deleteFlow":
 			return deleteReportEnt(&m,"flows")
-		case "resetDevice":
-			return resetReportEnt(&m,"devices")
-		case "resetUser":
-			return resetReportEnt(&m,"users")
-		case "resetServer":
-			return resetReportEnt(&m,"servers")
-		case "resetFlow":
-			return resetReportEnt(&m,"flows")
+		case "resetReport":
+			return resetReportEnt(&m)
 	}
 	astilog.Errorf("Unknow Message Name=%s",m.Name)
 	return "ok",nil
@@ -152,17 +146,14 @@ func deleteReportEnt(m *bootstrap.MessageIn,r string) (interface{}, error) {
 	return "ok", nil
 }
 
-func resetReportEnt(m *bootstrap.MessageIn,r string) (interface{}, error) {
+func resetReportEnt(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
-		var id string
-		if err := json.Unmarshal(m.Payload, &id); err != nil {
+		var r string
+		if err := json.Unmarshal(m.Payload, &r); err != nil {
 			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
-		if err := resetPenalty(r,id); err != nil {
-			astilog.Errorf("resetPenalty  error=%v", err)
-			return "ng", err
-		}
+		resetPenalty(r)
 	}
 	return "ok", nil
 }

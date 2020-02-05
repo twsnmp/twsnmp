@@ -9,11 +9,12 @@ import (
 	"os"
 	"strings"
 	"time"
-
+	"github.com/oschwald/geoip2-golang"
 	astilog "github.com/asticode/go-astilog"
 	"github.com/montanaflynn/stats"
 	"go.etcd.io/bbolt"
 )
+
 
 var (
 	devices        = make(map[string]*deviceEnt)
@@ -34,6 +35,9 @@ var (
 		17: "udp",
 		112: "vrrp",
 	}
+	privateIPBlocks []*net.IPNet
+	geoip *geoip2.Reader
+	geoipMap  = make(map[string]string)
 )
 
 type deviceReportEnt struct {
@@ -116,6 +120,72 @@ type flowEnt struct {
 type allowRuleEnt struct {
 	Service    string // Service
 	Servers map[string]bool
+}
+
+func initReport() {
+	for _, cidr := range []string{
+		"10.0.0.0/8",     // RFC1918
+		"172.16.0.0/12",  // RFC1918
+		"192.168.0.0/16", // RFC1918
+	} {
+		_, block, err := net.ParseCIDR(cidr)
+		if err == nil {
+			privateIPBlocks = append(privateIPBlocks, block)
+		}
+	}
+	openGeoIP()
+	loadReport()
+}
+
+func openGeoIP() {
+	if geoip != nil {
+		geoip.Close()
+		geoip = nil
+	}
+	if mapConf.GeoIPPath == "" {
+		return
+	}
+	var err error
+	geoip,err = geoip2.Open(mapConf.GeoIPPath)
+	if err != nil {
+		astilog.Errorf("Geoip open err=%v",err)
+	}
+}
+
+func isPrivateIP(ip net.IP) bool {
+	if !ip.IsGlobalUnicast() {
+		return true
+	}
+	for _, block := range privateIPBlocks {
+		if block.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func getLoc(ips string) string {
+	if l,ok := geoipMap[ips];ok {
+		return l
+	}
+	loc := ""
+	ip := net.ParseIP(ips)
+	if isPrivateIP(ip) {
+		loc =  "LOCAL,0,0,"
+	} else {
+		if geoip == nil {
+			return loc
+		}
+		record, err := geoip.City(ip)
+		if err == nil {
+			loc = fmt.Sprintf("%s,%f,%f,%s", record.Country.IsoCode, record.Location.Latitude, record.Location.Longitude, record.City.Names["en"])
+		} else {
+			astilog.Errorf("getLoc err=%v",err)
+			loc = "LOCAL,0,0,"
+		}
+	}
+	geoipMap[ips] = loc
+	return loc
 }
 
 func loadReport() error {
@@ -255,11 +325,12 @@ func saveReport(last int64) error {
 }
 
 func reportBackend(ctx context.Context) {
-	loadReport()
+	initReport()
 	timer := time.NewTicker(time.Minute * 5)
 	if len(devices) < 1 {
 		go checkOldArpLog()
 	} else {
+		checkOldReport()
 		calcScore()
 	}
 	last := int64(0)
@@ -274,6 +345,7 @@ func reportBackend(ctx context.Context) {
 			}
 		case <-timer.C:
 			{
+				checkOldReport()
 				calcScore()
 				saveReport(last)
 				last = time.Now().UnixNano()
@@ -364,15 +436,17 @@ func checkFlowReport(r *flowReportEnt) {
 	id := fmt.Sprintf("%s:%s:%s", client, server, service)
 	f, ok := flows[id]
 	if ok {
-		// Penaltyの再計算
-		if f.Penalty < 0 {
-			setFlowPenalty(f,ok1||ok2)
-		}
 		if f.Dir < 3 &&  (r.Time - f.FirstTime) > 1000*1000*1000*60{
 			f.Dir = 4
 			f.Penalty++
 		} else {
 			f.Dir |= dir
+		}
+		if f.ServerLoc == "" {
+			f.ServerLoc = getLoc(f.Server)
+		}
+		if f.ClientLoc == "" {
+			f.ClientLoc = getLoc(f.Client)
 		}
 		f.LastTime = r.Time
 		f.UpdateTime = now
@@ -384,6 +458,8 @@ func checkFlowReport(r *flowReportEnt) {
 		Server:     server,
 		Service:    service,
 		Dir:        dir,
+		ServerLoc:  getLoc(server),
+		ClientLoc:  getLoc(client),
 		ServerName: findNameFromIP(server),
 		ClientName: findNameFromIP(client),
 		FirstTime:  r.Time,
@@ -403,10 +479,6 @@ func checkServerReport(server,service string,t int64){
 	id := fmt.Sprintf("%s:%s",server, service)
 	s, ok := servers[id]
 	if ok {
-		// Penaltyの再計算
-		if s.Penalty < 0 {
-			setServerPenalty(s)
-		}
 		s.LastTime = t
 		s.UpdateTime = now
 		return
@@ -416,6 +488,7 @@ func checkServerReport(server,service string,t int64){
 		Server:     server,
 		Service:    service,
 		ServerName: findNameFromIP(server),
+		Loc: getLoc(server),
 		FirstTime:  t,
 		LastTime:   t,
 		UpdateTime: now,
@@ -433,7 +506,6 @@ func setFlowPenalty(f *flowEnt,ok bool) {
 			loc = a[0]
 		}
 	}
-	f.Penalty = 0
 	if !ok {
 		f.Penalty++
 	}
@@ -508,7 +580,7 @@ func getServiceName(prot, port int) (string, bool) {
 		}
 		return p, false
 	}
-	return fmt.Sprintf("prot=%d",prot), false
+	return fmt.Sprintf("prot(%d)",prot), false
 }
 
 func checkDeviceReport(r *deviceReportEnt) {
@@ -516,19 +588,12 @@ func checkDeviceReport(r *deviceReportEnt) {
 	mac := r.MAC
 	d, ok := devices[mac]
 	if ok {
-		// 再計算する
-		if d.Penalty < 0 {
-			setDevicePenalty(d)
-		}
 		if d.IP != ip {
 			d.IP = ip
 			d.Name = findNameFromIP(ip)
+			setDevicePenalty(d)
 			// IPアドレスが変わるもの
 			d.Penalty++
-			// ホスト名が不明なもの
-			if d.IP == d.Name {
-				d.Penalty++
-			}
 		}
 		d.LastTime = r.Time
 		d.UpdateTime = time.Now().UnixNano()
@@ -549,13 +614,16 @@ func checkDeviceReport(r *deviceReportEnt) {
 }
 
 func setDevicePenalty(d *deviceEnt) {
-	d.Penalty = 0
 	// ベンダー禁止のもの
 	if d.Info == "Unknown" {
 		d.Penalty++
 	}
 	// ホスト名が不明なもの
 	if d.IP == d.Name {
+		d.Penalty++
+	}
+	ip := net.ParseIP(d.IP)
+	if !isPrivateIP(ip) {
 		d.Penalty++
 	}
 }
@@ -601,6 +669,87 @@ func findNameFromIP(ip string) string {
 		}
 	}
 	return ip
+}
+
+func checkOldReport() {
+	old := time.Now().Add(time.Hour * -24).UnixNano()
+	toold := time.Now().AddDate(0, 0, -mapConf.LogDays).UnixNano()
+	checkOldServers(old,toold)
+	checkOldFlows(old,toold)
+	checkOldDevices(old)
+	checkOldUsers(old)
+}
+
+func checkOldServers(old,toold int64) {
+	count :=0
+	ids := []string{}
+	for _, s := range servers {
+		if  s.LastTime < old {
+			if s.LastTime < toold || s.LastTime - s.FirstTime < 3600  * 1000 * 1000  * 1000 {
+				ids = append(ids,s.ID)
+			}
+		}
+	}
+	for _,id := range ids {
+		deleteReport("servers",id)
+		count++
+	}
+	if count > 0 {
+		astilog.Infof("Delete Old Severs %d",count)
+	}
+}
+
+func checkOldFlows(old,toold int64) {
+	count := 0
+	ids := []string{}
+	for _, f := range flows {
+		if  f.LastTime < old {
+			if f.LastTime < toold || f.LastTime - f.FirstTime < 3600  * 1000 * 1000  * 1000 {
+				ids = append(ids,f.ID)
+			}
+		}
+	}
+	for _,id := range ids {
+		deleteReport("flows",id)
+		count++
+	}
+	if count > 0 {
+		astilog.Infof("Delete Old Flows %d",count)
+	}
+}
+
+func checkOldDevices(toold int64) {
+	count := 0
+	ids := []string{}
+	for _, d := range devices {
+		if  d.LastTime < toold {
+			ids = append(ids,d.ID)
+		}
+	}
+	for _,id := range ids {
+		deleteReport("devices",id)
+		count++
+	}
+	if count > 0 {
+		astilog.Infof("Delete Old Devices %d",count)
+	}
+}
+
+func checkOldUsers(toold int64) {
+	count := 0
+	ids := []string{}
+	for _, u := range users {
+		if  u.LastTime < toold {
+			ids = append(ids,u.ID)
+		}
+	}
+	for _,id := range ids {
+		deleteReport("users",id)
+		count++
+	}
+	if count > 0 {
+		astilog.Infof("Delete Old Users %d",count)
+	}
 }
 
 func calcScore() {
@@ -716,30 +865,46 @@ func deleteReport(report, id string) error {
 	return nil
 }
 
-func resetPenalty(report, id string) error {
-	if db == nil {
-		return errDBNotOpen
-	}
+func resetPenalty(report string) {
 	if report == "devices" {
-		if e,ok := devices[id];ok {
-			e.Penalty = -1
+		for _,d := range devices{
+			d.Penalty = 0
+			setDevicePenalty(d)
+			d.UpdateTime = time.Now().UnixNano()
 		}
+		calcDeviceScore()
 	} else if report == "users" {
-		if e,ok := users[id];ok {
-			e.Penalty = 0
+		for _,u := range users {
+			u.Penalty = 0
+			u.UpdateTime = time.Now().UnixNano()
 		}
+		calcUserScore()
 	} else if report == "servers" {
-		if e,ok := servers[id];ok {
-			e.Penalty = -1
+		for _,s := range servers {
+			if s.Loc == "" {
+				s.Loc = getLoc(s.Server)
+			}
+			s.Penalty = 0
+			setServerPenalty(s)
+			s.UpdateTime = time.Now().UnixNano()
 		}
+		calcServerScore()
 	} else if report == "flows" {
-		if e,ok := flows[id];ok {
-			e.Penalty = -1
+		for _,f := range flows {
+			if f.ServerLoc == "" {
+				f.ServerLoc = getLoc(f.Server)
+			}
+			if f.ClientLoc == "" {
+				f.ClientLoc = getLoc(f.Client)
+			}
+			f.Penalty = 0
+			setFlowPenalty(f,strings.Contains(f.Service,"/"))
+			f.UpdateTime = time.Now().UnixNano()
 		}
+		calcFlowScore()
 	}
-	return nil
+	return
 }
-
 
 func clearAllReport() error {
 	if db == nil {
@@ -758,6 +923,7 @@ func clearAllReport() error {
 	devices        = make(map[string]*deviceEnt)
 	users          = make(map[string]*userEnt)
 	flows          = make(map[string]*flowEnt)
+	servers          = make(map[string]*serverEnt)
 	return nil
 }
 

@@ -117,6 +117,7 @@ type mapConfEnt struct {
 	EnableTrapd    bool
 	EnableNetflowd bool
 	BackImg        string
+	GeoIPPath      string
 	ArpWatchLevel  string
 	AILevel        string
 	AIThreshold    int

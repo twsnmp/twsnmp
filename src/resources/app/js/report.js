@@ -15,7 +15,6 @@ function showDevices() {
   devicesTable.clear();
   $('#wait').removeClass("hidden");
   astilectron.sendMessage({ name: "getDevices", payload: "" }, message => {
-    $('#wait').addClass("hidden");
     let devices =message.payload;
     if (devices == "ng") {
       astilectron.showErrorBox("レポート", "レポートを取得できません。");
@@ -31,6 +30,7 @@ function showDevices() {
       const score = getScoreHtml(d.Score)
       devicesTable.row.add([score, d.ID, d.Name,d.IP, d.Info, ft,lt,d.ID]);
     }
+    $('#wait').addClass("hidden");
     devicesTable.draw();
   });
 }
@@ -39,7 +39,6 @@ function showUsers(){
   usersTable.clear();
   $('#wait').removeClass("hidden");
   astilectron.sendMessage({ name: "getUsers", payload: "" }, message => {
-    $('#wait').addClass("hidden");
     let users =message.payload;
     if (users == "ng") {
       astilectron.showErrorBox("レポート", "レポートを取得できません。");
@@ -55,6 +54,7 @@ function showUsers(){
       const score = getScoreHtml(u.Score)
       usersTable.row.add([score, u.Name,u.Service, ft,lt,u.ID]);
     }
+    $('#wait').addClass("hidden");
     usersTable.draw();
   });
 }
@@ -78,8 +78,8 @@ function showServers(){
       const score = getScoreHtml(s.Score)
       serversTable.row.add([score, s.Server,s.ServerName,s.Service,s.Loc, ft,lt,s.ID]);
     }
-    serversTable.draw();
     $('#wait').addClass("hidden");
+    serversTable.draw();
   });
 }
 
@@ -102,8 +102,8 @@ function showFlows() {
       const score = getScoreHtml(f.Score)
       flowsTable.row.add([score, f.Client,f.ClientName,f.ClientLoc,f.Server,f.ServerName,f.Service,f.ServerLoc, ft,lt,f.ID]);
     }
-    flowsTable.draw();
     $('#wait').addClass("hidden");
+    flowsTable.draw();
   });
 }
 
@@ -121,8 +121,8 @@ function showAllow() {
       const r = res.Rules[i]
       allowTable.row.add([r.Server,r.ServerName,r.Service,r.ID]);
     }
-    allowTable.draw();
     $('#wait').addClass("hidden");
+    allowTable.draw();
   });
 }
 
@@ -140,8 +140,8 @@ function showDenny() {
       const r = res.Rules[i]
       dennyTable.row.add([r.Server,r.ServerName,r.Loc,r.Service,r.ID]);
     }
-    dennyTable.draw();
     $('#wait').addClass("hidden");
+    dennyTable.draw();
   });
 
 }
@@ -355,7 +355,7 @@ function getSelectedID(t) {
 }
 
 function setReportBtns(show){
-  const btns = ["reset","delete","add"];
+  const btns = ["delete","add"];
   btns.forEach( b =>{
     if(!show || (b=="add" && (currentPage=="devices" || currentPage =="users") )) {
       $('.report_btns button.'+ b).addClass("hidden");
@@ -382,48 +382,19 @@ function setRuleDeleteBtns(show){
 }
 
 function resetReportEnt() {
-  let id;
-  let cmd;
-  let t;
-  switch(currentPage) {
-    case "devices":
-      id  = getSelectedID(devicesTable);
-      cmd = "resetDevice";
-      t = devicesTable;
-      break;
-    case "users":
-      id  = getSelectedID(usersTable);
-      cmd = "resetUser";
-      t = usersTable;
-      break;
-    case "servers":
-      id  = getSelectedID(serversTable);
-      cmd = "resetServer";
-      t = serversTable;
-      break;
-    case "flows":
-      id  = getSelectedID(flowsTable);
-      cmd = "resetFlow";
-      t = flowsTable;
-      break;
-  }
-  if (!id) {
+  if (!confirm(`信用スコアを再計算しますか?`)) {
     return;
   }
-  if (!confirm(`レポート${id}をリセットしますか?`)) {
-    return;
-  }
-  astilectron.sendMessage({ name: cmd, payload: id }, message => {
+  $('#wait').removeClass("hidden");
+  astilectron.sendMessage({ name:"resetReport", payload: currentPage }, message => {
+    $('#wait').addClass("hidden");
     if (message.payload != "ok" ) {
-      astilectron.showErrorBox("レポート", "リセットできません。");
+      astilectron.showErrorBox("レポート", "信用スコアを再計算できません。");
       return;
     }
-    const r = t.row('.selected');
-    if (r) {
-      const d =  r.data();
-      d[0] = getScoreHtml(0);
-      r.data(d);
-    }
+    setTimeout(function(){
+      showPage(currentPage);
+    },100);
   });
 }
 

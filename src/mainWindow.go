@@ -54,6 +54,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 					return "ng", err
 				}
 				updateBackImg()
+				openGeoIP()
 			}
 			addEventLog(eventLogEnt{
 				Type:"user",

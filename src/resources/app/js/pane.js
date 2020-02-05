@@ -112,6 +112,20 @@ function createMapConfPane() {
     max:365,
     step:1,
   });
+  const f5 = pane.addFolder({
+    title: 'レポート設定',
+  });
+  f5.addInput(mapConfTmp, 'GeoIPPath', { label: "GeoIP DDB" });
+  f5.addButton({
+    title: 'ファイル選択',
+  }).on('click', (value) => {
+    astilectron.showOpenDialog({ properties: ['openFile'], title: "GeoIP DB" }, function (paths) {
+      if(paths && paths.length > 0) {
+        mapConfTmp.GeoIPPath = paths[0];
+      }
+      pane.refresh();
+    });
+  }); 
   pane.addButton({
     title: 'Cancel',
   }).on('click', (value) => {
