@@ -45,6 +45,35 @@ const stateHtmlArray = [
 
 const  stateHtmlMap = new Map(stateHtmlArray);
 
+// Service Name Map
+const serviceNameArray = [
+  ["http/tcp","WEB"],
+  ["https/tcp","WEB"],
+  ["domain/tcp","DNS"],
+  ["domain/udp","DNS"],
+  ["snmp/udp","SNMP"],
+  ["ntp/udp","NTP"],
+  ["smtp/tcp","SMTP"],
+  ["pop3/tcp","POP3"],
+  ["pop3s/tcp","POP3S"],
+  ["imap/tcp","IMAP"],
+  ["imaps/tcp","IMAPS"],
+  ["ssh/tcp","SSH"],
+  ["telnet/tcp","TELNET"],
+  ["ftp/tcp","FTP"],
+  ["bootps/udp","DHCP"],
+  ["syslog/udp","SYSLOG"],
+  ["microsoft-ds/tcp","CIFS"],
+  ["rfb/tcp","RFB"],
+  ["netbios-ns/udp","NETBIOS"],
+  ["netbios-dgm/udp","NETBIOS"],
+  ["icmp","ICMP"],
+  ["igmp","IGMP"]
+];
+
+const  serviceNameMap = new Map(serviceNameArray);
+
+
 function getIcon(icon) {
   const ret = iconMap.get(icon);
   return  ret  ? char(ret) : char(0xf059);
@@ -58,6 +87,11 @@ function getStateColor(state) {
 function getStateHtml(state) {
   const ret = stateHtmlMap.get(state);
   return  ret ? ret : '<i class="fas fa-check-circle state state_unkown"></i>不明';
+}
+
+function getServiceName(s) {
+  const ret = serviceNameMap.get(s);
+  return  ret ? ret : 'Other';
 }
 
 // severity Html

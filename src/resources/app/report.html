@@ -15,6 +15,8 @@
   </script>
   <script src="./js/datatables.js"></script>
   <script src="./js/tweakpane-1.0.5.js"></script>
+  <script src="./js/echarts.min.js"></script>
+  <script src="./js/world.js"></script>
 </head>
 
 <body>
@@ -39,16 +41,13 @@
         <i class="fas fa-poll-h"></i>
         通信フロー
       </div>
-      <div class="tab-item" id="allow">
+      <div class="tab-item" id="rules">
         <i class="fas fa-cog"></i>
-        サーバー限定
-      </div>
-      <div class="tab-item" id="denny">
-        <i class="fas fa-cog"></i>
-        禁止ルール
+        ルール設定
       </div>
     </div>
     <div class="window-content hidden" id="devices_page">
+      <div id="device_chart" style="width:98%; height: 50%;"></div>
       <div class="table_base">
         <table id="devices_table" class="display compact">
           <thead>
@@ -69,6 +68,7 @@
       </div>
     </div>
     <div class="window-content hidden" id="users_page">
+      <div id="user_chart" style="width:98%; height: 50%;"></div>
       <div class="table_base">
         <table id="users_table" class="display compact">
           <thead>
@@ -87,6 +87,7 @@
       </div>
     </div>
     <div class="window-content hidden" id="servers_page">
+      <div id="server_chart" style="width:98%; height: 50%;"></div>
       <div class="table_base">
         <table id="servers_table" class="display compact">
           <thead>
@@ -94,10 +95,14 @@
               <th>信用スコア</th>
               <th>サーバー</th>
               <th>サーバー名</th>
-              <th>サービス</th>
+              <th>サービス名</th>
+              <th>サービス数</th>
+              <th>回数</th>
+              <th>バイト</th>
               <th>位置</th>
               <th>初回</th>
               <th>最新</th>
+              <th>サービス</th>
               <th>ID</th>
             </tr>
           </thead>
@@ -107,6 +112,7 @@
       </div>
     </div>
     <div class="window-content hidden" id="flows_page">
+      <div id="flow_chart" style="width:98%; height: 50%;"></div>
       <div class="table_base">
         <table id="flows_table" class="display compact">
           <thead>
@@ -117,44 +123,13 @@
               <th>クライアント位置</th>
               <th>サーバー</th>
               <th>サーバー名</th>
-              <th>サービス</th>
               <th>サーバー位置</th>
+              <th>サービス名</th>
+              <th>サービス数</th>
+              <th>回数</th>
+              <th>バイト</th>
               <th>初回</th>
               <th>最新</th>
-              <th>ID</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="window-content hidden" id="denny_page">
-      <div class="table_base">
-        <h5>推奨ルール</h5>
-        <table id="denny_recomend_table" class="display compact">
-          <thead>
-            <tr>
-              <th>推奨スコア</th>
-              <th>サーバー</th>
-              <th>サーバー名</th>
-              <th>位置</th>
-              <th>サービス</th>
-              <th>ID</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
-      </div>
-      <div class="table_base">
-        <h5>設定済みルール</h5>
-        <table id="denny_table" class="display compact">
-          <thead>
-            <tr>
-              <th>サーバー</th>
-              <th>サーバー名</th>
-              <th>位置</th>
               <th>サービス</th>
               <th>ID</th>
             </tr>
@@ -164,30 +139,16 @@
         </table>
       </div>
     </div>
-    <div class="window-content hidden" id="allow_page">
+    <div class="window-content hidden" id="rules_page">
       <div class="table_base">
-        <h5>推奨ルール</h5>
-        <table id="allow_recomend_table" class="display compact">
+        <h5>ルール</h5>
+        <table id="rules_table" class="display compact">
           <thead>
             <tr>
-              <th>推奨スコア</th>
+              <th>種別</th>
               <th>サーバー</th>
               <th>サーバー名</th>
-              <th>サービス</th>
-              <th>ID</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
-      </div>
-      <div class="table_base">
-        <h5>設定済みルール</h5>
-        <table id="allow_table" class="display compact">
-          <thead>
-            <tr>
-              <th>サーバー</th>
-              <th>サーバー名</th>
+              <th>位置</th>
               <th>サービス</th>
               <th>ID</th>
             </tr>
@@ -207,6 +168,10 @@
           <i class="fas fa-sync"></i>
           再計算...
         </button>
+        <button class="btn btn-primary refresh">
+          <i class="fas fa-sync"></i>
+          再表示
+        </button>
         <button class="btn btn-negative delete">
           <i class="fas fa-trash-alt"></i>
           削除...
@@ -216,11 +181,7 @@
           閉じる
         </button>
       </div>
-      <div class="toolbar-actions conf_btns hidden">
-        <button class="btn btn-primary add">
-          <i class="fas fa-plus-circle"></i>
-          追加
-        </button>
+      <div class="toolbar-actions rules_btns hidden">
         <button class="btn btn-negative delete">
           <i class="fas fa-trash-alt"></i>
           削除...

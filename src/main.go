@@ -238,7 +238,7 @@ func main() {
 			path = filepath.Join(app.Paths().DataDirectory(), "resources", "oui.txt")
 			oui.Open(path)
 			path = filepath.Join(app.Paths().DataDirectory(), "resources", "services.txt")
-			loadServices(path)
+			loadServiceMap(path)
 			startBackend(ctx)
 			mainWindow.On(astilectron.EventNameWindowEventClosed, func(e astilectron.Event) (deleteListener bool) {
 				astilog.Debug("Main Window Closed")

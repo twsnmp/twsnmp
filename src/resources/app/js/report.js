@@ -1,15 +1,25 @@
 'use strict';
 
 let devicesTable;
+let deviceChart;
 let usersTable;
+let userChart;
 let flowsTable;
+let flowChart;
 let serversTable;
-let allowRecomendTable;
-let allowTable;
-let dennyRecomendTable;
-let dennyTable;
+let serverChart;
+let rulesTable;
 let currentPage;
 let pane;
+
+function getServiceNames(services) {
+  const sns = new Map();
+  for(let i = 0; i < services.length;i++){
+    const n = getServiceName(services[i]);
+    sns.set(n,true);
+  }
+  return Array.from(sns.keys()).join();
+}
 
 function showDevices() {
   devicesTable.clear();
@@ -22,16 +32,24 @@ function showDevices() {
       devices = [];
     } else if (devices.length < 1 ) {
       astilectron.showErrorBox("レポート", "該当するデータがありません。");
-    }  
+    }
+    const vendorMap = {};
     for (let i = 0 ;i < devices.length;i++) {
       const d = devices[i]
       const ft = moment(d.FirstTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss");
       const lt = moment(d.LastTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss");
       const score = getScoreHtml(d.Score)
-      devicesTable.row.add([score, d.ID, d.Name,d.IP, d.Info, ft,lt,d.ID]);
+      devicesTable.row.add([score, d.ID, d.Name,d.IP, d.Vendor, ft,lt,d.ID]);
+      if (!vendorMap[d.Vendor]){
+        vendorMap[d.Vendor] = [0,0,0,0,0,0,0];
+      }
+      vendorMap[d.Vendor][0]++;
+      const si = getScoreIndex(d.Score);
+      vendorMap[d.Vendor][si]++; 
     }
     $('#wait').addClass("hidden");
     devicesTable.draw();
+    showDeviceChart(vendorMap);
   });
 }
 
@@ -70,16 +88,20 @@ function showServers(){
       servers = [];
     } else if (servers.length < 1 ) {
       astilectron.showErrorBox("レポート", "該当するデータがありません。");
-    }  
+    }
     for (let i = 0 ;i < servers.length;i++) {
       const s = servers[i]
       const ft = moment(s.FirstTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss");
       const lt = moment(s.LastTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss");
       const score = getScoreHtml(s.Score)
-      serversTable.row.add([score, s.Server,s.ServerName,s.Service,s.Loc, ft,lt,s.ID]);
+      const services = Object.keys(s.Services);
+      serversTable.row.add([score, s.Server,s.ServerName,getServiceNames(services),services.length,
+        s.Count,s.Bytes,
+        s.Loc, ft,lt,services.join(),s.ID]);
     }
     $('#wait').addClass("hidden");
     serversTable.draw();
+    showServerChart();
   });
 }
 
@@ -100,50 +122,35 @@ function showFlows() {
       const ft = moment(f.FirstTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss");
       const lt = moment(f.LastTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss");
       const score = getScoreHtml(f.Score)
-      flowsTable.row.add([score, f.Client,f.ClientName,f.ClientLoc,f.Server,f.ServerName,f.Service,f.ServerLoc, ft,lt,f.ID]);
+      const services = Object.keys(f.Services)
+      flowsTable.row.add([score, 
+        f.Client,f.ClientName,f.ClientLoc,
+        f.Server,f.ServerName,f.ServerLoc,
+        getServiceNames(services),services.length,
+        f.Count,f.Bytes,
+         ft,lt,services.join(),f.ID]);
     }
     $('#wait').addClass("hidden");
     flowsTable.draw();
+    showFlowChart();
   });
 }
 
-function showAllow() {
+function showRules() {
   $('#wait').removeClass("hidden");
-  allowTable.clear();
-  allowRecomendTable.clear();
-  astilectron.sendMessage({ name: "getAllow", payload: "" }, message => {
-    let res = message.payload;
-    if ( res == "ng" || !res.Rules ) {
-      res.Rules = [];
-      res.Recomends = [];
+  rulesTable.clear();
+  astilectron.sendMessage({ name: "getRules", payload: "" }, message => {
+    let rules = message.payload;
+    if ( rules == "ng"  ) {
+      rules = [];
     }
-    for (let i = 0 ;i < res.Rules.length;i++) {
-      const r = res.Rules[i]
-      allowTable.row.add([r.Server,r.ServerName,r.Service,r.ID]);
+    for (let i = 0 ;i < rules.length;i++) {
+      const r = rules[i]
+      rulesTable.row.add([getRulesTypeHtml(r.Type),r.Server,r.ServerName,r.Loc,r.Service,r.ID]);
     }
     $('#wait').addClass("hidden");
-    allowTable.draw();
+    rulesTable.draw();
   });
-}
-
-function showDenny() {
-  $('#wait').removeClass("hidden");
-  dennyTable.clear();
-  dennyRecomendTable.clear();
-  astilectron.sendMessage({ name: "getDenny", payload: "" }, message => {
-    let res = message.payload;
-    if ( res == "ng" || !res.Rules ) {
-      res.Rules = [];
-      res.Recomends = [];
-    }
-    for (let i = 0 ;i < res.Rules.length;i++) {
-      const r = res.Rules[i]
-      dennyTable.row.add([r.Server,r.ServerName,r.Loc,r.Service,r.ID]);
-    }
-    $('#wait').addClass("hidden");
-    dennyTable.draw();
-  });
-
 }
 
 function getScoreHtml(s) {
@@ -161,11 +168,33 @@ function getScoreHtml(s) {
   return('<i class="fas fa-angry state state_high"></i>' + Math.floor(s) );
 }
 
+function getScoreIndex(s){
+  if(s > 66  ){
+    return 5;
+  } else if (s > 50 ) {
+    return 4;
+  } else if (s > 42 ) {
+    return 3;
+  } else if (s > 33){
+    return 2;
+  } else if (s <= 0){
+    return 6
+  }
+  return 1;
+}
+
+function getRulesTypeHtml(t){
+  if (t == "allow") {
+    return('<i class="fas fa-check-circle state state_info"></i>許可' );
+  }
+  return('<i class="fas fa-ban state state_high"></i>禁止');
+}
+
 function showPage(mode) {
   if(pane) {
     return;
   }
-  const pages = ["devices", "users", "servers", "flows","allow","denny"];
+  const pages = ["devices", "users", "servers", "flows","rules"];
   pages.forEach(p => {
     if (mode == p) {
       $("#" + p + "_page").removeClass("hidden");
@@ -176,15 +205,14 @@ function showPage(mode) {
     }
   });
   currentPage = mode;
-  if( mode == "allow" || mode == "denny"){
+  if( mode == "rules" ){
     $("div.report_btns").addClass("hidden");
-    $("div.conf_btns").removeClass("hidden");
+    $("div.rules_btns").removeClass("hidden");
   } else {
-    $("div.conf_btns").addClass("hidden");
     $("div.report_btns").removeClass("hidden");
+    $("div.rules_btns").addClass("hidden");
   }
   setReportBtns(false);
-  setRuleAddBtns(false);
   setRuleDeleteBtns(false);
   switch (mode) {
     case "devices":
@@ -199,11 +227,8 @@ function showPage(mode) {
     case "flows":
       showFlows();
       break;
-    case "allow":
-      showAllow();
-      break;
-    case "denny":
-      showDenny();
+    case "rules":
+      showRules();
       break;
   }
 }
@@ -212,8 +237,8 @@ function makeTables() {
   const opt = {
     "paging": true,
     "info": false,
-    "pageLength": 25,
-    "order": [[0, "desc"]],
+    "pageLength": 10,
+    "order": [[0, "asc"]],
     "searching": true,
     "autoWidth": true,
     "language": {
@@ -245,12 +270,7 @@ function makeTables() {
   usersTable = makeTable('#users_table',opt,"report");
   flowsTable = makeTable('#flows_table',opt,"report");
   serversTable = makeTable('#servers_table',opt,"report");
-  
-  opt["pageLength"] = 10;
-  allowRecomendTable = makeTable('#allow_recomend_table',opt,"addconf");
-  allowTable = makeTable('#allow_table',opt,"delconf");
-  dennyRecomendTable = makeTable('#denny_recomend_table',opt,"addconf");
-  dennyTable = makeTable('#denny_table',opt,"delconf");
+  rulesTable = makeTable('#rules_table',opt,"rules");
 }
 
 function makeTable(id,opt,mode){
@@ -260,9 +280,7 @@ function makeTable(id,opt,mode){
       $(this).removeClass('selected');
       if(mode == "report"){
         setReportBtns(false);
-      } else if (mode == "addconf") {
-        setRuleAddBtns(false);
-      } else if (mode == "delconf") {
+      } else if (mode == "rules") {
         setRuleDeleteBtns(false);
       }
     } else {
@@ -270,9 +288,7 @@ function makeTable(id,opt,mode){
       $(this).addClass('selected');
       if(mode == "report"){
         setReportBtns(true);
-      } else if (mode == "addconf") {
-        setRuleAddBtns(true);
-      } else if (mode == "delconf") {
+      } else if (mode == "rules") {
         setRuleDeleteBtns(true);
       }
     }
@@ -282,6 +298,9 @@ function makeTable(id,opt,mode){
 
 document.addEventListener('astilectron-ready', function () {
   makeTables();
+  makeDeviceChart();
+  makeServerChart();
+  makeFlowChart();
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "show":
@@ -312,15 +331,16 @@ document.addEventListener('astilectron-ready', function () {
   $('#servers').click(() => {
     showPage("servers");
   });
-  $('#allow').click(() => {
-    showPage("allow");
-  });
-  $('#denny').click(() => {
-    showPage("denny");
+  $('#rules').click(() => {
+    showPage("rules");
   });
 
   $('.report_btns button.reset').click(() => {
     resetReportEnt();
+  });
+
+  $('.report_btns button.refresh').click(() => {
+    refreshChart();
   });
 
   $('.report_btns button.delete').click(() => {
@@ -331,12 +351,8 @@ document.addEventListener('astilectron-ready', function () {
     addRuleFromReportEnt();
   });
 
-  $('.conf_btns button.delete').click(() => {
+  $('.rules_btns button.delete').click(() => {
     deleteRule();
-  });
-
-  $('.conf_btns button.add').click(() => {
-    addRule();
   });
 
 });
@@ -365,19 +381,12 @@ function setReportBtns(show){
   });
 }
 
-function setRuleAddBtns(show){
-  if(!show) {
-    $('.conf_btns button.add').addClass("hidden");
-  } else {
-    $('.conf_btns button.add').removeClass("hidden");
-  }
-}
 
 function setRuleDeleteBtns(show){
   if(!show){
-    $('.conf_btns button.delete').addClass("hidden");
+    $('.rules_btns button.delete').addClass("hidden");
   } else {
-    $('.conf_btns button.delete').removeClass("hidden");
+    $('.rules_btns button.delete').removeClass("hidden");
   }
 }
 
@@ -396,6 +405,15 @@ function resetReportEnt() {
       showPage(currentPage);
     },100);
   });
+}
+
+function refreshChart() {
+  switch (currentPage){
+    case "servers":
+      showServerChart();
+    case "flows":
+      showFlowChart();
+  }
 }
 
 function deleteReportEnt() {
@@ -466,8 +484,8 @@ function addRuleFromServer() {
     Type: "allow_service",
     Server: d[1],
     ServerName:d[2],
-    Service: d[3],
-    Loc: d[4],
+    Service: d[10],
+    Loc: d[7],
   });
 }
 
@@ -481,8 +499,8 @@ function addRuleFromFlow() {
     Type: "denny_service",
     Server: d[4],
     ServerName:d[5],
-    Service: d[6],
-    Loc: d[7],
+    Service: d[13],
+    Loc: d[10],
   });
 }
 
@@ -526,61 +544,430 @@ function addRulePane(e) {
 }
 
 function deleteRule() {
-  let id;
-  let cmd;
-  let t;
-  switch(currentPage) {
-    case "allow":
-      id  = getSelectedID(allowTable);
-      cmd = "deleteAllow";
-      t = allowTable;
-      break;
-    case "denny":
-      id  = getSelectedID(dennyTable);
-      cmd = "deleteDenny";
-      t = dennyTable;
-      break;
-  }
+  const id  = getSelectedID(rulesTable);
   if (!id) {
     return;
   }
   if (!confirm(`ルール${id}を削除しますか?`)) {
     return;
   }
-  astilectron.sendMessage({ name: cmd, payload: id }, message => {
+  astilectron.sendMessage({ name: "deleteRules", payload: id }, message => {
     if (message.payload != "ok" ) {
-      astilectron.showErrorBox("レポート", "削除できません。");
+      astilectron.showErrorBox("レポート", "ルールを削除できません。");
       return;
     }
-    const r = t.row('.selected');
+    const r = rulesTable.row('.selected');
     if (r) {
       r.remove().draw(false);
     }
   });
 }
 
-function addRule() {
-  let id;
-  let cmd;
-  let t;
-  switch(currentPage) {
-    case "allow":
-      id  = getSelectedID(allowRecomendTable);
-      break;
-    case "denny":
-      id  = getSelectedID(dennyRecomendTable);
-      break;
+function  makeDeviceChart(){
+  const option = {
+      backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+        offset: 0,
+        color: '#4b5769'
+      }, {
+        offset: 1,
+        color: '#404a59'
+      }]),
+      tooltip : {
+          trigger: 'axis',
+          axisPointer : {
+              type : 'shadow'
+          }
+      },
+      color:[ "#e31a1c","#fb9a99","#dfdf22","#a6cee3","#1f78b4","#999"],
+      legend: {
+        orient: "vertical",
+        top:   50,
+        right: 10,
+        textStyle:{
+          fontSize: 10,
+          color: "#ccc",
+        },
+        data: ['32以下','33-41','42-50','51-66','67以上','調査中']
+      },
+      grid: {
+          top: '3%',
+          left: '7%',
+          right: '10%',
+          bottom: '3%',
+          containLabel: true
+      },
+      xAxis:  {
+          type: 'value',
+          name: "台数",
+          nameTextStyle:{
+            color:"#ccc",
+            fontSize: 10,
+            margin: 2,
+          },
+          axisLabel:{
+            color:"#ccc",
+            fontSize: 10,
+            margin: 2,
+          },
+          axisLine: {
+            lineStyle:{
+              color: '#ccc'
+            }
+          }
+      },
+      yAxis: {
+          type: 'category',
+          axisLine: {
+            show:false,
+          },
+          axisTick:{
+            show:false,
+          },
+          axisLabel:{
+            color:"#ccc",
+            fontSize: 8,
+            margin: 2,
+          },  
+          data: []
+      },
+      series: [
+        {
+          name: '32以下',
+          type: 'bar',
+          stack: '台数',
+          data: []
+        },
+        {
+          name: '33-41',
+          type: 'bar',
+          stack: '台数',
+          data: []
+        },
+        {
+          name: '42-50',
+          type: 'bar',
+          stack: '台数',
+          data: []
+        },
+        {
+          name: '51-66',
+          type: 'bar',
+          stack: '台数',
+          data: []
+        },
+        {
+          name: '67以上',
+          type: 'bar',
+          stack: '台数',
+          data: []
+        },
+        {
+          name: '調査中',
+          type: 'bar',
+          stack: '台数',
+          data: []
+        },
+      ],
+  };
+  deviceChart = echarts.init(document.getElementById('device_chart'));
+  deviceChart.setOption(option);
+}
+
+function showDeviceChart(data) {
+  const opt = {
+    yAxis:{
+      data:[],
+    },
+    series:[
+      {data:[]},
+      {data:[]},
+      {data:[]},
+      {data:[]},
+      {data:[]},
+      {data:[]}
+    ]
+  };
+  const keys = Object.keys(data);
+  keys.sort(function(a,b){
+    return data[b][0] -data[a][0];
+  });
+  let i = keys.length-1;
+  if(i > 49 ){
+    i = 49
   }
-  if (!id) {
-    return;
+  for(;i >= 0;i--){
+    opt.yAxis.data.push(keys[i]);
+    for(let j =0; j < 6;j++){
+      opt.series[j].data.push(data[keys[i]][j+1]);
+    }
   }
-  astilectron.sendMessage({ name: "addRuleByID", payload: id }, message => {
-    if (message.payload != "ok" ) {
-      astilectron.showErrorBox("ルール", "追加できません。");
+  deviceChart.setOption( opt);
+  deviceChart.resize();
+}
+
+function  makeServerChart(){
+  const option = {
+    backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+      offset: 0,
+      color: '#4b5769'
+    }, {
+      offset: 1,
+      color: '#404a59'
+    }]),
+    grid: {
+      left: '7%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    geo: {
+      map: 'world',
+      silent: true,
+      emphasis: {
+          label: {
+              show: false,
+              areaColor: '#eee'
+          }
+      },
+      itemStyle: {
+          borderWidth: 0.2,
+          borderColor: '#404a59'
+      },
+      roam: true
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: function (params) {
+        return params.name + ' : ' + params.value[2];
+      }
+    },
+    series: [{
+      type: 'scatter',
+      coordinateSystem: 'geo',
+      label: {
+              formatter: '{b}',
+              position: 'right',
+              color: "#eee",
+              show: false
+      },
+      emphasis: {
+              label: {
+                  show: true
+              }
+      },
+      symbolSize: 6,
+      itemStyle: {
+        color: function (params) {
+          const s = params.data.value[2];
+          if(s > 66  ){
+            return "#1f78b4";
+          } else if (s > 50 ) {
+            return "#a6cee3";
+          } else if (s > 42 ) {
+            return "#dfdf22";
+          } else if (s > 33){
+            return "#fb9a99";
+          } else if (s <= 0){
+            return "#aaa"
+          }
+          return "#e31a1c";
+        }
+      },
+      data:[]
+    }]
+  };
+  serverChart = echarts.init(document.getElementById('server_chart'));
+  serverChart.setOption(option);
+}
+
+function getScore(s) {
+  const a = s.split("/i>",2);
+  if (a.length < 2) {
+    return 0;
+  }
+  return a[1]*1;
+}
+
+function showServerChart(data) {
+  const opt = {
+    series:[
+      {data:[]},
+    ]
+  };
+  const locMap = {};
+  serversTable.rows({search:"applied"}).every( function ( rowIdx, tableLoop, rowLoop ) {
+    if(locMap.length > 10000){
       return;
     }
-    setTimeout(()=>{
-      showPage(currentPage);
-    },100);
+    const d = this.data();
+    if (d[7] == "" || d[7].indexOf("LOCAL") == 0) {
+      return;
+    }
+    const score = getScore(d[0]);
+    if(!locMap[d[7]] || locMap[d[7]] > score ) {
+      locMap[d[7]] = score
+    }
   });
+  for(let k in locMap){
+    const a = k.split(",")
+    if (a.length < 4 || a[0] == "LOCAL" || a[1] == "") {
+      continue;
+    }
+    opt.series[0].data.push({
+      name: a[3] + "/" + a[0],
+      value: [a[2] * 1.0,a[1] * 1.0,locMap[k]]
+    });
+  }
+  serverChart.setOption(opt);
+  serverChart.resize();
+}
+
+function  makeFlowChart(){
+  const categories =[
+    {name:"RU"},
+    {name:"CN"},
+    {name:"US"},
+    {name:"JP"},
+    {name:"LOCAL"},
+    {name:"Other"}
+  ];
+  const option = {
+    backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+      offset: 0,
+      color: '#4b5769'
+    }, {
+      offset: 1,
+      color: '#404a59'
+    }]),
+    grid: {
+      left: '7%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: function (params) {
+        return params.name +":" + params.value;
+      }
+    },
+    legend: [{
+      orient: "vertical",
+      top:   50,
+      right: 20,
+      textStyle:{
+        fontSize: 10,
+        color: "#ccc",
+      },
+      data:  categories.map(function (a) {
+                return a.name;
+            })
+    }],
+    color:[ "#e31a1c","#fb9a99","#dfdf22","#a6cee3","#1f78b4","#999"],
+    animationDurationUpdate: 1500,
+    animationEasingUpdate: 'quinticInOut',
+    series: [
+        {
+            type: 'graph',
+            layout: 'force',
+            symbolSize: 6,
+            categories: categories,
+            roam: true,
+            label: {
+                show: false
+            },
+            data: [],
+            links: [],
+            lineStyle: {
+                width: 1,
+                curveness: 0
+            }
+        }
+    ]
+  };
+  flowChart = echarts.init(document.getElementById('flow_chart'));
+  flowChart.setOption(option);
+}
+
+function getLocCategory(l){
+  const a = l.split(",");
+  if (a.length< 2) {
+    return 0;
+  }
+  switch (a[0]) {
+    case "LOCAL":
+      return 4;
+    case "JP":
+      return 3;
+    case "US":
+      return 2;
+    case "CN":
+      return 1;
+    case "RU":
+      return 0;
+  }
+  return 5;
+}
+
+function getScoreColor(s) {
+  if(s.indexOf("repair") != -1  ){
+    return "#1f78b4";
+  } else if (s.indexOf("info") != -1 ) {
+    return "#a6cee3";
+  } else if (s.indexOf("warn") != -1 ) {
+    return "#dfdf22";
+  } else if (s.indexOf("low") != -1){
+    return "#fb9a99";
+  } else if (s.indexOf("unkown") != -1){
+    return "#aaa"
+  }
+  return "#e31a1c";
+}
+
+function showFlowChart() {
+  const opt = {
+    series:[
+      {data:[],
+        links:[]
+      },
+    ]
+  };
+  const nodes = {};
+  flowsTable.rows({search:"applied"}).every( function ( rowIdx, tableLoop, rowLoop ) {
+    if (opt.series[0].links.length > 1000) {
+      return;
+    }
+    const d = this.data();
+    const c = `${d[2]}(${d[1]})`;
+    const s = `${d[5]}(${d[4]})`;
+    if( !nodes[s]) {
+      nodes[s] = {
+        name: s,
+        category: getLocCategory(d[6]),
+        draggable:true,
+        value: d[6]
+      }
+    }
+    if( !nodes[c]) {
+      nodes[c] = {
+        name: c,
+        category: getLocCategory(d[3]),
+        draggable:true,
+        value: d[3]
+      }
+    }
+    opt.series[0].links.push({
+      source: c,
+      target: s,
+      value: d[7] + ":"+ getScore(d[0]) ,
+      lineStyle: {
+          color: getScoreColor(d[0])
+      }
+    });
+  });
+  for(let k in nodes) {
+    opt.series[0].data.push(nodes[k]);
+  }
+  flowChart.setOption(opt);
+  flowChart.resize();
 }

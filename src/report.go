@@ -9,12 +9,12 @@ import (
 	"os"
 	"strings"
 	"time"
-	"github.com/oschwald/geoip2-golang"
+
 	astilog "github.com/asticode/go-astilog"
 	"github.com/montanaflynn/stats"
+	"github.com/oschwald/geoip2-golang"
 	"go.etcd.io/bbolt"
 )
-
 
 var (
 	devices        = make(map[string]*deviceEnt)
@@ -26,18 +26,22 @@ var (
 	deviceReportCh = make(chan *deviceReportEnt, 100)
 	userReportCh   = make(chan *userReportEnt, 100)
 	flowReportCh   = make(chan *flowReportEnt, 500)
-	services       = make(map[string]string)
+	serviceMap     = make(map[string]string)
+	badIPs         = make(map[string]int64)
 	protMap        = map[int]string{
-		1:  "icmp",
-		2:  "igmp",
-		6:  "tcp",
-		8:  "egp",
-		17: "udp",
+		1:   "icmp",
+		2:   "igmp",
+		6:   "tcp",
+		8:   "egp",
+		17:  "udp",
 		112: "vrrp",
 	}
+	serviceNameMap = map[string]string{
+		"http/tcp": "WEB",
+	}
 	privateIPBlocks []*net.IPNet
-	geoip *geoip2.Reader
-	geoipMap  = make(map[string]string)
+	geoip           *geoip2.Reader
+	geoipMap        = make(map[string]string)
 )
 
 type deviceReportEnt struct {
@@ -60,13 +64,15 @@ type flowReportEnt struct {
 	DstIP   string
 	DstPort int
 	Prot    int
+	Bytes   int64
 }
 
 type deviceEnt struct {
 	ID         string // MAC Addr
 	Name       string
 	IP         string
-	Info       string
+	Vendor     string
+	Services   map[string]int64
 	Score      float64
 	Penalty    int64
 	FirstTime  int64
@@ -87,9 +93,11 @@ type userEnt struct {
 }
 
 type serverEnt struct {
-	ID         string // Flow ID Client:Server:Service
+	ID         string //  ID Server
 	Server     string
-	Service    string
+	Services   map[string]int64
+	Count      int64
+	Bytes      int64
 	ServerName string
 	Loc        string
 	Score      float64
@@ -100,15 +108,16 @@ type serverEnt struct {
 }
 
 type flowEnt struct {
-	ID         string // Flow ID Client:Server:Service
+	ID         string // ID Client:Server
 	Client     string
 	Server     string
-	Service    string
+	Services   map[string]int64
+	Count      int64
+	Bytes      int64
 	ClientName string
 	ClientLoc  string
 	ServerName string
 	ServerLoc  string
-	Dir        int
 	Score      float64
 	Penalty    int64
 	FirstTime  int64
@@ -118,7 +127,7 @@ type flowEnt struct {
 
 // allowRuleEnt : 特定のサービスは特定のサーバーに限定するルール
 type allowRuleEnt struct {
-	Service    string // Service
+	Service string // Service
 	Servers map[string]bool
 }
 
@@ -146,9 +155,9 @@ func openGeoIP() {
 		return
 	}
 	var err error
-	geoip,err = geoip2.Open(mapConf.GeoIPPath)
+	geoip, err = geoip2.Open(mapConf.GeoIPPath)
 	if err != nil {
-		astilog.Errorf("Geoip open err=%v",err)
+		astilog.Errorf("Geoip open err=%v", err)
 	}
 }
 
@@ -165,13 +174,13 @@ func isPrivateIP(ip net.IP) bool {
 }
 
 func getLoc(ips string) string {
-	if l,ok := geoipMap[ips];ok {
+	if l, ok := geoipMap[ips]; ok {
 		return l
 	}
 	loc := ""
 	ip := net.ParseIP(ips)
 	if isPrivateIP(ip) {
-		loc =  "LOCAL,0,0,"
+		loc = "LOCAL,0,0,"
 	} else {
 		if geoip == nil {
 			return loc
@@ -180,7 +189,7 @@ func getLoc(ips string) string {
 		if err == nil {
 			loc = fmt.Sprintf("%s,%f,%f,%s", record.Country.IsoCode, record.Location.Latitude, record.Location.Longitude, record.City.Names["en"])
 		} else {
-			astilog.Errorf("getLoc err=%v",err)
+			astilog.Errorf("getLoc err=%v", err)
 			loc = "LOCAL,0,0,"
 		}
 	}
@@ -392,7 +401,6 @@ func checkFlowReport(r *flowReportEnt) {
 	var service string
 	var server string
 	var client string
-	dir:=1
 	s1, ok1 := getServiceName(r.Prot, r.SrcPort)
 	s2, ok2 := getServiceName(r.Prot, r.DstPort)
 	if ok1 {
@@ -402,7 +410,16 @@ func checkFlowReport(r *flowReportEnt) {
 				server = r.SrcIP
 				client = r.DstIP
 				service = s1
-				dir =2
+			} else if r.SrcPort == r.DstPort {
+				if _, ok := flows[fmt.Sprintf("%s:%s", r.DstIP, r.SrcIP)]; ok {
+					server = r.DstIP
+					client = r.SrcIP
+					service = s2
+				} else {
+					server = r.SrcIP
+					client = r.DstIP
+					service = s1
+				}
 			} else {
 				server = r.DstIP
 				client = r.SrcIP
@@ -412,7 +429,6 @@ func checkFlowReport(r *flowReportEnt) {
 			server = r.SrcIP
 			client = r.DstIP
 			service = s1
-			dir = 2
 		}
 	} else {
 		if ok2 {
@@ -431,16 +447,16 @@ func checkFlowReport(r *flowReportEnt) {
 			}
 		}
 	}
-	checkServerReport(server,service,r.Time)
+	checkServerReport(server, service, r.Bytes, r.Time)
 	now := time.Now().UnixNano()
-	id := fmt.Sprintf("%s:%s:%s", client, server, service)
+	id := fmt.Sprintf("%s:%s", client, server)
 	f, ok := flows[id]
 	if ok {
-		if f.Dir < 3 &&  (r.Time - f.FirstTime) > 1000*1000*1000*60{
-			f.Dir = 4
-			f.Penalty++
+		if _, ok := f.Services[service]; ok {
+			f.Services[service]++
 		} else {
-			f.Dir |= dir
+			f.Services[service] = 1
+			setFlowPenalty(f)
 		}
 		if f.ServerLoc == "" {
 			f.ServerLoc = getLoc(f.Server)
@@ -448,6 +464,8 @@ func checkFlowReport(r *flowReportEnt) {
 		if f.ClientLoc == "" {
 			f.ClientLoc = getLoc(f.Client)
 		}
+		f.Bytes += r.Bytes
+		f.Count++
 		f.LastTime = r.Time
 		f.UpdateTime = now
 		return
@@ -456,8 +474,9 @@ func checkFlowReport(r *flowReportEnt) {
 		ID:         id,
 		Client:     client,
 		Server:     server,
-		Service:    service,
-		Dir:        dir,
+		Services:   make(map[string]int64),
+		Count:      1,
+		Bytes:      r.Bytes,
 		ServerLoc:  getLoc(server),
 		ClientLoc:  getLoc(client),
 		ServerName: findNameFromIP(server),
@@ -466,19 +485,28 @@ func checkFlowReport(r *flowReportEnt) {
 		LastTime:   r.Time,
 		UpdateTime: now,
 	}
-	setFlowPenalty(f,ok1||ok2)
+	f.Services[service] = 1
+	setFlowPenalty(f)
 	flows[id] = f
 	astilog.Debugf("add flows %v", f)
 }
 
-func checkServerReport(server,service string,t int64){
-	if !strings.Contains(service,"/") {
+func checkServerReport(server, service string, bytes, t int64) {
+	if !strings.Contains(service, "/") {
 		return
 	}
 	now := time.Now().UnixNano()
-	id := fmt.Sprintf("%s:%s",server, service)
+	id := server
 	s, ok := servers[id]
 	if ok {
+		if _, ok := s.Services[service]; ok {
+			s.Services[service]++
+		} else {
+			s.Services[service] = 1
+			setServerPenalty(s)
+		}
+		s.Count++
+		s.Bytes += bytes
 		s.LastTime = t
 		s.UpdateTime = now
 		return
@@ -486,46 +514,50 @@ func checkServerReport(server,service string,t int64){
 	s = &serverEnt{
 		ID:         id,
 		Server:     server,
-		Service:    service,
+		Services:   make(map[string]int64),
 		ServerName: findNameFromIP(server),
-		Loc: getLoc(server),
+		Loc:        getLoc(server),
+		Count:      1,
+		Bytes:      bytes,
 		FirstTime:  t,
 		LastTime:   t,
 		UpdateTime: now,
 	}
+	s.Services[service] = 1
 	setServerPenalty(s)
 	servers[id] = s
 	astilog.Debugf("add server %v", s)
 }
 
-func setFlowPenalty(f *flowEnt,ok bool) {
+func setFlowPenalty(f *flowEnt) {
 	loc := ""
 	if f.ServerLoc != "" {
-		a := strings.Split(f.ServerLoc,",")
+		a := strings.Split(f.ServerLoc, ",")
 		if len(a) > 0 {
 			loc = a[0]
 		}
 	}
-	if !ok {
-		f.Penalty++
-	}
+	f.Penalty = 0
 	ids := []string{}
-	ids = append(ids,fmt.Sprintf("*:%s:*", f.Service))
-	ids = append(ids,fmt.Sprintf("%s:*:*", f.Server))
-	ids = append(ids,fmt.Sprintf("%s:%s:*", f.Server, f.Service))
-	if loc != ""{
-		ids = append(ids,fmt.Sprintf("*:*:%s", loc))
-		ids = append(ids,fmt.Sprintf("*:%s:%s", f.Service,loc))
-	}
-	for _,id := range ids {
-		if e, ok := dennyRules[id]; ok {
-			if e {
-				f.Penalty++
+	for service := range f.Services {
+		ids = append(ids, fmt.Sprintf("*:%s:*", service))
+		if loc != "" {
+			ids = append(ids, fmt.Sprintf("*:%s:%s", service, loc))
+		}
+		if as, ok := allowRules[service]; ok {
+			if e, ok := as.Servers[f.Server]; !ok {
+				if e {
+					f.Penalty++
+				}
 			}
 		}
 	}
-	if as, ok := allowRules[f.Service]; ok {
-		if e, ok := as.Servers[f.Server]; !ok {
+	ids = append(ids, fmt.Sprintf("%s:*:*", f.Server))
+	if loc != "" {
+		ids = append(ids, fmt.Sprintf("*:*:%s", loc))
+	}
+	for _, id := range ids {
+		if e, ok := dennyRules[id]; ok {
 			if e {
 				f.Penalty++
 			}
@@ -535,32 +567,41 @@ func setFlowPenalty(f *flowEnt,ok bool) {
 	if f.ServerName == f.Server {
 		f.Penalty++
 	}
+	if f.Penalty > 0 {
+		if n, ok := badIPs[f.Client]; !ok || n < f.Penalty {
+			badIPs[f.Client] = f.Penalty
+		}
+	}
 }
 
 func setServerPenalty(s *serverEnt) {
 	loc := ""
 	if s.Loc != "" {
-		a := strings.Split(s.Loc,",")
+		a := strings.Split(s.Loc, ",")
 		if len(a) > 0 {
 			loc = a[0]
 		}
 	}
 	s.Penalty = 0
 	ids := []string{}
-	ids = append(ids,fmt.Sprintf("*:%s:*", s.Service))
-	if loc != ""{
-		ids = append(ids,fmt.Sprintf("*:*:%s", loc))
-		ids = append(ids,fmt.Sprintf("*:%s:%s", s.Service,loc))
-	}
-	for _,id := range ids {
-		if e, ok := dennyRules[id]; ok {
-			if e {
-				s.Penalty++
+	for service := range s.Services {
+		ids = append(ids, fmt.Sprintf("*:%s:*", service))
+		if loc != "" {
+			ids = append(ids, fmt.Sprintf("*:%s:%s", service, loc))
+		}
+		if as, ok := allowRules[service]; ok {
+			if e, ok := as.Servers[s.Server]; !ok {
+				if e {
+					s.Penalty++
+				}
 			}
 		}
 	}
-	if as, ok := allowRules[s.Service]; ok {
-		if e, ok := as.Servers[s.Server]; !ok {
+	if loc != "" {
+		ids = append(ids, fmt.Sprintf("*:*:%s", loc))
+	}
+	for _, id := range ids {
+		if e, ok := dennyRules[id]; ok {
 			if e {
 				s.Penalty++
 			}
@@ -575,12 +616,12 @@ func setServerPenalty(s *serverEnt) {
 func getServiceName(prot, port int) (string, bool) {
 	if p, ok := protMap[prot]; ok {
 		k := fmt.Sprintf("%d/%s", port, p)
-		if s, ok := services[k]; ok {
+		if s, ok := serviceMap[k]; ok {
 			return s, true
 		}
 		return p, false
 	}
-	return fmt.Sprintf("prot(%d)",prot), false
+	return fmt.Sprintf("prot(%d)", prot), false
 }
 
 func checkDeviceReport(r *deviceReportEnt) {
@@ -603,7 +644,7 @@ func checkDeviceReport(r *deviceReportEnt) {
 		ID:         mac,
 		IP:         ip,
 		Name:       findNameFromIP(ip),
-		Info:       oui.Find(mac),
+		Vendor:     oui.Find(mac),
 		FirstTime:  r.Time,
 		LastTime:   r.Time,
 		UpdateTime: time.Now().UnixNano(),
@@ -615,7 +656,7 @@ func checkDeviceReport(r *deviceReportEnt) {
 
 func setDevicePenalty(d *deviceEnt) {
 	// ベンダー禁止のもの
-	if d.Info == "Unknown" {
+	if d.Vendor == "Unknown" {
 		d.Penalty++
 	}
 	// ホスト名が不明なもの
@@ -674,47 +715,65 @@ func findNameFromIP(ip string) string {
 func checkOldReport() {
 	old := time.Now().Add(time.Hour * -24).UnixNano()
 	toold := time.Now().AddDate(0, 0, -mapConf.LogDays).UnixNano()
-	checkOldServers(old,toold)
-	checkOldFlows(old,toold)
+	checkOldServers(old, toold)
+	checkOldFlows(old, toold)
 	checkOldDevices(old)
 	checkOldUsers(old)
 }
 
-func checkOldServers(old,toold int64) {
-	count :=0
+func checkOldServers(old, toold int64) {
+	count := 0
 	ids := []string{}
 	for _, s := range servers {
-		if  s.LastTime < old {
-			if s.LastTime < toold || s.LastTime - s.FirstTime < 3600  * 1000 * 1000  * 1000 {
-				ids = append(ids,s.ID)
+		if s.LastTime < old {
+			if s.LastTime < toold || s.LastTime-s.FirstTime < 3600*1000*1000*1000 {
+				ids = append(ids, s.ID)
+			} else {
+				for k, n := range s.Services {
+					if n < 10 {
+						delete(s.Services, k)
+					}
+				}
+				if len(s.Services) < 1 {
+					ids = append(ids, s.ID)
+				}
 			}
 		}
 	}
-	for _,id := range ids {
-		deleteReport("servers",id)
+	for _, id := range ids {
+		deleteReport("servers", id)
 		count++
 	}
 	if count > 0 {
-		astilog.Infof("Delete Old Severs %d",count)
+		astilog.Infof("Delete Old Severs %d", count)
 	}
 }
 
-func checkOldFlows(old,toold int64) {
+func checkOldFlows(old, toold int64) {
 	count := 0
 	ids := []string{}
 	for _, f := range flows {
-		if  f.LastTime < old {
-			if f.LastTime < toold || f.LastTime - f.FirstTime < 3600  * 1000 * 1000  * 1000 {
-				ids = append(ids,f.ID)
+		if f.LastTime < old {
+			if f.LastTime < toold || f.LastTime-f.FirstTime < 3600*1000*1000*1000 {
+				ids = append(ids, f.ID)
+			} else {
+				for k, n := range f.Services {
+					if n < 10 {
+						delete(f.Services, k)
+					}
+				}
+				if len(f.Services) < 1 {
+					ids = append(ids, f.ID)
+				}
 			}
 		}
 	}
-	for _,id := range ids {
-		deleteReport("flows",id)
+	for _, id := range ids {
+		deleteReport("flows", id)
 		count++
 	}
 	if count > 0 {
-		astilog.Infof("Delete Old Flows %d",count)
+		astilog.Infof("Delete Old Flows %d", count)
 	}
 }
 
@@ -722,16 +781,16 @@ func checkOldDevices(toold int64) {
 	count := 0
 	ids := []string{}
 	for _, d := range devices {
-		if  d.LastTime < toold {
-			ids = append(ids,d.ID)
+		if d.LastTime < toold {
+			ids = append(ids, d.ID)
 		}
 	}
-	for _,id := range ids {
-		deleteReport("devices",id)
+	for _, id := range ids {
+		deleteReport("devices", id)
 		count++
 	}
 	if count > 0 {
-		astilog.Infof("Delete Old Devices %d",count)
+		astilog.Infof("Delete Old Devices %d", count)
 	}
 }
 
@@ -739,16 +798,16 @@ func checkOldUsers(toold int64) {
 	count := 0
 	ids := []string{}
 	for _, u := range users {
-		if  u.LastTime < toold {
-			ids = append(ids,u.ID)
+		if u.LastTime < toold {
+			ids = append(ids, u.ID)
 		}
 	}
-	for _,id := range ids {
-		deleteReport("users",id)
+	for _, id := range ids {
+		deleteReport("users", id)
 		count++
 	}
 	if count > 0 {
-		astilog.Infof("Delete Old Users %d",count)
+		astilog.Infof("Delete Old Users %d", count)
 	}
 }
 
@@ -757,22 +816,26 @@ func calcScore() {
 	calcServerScore()
 	calcFlowScore()
 	calcUserScore()
+	badIPs = make(map[string]int64)
 }
 
 func calcDeviceScore() {
 	var xs []float64
 	for _, d := range devices {
-		if  d.Penalty > 100 {
+		if n, ok := badIPs[d.IP]; ok {
+			d.Penalty += n
+		}
+		if d.Penalty > 100 {
 			d.Penalty = 100
 		}
-		xs = append(xs,float64(100-d.Penalty))
+		xs = append(xs, float64(100-d.Penalty))
 	}
-	m,sd := getMeanSD(&xs)
+	m, sd := getMeanSD(&xs)
 	if sd == 0 {
 		return
 	}
 	for _, d := range devices {
-		d.Score = ((10 * (float64(100 - d.Penalty) - m) / sd) + 50)
+		d.Score = ((10 * (float64(100-d.Penalty) - m) / sd) + 50)
 	}
 }
 
@@ -782,14 +845,14 @@ func calcFlowScore() {
 		if f.Penalty > 100 {
 			f.Penalty = 100
 		}
-		xs = append(xs,float64(100 - f.Penalty))
+		xs = append(xs, float64(100-f.Penalty))
 	}
-	m,sd := getMeanSD(&xs)
+	m, sd := getMeanSD(&xs)
 	if sd == 0 {
 		return
 	}
 	for _, f := range flows {
-		f.Score = ((10 * (float64(100 - f.Penalty) - m) / sd) + 50)
+		f.Score = ((10 * (float64(100-f.Penalty) - m) / sd) + 50)
 	}
 }
 
@@ -799,9 +862,9 @@ func calcUserScore() {
 		if u.Penalty > 100 {
 			u.Penalty = 100
 		}
-		xs = append(xs,float64(100- u.Penalty))
+		xs = append(xs, float64(100-u.Penalty))
 	}
-	m,sd := getMeanSD(&xs)
+	m, sd := getMeanSD(&xs)
 	if sd == 0 {
 		return
 	}
@@ -813,30 +876,30 @@ func calcUserScore() {
 func calcServerScore() {
 	var xs []float64
 	for _, s := range servers {
-		if s.Penalty > 100{
+		if s.Penalty > 100 {
 			s.Penalty = 100
 		}
-		xs = append(xs,float64(100 - s.Penalty))
+		xs = append(xs, float64(100-s.Penalty))
 	}
-	m,sd := getMeanSD(&xs)
+	m, sd := getMeanSD(&xs)
 	if sd == 0 {
 		return
 	}
 	for _, s := range servers {
-		s.Score = ((10 * (float64(100 - s.Penalty) - m) / sd) + 50)
+		s.Score = ((10 * (float64(100-s.Penalty) - m) / sd) + 50)
 	}
 }
 
-func getMeanSD(xs *[]float64) (float64,float64) {
+func getMeanSD(xs *[]float64) (float64, float64) {
 	m, err := stats.Mean(*xs)
 	if err != nil {
-		return 0,0
+		return 0, 0
 	}
 	sd, err := stats.StandardDeviation(*xs)
-	if err != nil  {
-		return 0,0
+	if err != nil {
+		return 0, 0
 	}
-	return m,sd
+	return m, sd
 }
 
 func deleteReport(report, id string) error {
@@ -867,38 +930,36 @@ func deleteReport(report, id string) error {
 
 func resetPenalty(report string) {
 	if report == "devices" {
-		for _,d := range devices{
+		for _, d := range devices {
 			d.Penalty = 0
 			setDevicePenalty(d)
 			d.UpdateTime = time.Now().UnixNano()
 		}
 		calcDeviceScore()
 	} else if report == "users" {
-		for _,u := range users {
+		for _, u := range users {
 			u.Penalty = 0
 			u.UpdateTime = time.Now().UnixNano()
 		}
 		calcUserScore()
 	} else if report == "servers" {
-		for _,s := range servers {
+		for _, s := range servers {
 			if s.Loc == "" {
 				s.Loc = getLoc(s.Server)
 			}
-			s.Penalty = 0
 			setServerPenalty(s)
 			s.UpdateTime = time.Now().UnixNano()
 		}
 		calcServerScore()
 	} else if report == "flows" {
-		for _,f := range flows {
+		for _, f := range flows {
 			if f.ServerLoc == "" {
 				f.ServerLoc = getLoc(f.Server)
 			}
 			if f.ClientLoc == "" {
 				f.ClientLoc = getLoc(f.Client)
 			}
-			f.Penalty = 0
-			setFlowPenalty(f,strings.Contains(f.Service,"/"))
+			setFlowPenalty(f)
 			f.UpdateTime = time.Now().UnixNano()
 		}
 		calcFlowScore()
@@ -913,21 +974,21 @@ func clearAllReport() error {
 	db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("report"))
 		if b != nil {
-			for _,r := range []string{"devices","flows","users","servers"} {
+			for _, r := range []string{"devices", "flows", "users", "servers"} {
 				b.DeleteBucket([]byte(r))
 				b.CreateBucketIfNotExists([]byte(r))
 			}
 		}
 		return nil
 	})
-	devices        = make(map[string]*deviceEnt)
-	users          = make(map[string]*userEnt)
-	flows          = make(map[string]*flowEnt)
-	servers          = make(map[string]*serverEnt)
+	devices = make(map[string]*deviceEnt)
+	users = make(map[string]*userEnt)
+	flows = make(map[string]*flowEnt)
+	servers = make(map[string]*serverEnt)
 	return nil
 }
 
-func loadServices(path string) error {
+func loadServiceMap(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -948,26 +1009,26 @@ func loadServices(path string) error {
 		if len(a) > 1 {
 			sn += "/" + a[1]
 		}
-		services[f[1]] = sn
+		serviceMap[f[1]] = sn
 	}
 	return nil
 }
 
-func addAllowRule(service,server string) error {
+func addAllowRule(service, server string) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	as,ok := allowRules[service]
+	as, ok := allowRules[service]
 	if ok {
 		as.Servers[server] = true
 	} else {
-		as = &allowRuleEnt {
+		as = &allowRuleEnt{
 			Service: service,
-			Servers: map[string]bool{server:true},
+			Servers: map[string]bool{server: true},
 		}
 		allowRules[service] = as
 	}
-	js,err := json.Marshal(as)
+	js, err := json.Marshal(as)
 	if err != nil {
 		return err
 	}
@@ -976,7 +1037,7 @@ func addAllowRule(service,server string) error {
 		if b != nil {
 			r := b.Bucket([]byte("allows"))
 			if r != nil {
-				r.Put([]byte(service),js)
+				r.Put([]byte(service), js)
 			}
 		}
 		return nil
@@ -987,20 +1048,20 @@ func deleteAllowRule(id string) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	a := strings.Split(id,":")
+	a := strings.Split(id, ":")
 	if len(a) != 2 {
-		return fmt.Errorf("deleteAllowRule bad id %s",id)
+		return fmt.Errorf("deleteAllowRule bad id %s", id)
 	}
-	server  := a[0]
+	server := a[0]
 	service := a[1]
-	as,ok := allowRules[service]
+	as, ok := allowRules[service]
 	if !ok {
 		return nil
 	}
-	delete(as.Servers,server)
+	delete(as.Servers, server)
 	js := []byte{}
 	if len(as.Servers) > 0 {
-		js,_ = json.Marshal(as)
+		js, _ = json.Marshal(as)
 	}
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("report"))
@@ -1010,7 +1071,7 @@ func deleteAllowRule(id string) error {
 				if len(js) < 1 {
 					r.Delete([]byte(service))
 				} else {
-					r.Put([]byte(service),js)
+					r.Put([]byte(service), js)
 				}
 			}
 		}
@@ -1023,7 +1084,7 @@ func addDennyRule(id string) error {
 		return errDBNotOpen
 	}
 	dennyRules[id] = true
-	js,err := json.Marshal(dennyRules[id])
+	js, err := json.Marshal(dennyRules[id])
 	if err != nil {
 		return err
 	}
@@ -1031,8 +1092,8 @@ func addDennyRule(id string) error {
 		b := tx.Bucket([]byte("report"))
 		if b != nil {
 			r := b.Bucket([]byte("dennys"))
-			if r != nil {	
-				r.Put([]byte(id),js)
+			if r != nil {
+				r.Put([]byte(id), js)
 			}
 		}
 		return nil
@@ -1043,11 +1104,11 @@ func deleteDennyRule(id string) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	_,ok := dennyRules[id]
+	_, ok := dennyRules[id]
 	if !ok {
 		return nil
 	}
-	delete(dennyRules,id)
+	delete(dennyRules, id)
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("report"))
 		if b != nil {
