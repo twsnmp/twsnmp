@@ -505,6 +505,14 @@ function addRuleFromFlow() {
 }
 
 function addRulePane(e) {
+  const a = e.Service.split(",");
+  const serviceOpt = {};
+  for(let i = 0; i < a.length;i++){
+    serviceOpt[a[i]] = a[i];
+  }
+  if(a.length>0){
+    e.Service = a[0];
+  }
   pane = new Tweakpane({
     title: "新規ルール"
   });
@@ -521,7 +529,7 @@ function addRulePane(e) {
   });
   pane.addMonitor(e, 'Server', { label: "サーバー",interval:60000 });
   pane.addMonitor(e, 'ServerName', { label: "サーバー名",interval:60000 });
-  pane.addMonitor(e, 'Service', { label: "サービス",interval:60000 });
+  pane.addInput(e, 'Service', { label: "サービス",options: serviceOpt});
   pane.addMonitor(e, 'Loc', { label: "サーバー位置",interval:60000 });
   pane.addButton({
     title: 'Cancel',
