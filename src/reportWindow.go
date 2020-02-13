@@ -40,6 +40,8 @@ func reportMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interfa
 		return deleteReportEnt(&m, "flows")
 	case "resetReport":
 		return resetReportEnt(&m)
+	case "showLoc":
+		return openBrowser(&m)
 	}
 	astilog.Errorf("Unknow Message Name=%s", m.Name)
 	return "ok", nil

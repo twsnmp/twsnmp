@@ -351,6 +351,10 @@ document.addEventListener('astilectron-ready', function () {
     addRuleFromReportEnt();
   });
 
+  $('.report_btns button.showloc').click(() => {
+    showLoc();
+  });
+
   $('.rules_btns button.delete').click(() => {
     deleteRule();
   });
@@ -371,7 +375,7 @@ function getSelectedID(t) {
 }
 
 function setReportBtns(show){
-  const btns = ["delete","add"];
+  const btns = ["delete","add","showloc"];
   btns.forEach( b =>{
     if(!show || (b=="add" && (currentPage=="devices" || currentPage =="users") )) {
       $('.report_btns button.'+ b).addClass("hidden");
@@ -500,7 +504,7 @@ function addRuleFromFlow() {
     Server: d[4],
     ServerName:d[5],
     Service: d[13],
-    Loc: d[10],
+    Loc: d[6],
   });
 }
 
@@ -567,6 +571,62 @@ function deleteRule() {
     const r = rulesTable.row('.selected');
     if (r) {
       r.remove().draw(false);
+    }
+  });
+}
+
+function showLoc() {
+  switch(currentPage) {
+    case "servers":
+      showLocServer();
+      break;
+    case "flows":
+      showLocFlow();
+      break;
+  }
+}
+
+function showLocServer() {
+  const r = serversTable.row('.selected');
+  if (!r) {
+    return;
+  }
+  const d = r.data();
+  if( !d || d.length < 10){
+    return;
+  }
+  const loc = d[7].split(",");
+  if(loc.length < 4|| loc[0] == "LOCAL"){
+    return;
+  }
+  sendShowLoc(loc[1],loc[2]);
+}
+
+function showLocFlow() {
+  const r = flowsTable.row('.selected');
+  if (!r) {
+    return;
+  }
+  const d = r.data();
+  if( !d || d.length < 10){
+    return;
+  }
+  let loc = d[6].split(",");
+  if(loc.length < 4|| loc[0] == "LOCAL"){
+    loc = d[3].split(",");
+    if(loc.length < 4|| loc[0] == "LOCAL"){
+      return;
+    }
+  }
+  sendShowLoc(loc[1],loc[2]);
+}
+
+function sendShowLoc(lat,long){
+  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${long}&zoom=12`;
+  astilectron.sendMessage({ name: "showLoc", payload: url }, message => {
+    if (message.payload != "ok" ) {
+      astilectron.showErrorBox("レポート", "位置を表示できません。");
+      return;
     }
   });
 }
