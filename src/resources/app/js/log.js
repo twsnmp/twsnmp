@@ -447,6 +447,13 @@ function makeCharts() {
     title: {
       show: false,
     },
+    backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+      offset: 0,
+      color: '#4b5769'
+    }, {
+      offset: 1,
+      color: '#404a59'
+    }]),
     tooltip: {
       trigger: 'axis',
       formatter: function (params) {
@@ -465,11 +472,23 @@ function makeCharts() {
     },
     xAxis: {
       type: 'time',
+      name: '日時',
       axisLabel:{
+        color:"#ccc",
         fontSize: "8px",
         formatter: function (value, index) {
           var date = new Date(value);
           return echarts.format.formatTime('MM/dd hh:mm', date)
+        }
+      },
+      nameTextStyle:{
+        color:"#ccc",
+        fontSize: 10,
+        margin: 2,
+      },
+      axisLine: {
+        lineStyle:{
+          color: '#ccc'
         }
       },
       splitLine: {
@@ -478,6 +497,22 @@ function makeCharts() {
     },
     yAxis: {
       type: 'value',
+      name: '件数',
+      nameTextStyle:{
+        color:"#ccc",
+        fontSize: 10,
+        margin: 2,
+      },
+      axisLine: {
+        lineStyle:{
+          color: '#ccc'
+        }
+      },
+      axisLabel:{
+        color:"#ccc",
+        fontSize: 8,
+        margin: 2,
+      },  
     },
     series: [{
       type: 'bar',

@@ -73,6 +73,13 @@ function makeLogChart() {
     title: {
       show: false,
     },
+    backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+      offset: 0,
+      color: '#4b5769'
+    }, {
+      offset: 1,
+      color: '#404a59'
+    }]),
     tooltip: {
       trigger: 'axis',
       formatter: function (params) {
@@ -92,11 +99,22 @@ function makeLogChart() {
     xAxis: {
       type: 'time',
       name: '日時',
+      nameTextStyle:{
+        color:"#ccc",
+        fontSize: 10,
+        margin: 2,
+      },
       axisLabel:{
+        color:"#ccc",
         fontSize: "8px",
         formatter: function (value, index) {
           var date = new Date(value);
           return echarts.format.formatTime('MM/dd hh:mm', date)
+        }
+      },
+      axisLine: {
+        lineStyle:{
+          color: '#ccc'
         }
       },
       splitLine: {
@@ -106,6 +124,21 @@ function makeLogChart() {
     yAxis: {
       name: '件数',
       type: 'value',
+      nameTextStyle:{
+        color:"#ccc",
+        fontSize: 10,
+        margin: 2,
+      },
+      axisLabel:{
+        color:"#ccc",
+        fontSize: 8,
+        margin: 2,
+      },  
+      axisLine: {
+        lineStyle:{
+          color: '#ccc'
+        }
+      },
     },
     series: [{
       type: 'bar',
@@ -126,21 +159,69 @@ function  makeStateChart(){
               type : 'shadow'
           }
       },
+      backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+        offset: 0,
+        color: '#4b5769'
+      }, {
+        offset: 1,
+        color: '#404a59'
+      }]),
       color:[ "#e31a1c","#fb9a99","#dfdf22","#33a02c","#999"],
       legend: {
-          data: ['重度','軽度','注意','正常','不明']
+        orient: "vertical",
+        top:   50,
+        right: 10,
+        textStyle:{
+          fontSize: 10,
+          color: "#ccc",
+        },
+        data: ['重度','軽度','注意','正常','不明']
       },
       grid: {
+          top: '3%',
           left: '7%',
-          right: '4%',
+          right: '10%',
           bottom: '3%',
           containLabel: true
       },
       xAxis:  {
-          type: 'value'
-      },
+          type: 'value',
+          name: '件数',
+          nameTextStyle:{
+            color:"#ccc",
+            fontSize: 10,
+            margin: 2,
+          },
+          axisLabel:{
+            color:"#ccc",
+            fontSize: 10,
+            margin: 2,
+          },
+          axisLine: {
+            lineStyle:{
+              color: '#ccc'
+            }
+          }
+        },
       yAxis: {
           type: 'category',
+          name: '時間帯',
+          axisLine: {
+            show:false,
+          },
+          axisTick:{
+            show:false,
+          },
+          axisLabel:{
+            color:"#ccc",
+            fontSize: 8,
+            margin: 2,
+          },  
+          nameTextStyle:{
+            color:"#ccc",
+            fontSize: 10,
+            margin: 2,
+          },
           data: []
       },
       series: [
@@ -185,6 +266,13 @@ function makeResultChart() {
     title: {
       show: false,
     },
+    backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+      offset: 0,
+      color: '#4b5769'
+    }, {
+      offset: 1,
+      color: '#404a59'
+    }]),
     tooltip: {
       trigger: 'axis',
       formatter: function (params) {
@@ -204,11 +292,22 @@ function makeResultChart() {
     xAxis: {
       type: 'time',
       name: '日時',
+      nameTextStyle:{
+        color:"#ccc",
+        fontSize: 10,
+        margin: 2,
+      },
       axisLabel:{
+        color:"#ccc",
         fontSize: "8px",
         formatter: function (value, index) {
           var date = new Date(value);
           return echarts.format.formatTime('MM/dd hh:mm', date)
+        }
+      },
+      axisLine: {
+        lineStyle:{
+          color: '#ccc'
         }
       },
       splitLine: {
@@ -217,6 +316,21 @@ function makeResultChart() {
     },
     yAxis: {
       type: 'value',
+      nameTextStyle:{
+        color:"#ccc",
+        fontSize: 10,
+        margin: 2,
+      },
+      axisLabel:{
+        color:"#ccc",
+        fontSize: 8,
+        margin: 2,
+      },  
+      axisLine: {
+        lineStyle:{
+          color: '#ccc'
+        }
+      },
     },
     series: [{
       color: "#1f78b4",
@@ -235,6 +349,13 @@ function makeAILossChart() {
     title: {
       show: false,
     },
+    backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+      offset: 0,
+      color: '#4b5769'
+    }, {
+      offset: 1,
+      color: '#404a59'
+    }]),
     tooltip: {
       trigger: 'axis',
       formatter: function (params) {
@@ -254,8 +375,14 @@ function makeAILossChart() {
     xAxis: {
       type: 'time',
       name: '時刻',
+      nameTextStyle:{
+        color:"#ccc",
+        fontSize: 10,
+        margin: 2,
+      },
       axisLabel:{
         fontSize: "8px",
+        color: '#ccc',
         formatter: function (value, index) {
           var date = new Date(value);
           return echarts.format.formatTime('hh:mm:ss', date)
@@ -264,10 +391,30 @@ function makeAILossChart() {
       splitLine: {
         show: false
       },
+      axisLine: {
+        lineStyle:{
+          color: '#ccc'
+        }
+      }
     },
     yAxis: {
       type: 'value',
       name: '誤差',
+      nameTextStyle:{
+        color:"#ccc",
+        fontSize: 10,
+        margin: 2,
+      },
+      axisLabel:{
+        color:"#ccc",
+        fontSize: 10,
+        margin: 2,
+      },
+      axisLine: {
+        lineStyle:{
+          color: '#ccc'
+        }
+      }
     },
     series: [{
       color: "#1f78b4",
@@ -291,6 +438,13 @@ function makeAIHeatmap() {
     title: {
       show: false,
     },
+    backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+      offset: 0,
+      color: '#4b5769'
+    }, {
+      offset: 1,
+      color: '#404a59'
+    }]),
     grid: {
       left: "10%",
       right:"5%",
@@ -309,16 +463,50 @@ function makeAIHeatmap() {
     xAxis: {
         type: 'category',
         name: '日付',
+        nameTextStyle:{
+          color:"#ccc",
+          fontSize: 10,
+          margin: 2,
+        },
+        axisLabel:{
+          color:"#ccc",
+          fontSize: 10,
+          margin: 2,
+        },
+        axisLine: {
+          lineStyle:{
+            color: '#ccc'
+          }
+        },
         data: []
     },
     yAxis: {
         type: 'category',
         name: '時間帯',
+        nameTextStyle:{
+          color:"#ccc",
+          fontSize: 10,
+          margin: 2,
+        },
+        axisLabel:{
+          color:"#ccc",
+          fontSize: 10,
+          margin: 2,
+        },
+        axisLine: {
+          lineStyle:{
+            color: '#ccc'
+          }
+        },
         data: hours
     },
     visualMap: {
         min: 40,
         max: 100,
+        textStyle: {
+          color: '#ccc',
+          fontSize: 8
+        },
         calculable: true,
         realtime: false,
         inRange: {
@@ -331,7 +519,7 @@ function makeAIHeatmap() {
         data: [],
         emphasis: {
             itemStyle: {
-                borderColor: '#333',
+                borderColor: '#ccc',
                 borderWidth: 1
             }
         },
@@ -342,7 +530,6 @@ function makeAIHeatmap() {
   aiHeatmap = echarts.init(document.getElementById('ai_heatmap'));
   aiHeatmap.setOption(option);
   aiHeatmap.on('dblclick', function (params) {
-//    console.log(params);
     const d = params.name + ' ' + params.data[1] + ":00:00"; 
     $(".toolbar-actions input[name=start]").val(moment(d).subtract(1, "h").format("Y-MM-DDTHH:00"));
     $(".toolbar-actions input[name=end]").val(moment(d).add(1,"h").format("Y-MM-DDTHH:00"));
