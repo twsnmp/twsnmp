@@ -100,8 +100,6 @@ func main() {
 			AppName:            AppName,
 			AppIconDarwinPath:  "resources/twsnmp.icns",
 			AppIconDefaultPath: "resources/twsnmp.png",
-			// VersionAstilectron: "0.34.0",
-			// VersionElectron:    "4.0.1",
 		},
 		Debug: *debug,
 		MenuOptions: []*astilectron.MenuItemOptions{{
@@ -402,7 +400,7 @@ func main() {
 					Maximizable:    astikit.BoolPtr(false),
 					Minimizable:    astikit.BoolPtr(true),
 					Width:          astikit.IntPtr(1200),
-					Height:         astikit.IntPtr(860),
+					Height:         astikit.IntPtr(980),
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astikit.BoolPtr(true),
 					},
