@@ -17,8 +17,13 @@ function createMapConfPane() {
   f1.addButton({
     title: '背景画像ファイル選択',
   }).on('click', (value) => {
-    astilectron.showOpenDialog({ properties: ['openFile'], title: "背景画像ファイル" }, function (paths) {
-      if(pasts && paths.length > 0) {
+    dialog.showOpenDialog({ properties: ['openFile'], title: "背景画像ファイル" })
+    .then(r => {
+      if(r.canceled){
+        return;
+      }
+      const paths = r.filePaths;
+      if(paths && paths.length > 0) {
         mapConfTmp.BackImg = paths[0];
       }
       pane.refresh();
@@ -119,7 +124,12 @@ function createMapConfPane() {
   f5.addButton({
     title: 'ファイル選択',
   }).on('click', (value) => {
-    astilectron.showOpenDialog({ properties: ['openFile'], title: "GeoIP DB" }, function (paths) {
+    dialog.showOpenDialog({ properties: ['openFile'], title: "GeoIP DB" })
+    .then(r => {
+      if(r.canceled){
+        return;
+      }
+      const paths = r.filePaths;
       if(paths && paths.length > 0) {
         mapConfTmp.GeoIPPath = paths[0];
       }
@@ -137,12 +147,12 @@ function createMapConfPane() {
   }).on('click', (value) => {
     // Check Values
     if( mapConfTmp.MapName == "" ){
-      astilectron.showErrorBox("マップ設定", "マップ名を指定してください。");
+      dialog.showErrorBox("マップ設定", "マップ名を指定してください。");
       return;
     }
     astilectron.sendMessage({ name: "mapConf", payload: mapConfTmp }, message => {
       if(message.payload !== "ok") {
-        astilectron.showErrorBox("マップ設定", "保存に失敗しました。");
+        dialog.showErrorBox("マップ設定", "保存に失敗しました。");
         return;
       }
       mapConf = mapConfTmp;
@@ -210,9 +220,9 @@ function createNotifyConfPane() {
   }).on('click', (value) => {
     astilectron.sendMessage({ name: "notifyTest", payload: notifyConfTmp }, message => {
       if(message.payload !== "ok") {
-        astilectron.showErrorBox("試験通知", "送信に失敗しました。");
+        dialog.showErrorBox("試験通知", "送信に失敗しました。");
       } else {
-        astilectron.showErrorBox("通信通知", "送信しました。");
+        dialog.showErrorBox("通信通知", "送信しました。");
       }
       return
     });
@@ -221,12 +231,12 @@ function createNotifyConfPane() {
     title: 'Save',
   }).on('click', (value) => {
     if( notifyConfTmp.Subject == "" ){
-      astilectron.showErrorBox("通知設定", "件名を指定してください。");
+      dialog.showErrorBox("通知設定", "件名を指定してください。");
       return;
     }
     astilectron.sendMessage({ name: "notifyConf", payload: notifyConfTmp }, message => {
       if(message.payload !== "ok") {
-        astilectron.showErrorBox("通知設定", "保存に失敗しました。");
+        dialog.showErrorBox("通知設定", "保存に失敗しました。");
         return;
       }
       notifyConf = notifyConfTmp;
@@ -243,7 +253,7 @@ function createStartDiscoverPane(x,y) {
   }
   astilectron.sendMessage({ name: "getDiscover", payload: "" }, message => {
     if(!message.payload.Conf) {
-      astilectron.showErrorBox("自動発見", "設定を取得できません。");
+      dialog.showErrorBox("自動発見", "設定を取得できません。");
       return;
     }
     const discoverConf = message.payload.Conf;
@@ -283,12 +293,12 @@ function createStartDiscoverPane(x,y) {
     }).on('click', (value) => {
       // Check Values
       if (discoverConf.StartIP === "" || discoverConf.EndIP === ""  ) {
-        astilectron.showErrorBox("範囲指定エラー", "開始、終了IPアドレスが正しくありません。")
+        dialog.showErrorBox("範囲指定エラー", "開始、終了IPアドレスが正しくありません。")
         return;
       }
       astilectron.sendMessage({ name: "startDiscover", payload: discoverConf }, message => {
         if(message.payload !== "ok") {
-          astilectron.showErrorBox("自動発見", "開始できません。");
+          dialog.showErrorBox("自動発見", "開始できません。");
           return;
         }
       });
@@ -366,7 +376,7 @@ function createDiscoverStatPane(ds){
   }).on('click', (value) => {
     astilectron.sendMessage({ name: "stopDiscover", payload: "" }, message => {
       if(message.payload !== "ok") {
-        astilectron.showErrorBox("自動発見", "停止できません。");
+        dialog.showErrorBox("自動発見", "停止できません。");
         return;
       }
     });
@@ -389,7 +399,7 @@ function createDiscoverStatPane(ds){
         }
         if (!s.Running) {
           setTimeout(()=>{
-            astilectron.showMessageBox({message: "自動発見完了しました。", title: "自動発見完了"});
+            dialog.showMessageBox({message: "自動発見完了しました。", title: "自動発見完了"});
             pane.dispose();
             pane = undefined;
           },1500);
@@ -462,12 +472,12 @@ function createEditNodePane(x,y,nodeID) {
   }).on('click', (value) => {
     // Check Values
     if( node.Name == "" ){
-      astilectron.showErrorBox("ノード編集", "名前を指定してください。");
+      dialog.showErrorBox("ノード編集", "名前を指定してください。");
       return;
     }
     astilectron.sendMessage({ name: "saveNode", payload: node }, message => {
       if(message.payload !== "ok") {
-        astilectron.showErrorBox("ノード編集", "保存に失敗しました。");
+        dialog.showErrorBox("ノード編集", "保存に失敗しました。");
         return;
       }
     });
@@ -482,7 +492,7 @@ function createEditLinePane(nodeID1,nodeID2) {
   }
   astilectron.sendMessage({ name: "getLine", payload: {NodeID1:nodeID1,NodeID2:nodeID2} }, message => {
     if(!message.payload) {
-      astilectron.showErrorBox("ライン編集", "ライン情報を取得できません。");
+      dialog.showErrorBox("ライン編集", "ライン情報を取得できません。");
       return;
     }
     const lineDlg  = message.payload;
@@ -524,7 +534,7 @@ function createEditLinePane(nodeID1,nodeID2) {
       }).on('click', (value) => {
         astilectron.sendMessage({ name: "deleteLine", payload: line }, message => {
           if(message.payload !== "ok") {
-            astilectron.showErrorBox("ライン編集", "削除に失敗しました。");
+            dialog.showErrorBox("ライン編集", "削除に失敗しました。");
             return;
           }
         });
@@ -537,12 +547,12 @@ function createEditLinePane(nodeID1,nodeID2) {
     }).on('click', (value) => {
       // Check Values
       if( line.PollingID1 === "" || line.PollingID1 === ""  ){
-        astilectron.showErrorBox("ライン編集", "ポーリングを指定してください。");
+        dialog.showErrorBox("ライン編集", "ポーリングを指定してください。");
         return;
       }
       astilectron.sendMessage({ name: "saveLine", payload: line }, message => {
         if(message.payload !== "ok") {
-          astilectron.showErrorBox("ライン編集", "保存に失敗しました。");
+          dialog.showErrorBox("ライン編集", "保存に失敗しました。");
           return;
         }
       });
@@ -558,7 +568,7 @@ function createMIBDBPane() {
   }
   astilectron.sendMessage({ name: "getMIBModuleList", payload: "" }, message => {
     if(!message.payload) {
-      astilectron.showErrorBox("MIBデータベース", "リストを取得できません。");
+      dialog.showErrorBox("MIBデータベース", "リストを取得できません。");
       return;
     }
     const MIBModuleList = {} 
@@ -572,11 +582,16 @@ function createMIBDBPane() {
     pane.addButton({
       title: 'MIB追加',
     }).on('click', (value) => {
-      astilectron.showOpenDialog({ properties: ['openFile'], title: "MIB追加" }, function (paths) {
+      dialog.showOpenDialog({ properties: ['openFile'], title: "MIB追加" })
+      .then(r => {
+        if(r.canceled){
+          return;
+        }
+        const paths = r.filePaths;
         if(paths && paths[0]){
           astilectron.sendMessage({ name: "addMIBFile", payload: paths[0] }, message => {
             if(message.payload !== "ok") {
-              astilectron.showErrorBox("MIBファイル追加",message.payload);
+              dialog.showErrorBox("MIBファイル追加",message.payload);
               return
             }
             pane.dispose();
@@ -597,7 +612,7 @@ function createMIBDBPane() {
       if(tmpParams.MIBModule){
         astilectron.sendMessage({ name: "delMIBModule", payload: tmpParams.MIBModule }, message => {
           if(message.payload !== "ok") {
-            astilectron.showErrorBox("MIB削除",message.payload);
+            dialog.showErrorBox("MIB削除",message.payload);
             return
           }
           pane.dispose();
@@ -628,7 +643,7 @@ function createActionPane() {
     }
     astilectron.sendMessage({ name: "resetArpTable", payload: "" }, message => {
       if(message.payload !== "ok") {
-        astilectron.showErrorBox("ARPリセット", "ARP監視をリセットできません。");
+        dialog.showErrorBox("ARPリセット", "ARP監視をリセットできません。");
         return;
       }
       pane.dispose();

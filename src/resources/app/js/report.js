@@ -27,11 +27,11 @@ function showDevices() {
   astilectron.sendMessage({ name: "getDevices", payload: "" }, message => {
     let devices =message.payload;
     if (devices == "ng") {
-      astilectron.showErrorBox("レポート", "レポートを取得できません。");
+      dialog.showErrorBox("レポート", "レポートを取得できません。");
       // 表示をクリアするため
       devices = [];
     } else if (devices.length < 1 ) {
-      astilectron.showErrorBox("レポート", "該当するデータがありません。");
+      dialog.showErrorBox("レポート", "該当するデータがありません。");
     }
     const vendorMap = {};
     for (let i = 0 ;i < devices.length;i++) {
@@ -59,11 +59,11 @@ function showUsers(){
   astilectron.sendMessage({ name: "getUsers", payload: "" }, message => {
     let users =message.payload;
     if (users == "ng") {
-      astilectron.showErrorBox("レポート", "レポートを取得できません。");
+      dialog.showErrorBox("レポート", "レポートを取得できません。");
       // 表示をクリアするため
       users = [];
     } else if (users.length < 1 ) {
-      astilectron.showErrorBox("レポート", "該当するデータがありません。");
+      dialog.showErrorBox("レポート", "該当するデータがありません。");
     }  
     for (let i = 0 ;i < users.length;i++) {
       const u = users[i]
@@ -83,11 +83,11 @@ function showServers(){
   astilectron.sendMessage({ name: "getServers", payload: "" }, message => {
     let servers =message.payload;
     if (users == "ng") {
-      astilectron.showErrorBox("レポート", "レポートを取得できません。");
+      dialog.showErrorBox("レポート", "レポートを取得できません。");
       // 表示をクリアするため
       servers = [];
     } else if (servers.length < 1 ) {
-      astilectron.showErrorBox("レポート", "該当するデータがありません。");
+      dialog.showErrorBox("レポート", "該当するデータがありません。");
     }
     for (let i = 0 ;i < servers.length;i++) {
       const s = servers[i]
@@ -111,11 +111,11 @@ function showFlows() {
   astilectron.sendMessage({ name: "getFlows", payload: "" }, message => {
     let flows = message.payload;
     if ( flows == "ng") {
-      astilectron.showErrorBox("レポート", "レポートを取得できません。");
+      dialog.showErrorBox("レポート", "レポートを取得できません。");
       // 表示をクリアするため
       flows = [];
     } else if (flows.length < 1 ) {
-      astilectron.showErrorBox("レポート", "該当するデータがありません。");
+      dialog.showErrorBox("レポート", "該当するデータがありません。");
     }
     for (let i = 0 ;i < flows.length;i++) {
       const f = flows[i]
@@ -310,7 +310,7 @@ document.addEventListener('astilectron-ready', function () {
         return { name: "show", payload: "ok" };
       case "error":
         setTimeout(() => {
-          astilectron.showErrorBox("エラー", message.payload);
+          dialog.showErrorBox("エラー", message.payload);
         }, 100);
         return { name: "error", payload: "ok" };
     }
@@ -402,7 +402,7 @@ function resetReportEnt() {
   astilectron.sendMessage({ name:"resetReport", payload: currentPage }, message => {
     $('#wait').addClass("hidden");
     if (message.payload != "ok" ) {
-      astilectron.showErrorBox("レポート", "信用スコアを再計算できません。");
+      dialog.showErrorBox("レポート", "信用スコアを再計算できません。");
       return;
     }
     setTimeout(function(){
@@ -454,7 +454,7 @@ function deleteReportEnt() {
   }
   astilectron.sendMessage({ name: cmd, payload: id }, message => {
     if (message.payload != "ok" ) {
-      astilectron.showErrorBox("レポート", "削除できません。");
+      dialog.showErrorBox("レポート", "削除できません。");
       return;
     }
     const r = t.row('.selected');
@@ -546,7 +546,7 @@ function addRulePane(e) {
   }).on('click', (value) => {
     astilectron.sendMessage({ name: "addRule", payload: e }, message => {
       if(message.payload !== "ok") {
-        astilectron.showErrorBox("新規ルール", "追加に失敗しました。");
+        dialog.showErrorBox("新規ルール", "追加に失敗しました。");
         return;
       }
     });
@@ -565,7 +565,7 @@ function deleteRule() {
   }
   astilectron.sendMessage({ name: "deleteRules", payload: id }, message => {
     if (message.payload != "ok" ) {
-      astilectron.showErrorBox("レポート", "ルールを削除できません。");
+      dialog.showErrorBox("レポート", "ルールを削除できません。");
       return;
     }
     const r = rulesTable.row('.selected');
@@ -625,7 +625,7 @@ function sendShowLoc(lat,long){
   const url = `https://www.google.com/maps/search/?api=1&query=${lat},${long}&zoom=12`;
   astilectron.sendMessage({ name: "showLoc", payload: url }, message => {
     if (message.payload != "ok" ) {
-      astilectron.showErrorBox("レポート", "位置を表示できません。");
+      dialog.showErrorBox("レポート", "位置を表示できません。");
       return;
     }
   });

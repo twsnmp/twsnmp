@@ -45,6 +45,7 @@
   </div>
   <script>
     'use strict';
+    const { dialog } = require('electron').remote
     document.addEventListener('astilectron-ready', function () {
       astilectron.onMessage(function (message) {
         switch (message.name) {
@@ -53,7 +54,7 @@
             return { name: "selectDB", payload: "ok" };
           case "error":
             setTimeout(() => {
-              astilectron.showErrorBox("エラー", message.payload);
+              dialog.showErrorBox("エラー", message.payload);
             }, 100);
             return { name: "error", payload: "ok" };
         }
@@ -63,19 +64,28 @@
         });
       });
       $('#new').click(()=>{
-        astilectron.showSaveDialog({title: "TWSNMP DB File"}, function(filename) {
-          astilectron.sendMessage({ name: "start", payload: filename }, message => {
+        dialog.showSaveDialog({title: "TWSNMP DB File"})
+        .then(r => {
+          if(r.canceled || !r.filePath || r.filePath.length < 1 ){
+            return;
+          }
+          astilectron.sendMessage({ name: "start", payload: r.filePath }, message => {
             if(message.payload != "") {
-              astilectron.showErrorBox("エラー", message.payload);
+              dialog.showErrorBox("エラー", message.payload);
             }
           });
         });
       });
       $('#open').click(()=>{
-        astilectron.showOpenDialog({ properties: ['openFile'], title: "TWSNMP DB File" }, function (paths) {
+        dialog.showOpenDialog({ properties: ['openFile'], title: "TWSNMP DB File" })
+        .then(r => {
+          if(r.canceled){
+            return;
+          }
+          const paths = r.filePaths;
           astilectron.sendMessage({ name: "start", payload: paths[0] }, message => {
             if(message.payload != "") {
-              astilectron.showErrorBox("エラー", message.payload);
+              dialog.showErrorBox("エラー", message.payload);
             }
           });
         });

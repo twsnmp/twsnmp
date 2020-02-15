@@ -100,8 +100,8 @@ func main() {
 			AppName:            AppName,
 			AppIconDarwinPath:  "resources/twsnmp.icns",
 			AppIconDefaultPath: "resources/twsnmp.png",
-			VersionAstilectron: "0.34.0",
-			VersionElectron:    "4.0.1",
+			// VersionAstilectron: "0.34.0",
+			// VersionElectron:    "4.0.1",
 		},
 		Debug: *debug,
 		MenuOptions: []*astilectron.MenuItemOptions{{

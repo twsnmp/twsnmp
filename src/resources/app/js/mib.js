@@ -104,7 +104,7 @@ document.addEventListener('astilectron-ready', function () {
         return { name: "setNodeID", payload: "ok" };
       case "error":
         setTimeout(() => {
-          astilectron.showErrorBox("エラー", message.payload);
+          dialog.showErrorBox("エラー", message.payload);
         }, 100);
         return { name: "error", payload: "ok" };
     }
@@ -126,7 +126,7 @@ document.addEventListener('astilectron-ready', function () {
       const vbl = message.payload;
       if(typeof vbl === "string"){
         setTimeout(() => {
-          astilectron.showErrorBox("エラー", message.payload);
+          dialog.showErrorBox("エラー", message.payload);
         }, 100);
         return;
       }

@@ -26,11 +26,11 @@ function searchLog() {
   astilectron.sendMessage({ name: "searchLog", payload: filter }, message => {
     $('#wait').addClass("hidden");
     if (message.payload == "ng") {
-      astilectron.showErrorBox("ログ表示", "ログを取得できません。");
+      dialog.showErrorBox("ログ表示", "ログを取得できません。");
       // ログ表示をクリアするため
       message.payload = [];
     } else if (message.payload.length < 1 ) {
-      astilectron.showErrorBox("ログ表示", "該当するログがありません。");
+      dialog.showErrorBox("ログ表示", "該当するログがありません。");
     } else {
       if(filter.Filter &&  !searchHistory.includes(filter.Filter)){
         searchHistory.push(filter.Filter);
@@ -56,7 +56,7 @@ function searchLog() {
         showArp(message.payload);
         break;
       default:
-        astilectron.showErrorBox("ログ表示", "内部エラー表示内容の不整合");
+        dialog.showErrorBox("ログ表示", "内部エラー表示内容の不整合");
     }
   });
 }
@@ -518,7 +518,7 @@ document.addEventListener('astilectron-ready', function () {
         return { name: "show", payload: "ok" };
       case "error":
         setTimeout(() => {
-          astilectron.showErrorBox("エラー", message.payload);
+          dialog.showErrorBox("エラー", message.payload);
         }, 100);
         return { name: "error", payload: "ok" };
     }

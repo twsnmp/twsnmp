@@ -1,5 +1,5 @@
 'use strict';
-
+const { dialog } = require('electron').remote
 let epoch = 20;
 console.log(tf.getBackend());
 
@@ -23,7 +23,7 @@ document.addEventListener('astilectron-ready', function () {
         return { name: "clearAllAIMoldes", payload: "ok" };
       case "error":
         setTimeout(() => {
-          astilectron.showErrorBox("エラー", message.payload);
+          dialog.showErrorBox("エラー", message.payload);
         }, 100);
         return { name: "error", payload: "ok" };
     }

@@ -441,7 +441,7 @@ document.addEventListener('astilectron-ready', function () {
         return { name: "setParams", payload: "ok" };
       case "error":
         setTimeout(() => {
-          astilectron.showErrorBox("エラー", message.payload);
+          dialog.showErrorBox("エラー", message.payload);
         }, 100);
         return { name: "error", payload: "ok" };
     }
@@ -489,7 +489,7 @@ document.addEventListener('astilectron-ready', function () {
       const logs = message.payload;
       if(typeof logs === "string"){
         setTimeout(() => {
-          astilectron.showErrorBox("エラー", message.payload);
+          dialog.showErrorBox("エラー", message.payload);
         }, 100);
         return;
       }
@@ -652,7 +652,7 @@ function updateAIPage() {
     const aiData = message.payload;
     if(!aiData || aiData.ScoreData.length < 1){
       setTimeout(() => {
-        astilectron.showErrorBox("AI分析", "該当する分析データがありません。");
+        dialog.showErrorBox("AI分析", "該当する分析データがありません。");
       }, 100);
       return;
     }

@@ -1,5 +1,5 @@
 'use strict';
-
+const { dialog } = require('electron').remote
 // ICONS
 const iconArray =[
   ["desktop",0xf108],

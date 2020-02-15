@@ -9,7 +9,7 @@ let nodes = {};
 function setupPolling() {
   astilectron.sendMessage({ name: "getPollings", payload: "" }, message => {
     if (!message.payload.Pollings) {
-      astilectron.showErrorBox("ポーリングリスト", "ポーリングを取得できません。");
+      dialog.showErrorBox("ポーリングリスト", "ポーリングを取得できません。");
       return;
     }
     nodes = message.payload.Nodes
@@ -113,7 +113,7 @@ function makePollingTable() {
     }
     astilectron.sendMessage({ name: "deletePolling", payload: id }, message => {
       if (message.payload != "ok" ) {
-        astilectron.showErrorBox("ポーリング削除", "削除できません。");
+        dialog.showErrorBox("ポーリング削除", "削除できません。");
         return;
       }
       const r = polling.row('.selected');
@@ -129,7 +129,7 @@ function makePollingTable() {
     }
     astilectron.sendMessage({ name: "pollNow", payload: id }, message => {
       if (message.payload != "ok" ) {
-        astilectron.showErrorBox("ポーリング確認", "ポーリングの再実行に失敗しました。");
+        dialog.showErrorBox("ポーリング確認", "ポーリングの再実行に失敗しました。");
         return;
       }
       setupPolling();
@@ -152,7 +152,7 @@ function makePollingTable() {
     }
     astilectron.sendMessage({ name: "showPolling", payload: id }, message => {
       if (message.payload != "ok" ) {
-        astilectron.showErrorBox("ポーリングリスト", "ポーリング分析画面を表示できません。");
+        dialog.showErrorBox("ポーリングリスト", "ポーリング分析画面を表示できません。");
         return;
       }
     });
@@ -184,7 +184,7 @@ document.addEventListener('astilectron-ready', function () {
         return { name: "show", payload: "ok" };
       case "error":
         setTimeout(() => {
-          astilectron.showErrorBox("エラー", message.payload);
+          dialog.showErrorBox("エラー", message.payload);
         }, 100);
         return { name: "error", payload: "ok" };
     }
@@ -281,12 +281,12 @@ function createEditPollingPane(id){
   }).on('click', (value) => {
     // Check Values
     if( p.Name == "" ){
-      astilectron.showErrorBox("ポーリング編集", "名前を指定してください。");
+      dialog.showErrorBox("ポーリング編集", "名前を指定してください。");
       return;
     }
     astilectron.sendMessage({ name: "savePolling", payload: p }, message => {
       if(message.payload !== "ok") {
-        astilectron.showErrorBox("ポーリング編集", "保存に失敗しました。");
+        dialog.showErrorBox("ポーリング編集", "保存に失敗しました。");
         return;
       }
       setupPolling();

@@ -546,13 +546,13 @@ document.addEventListener('astilectron-ready', function () {
       }
       case "about": {
         setTimeout(() => {
-          astilectron.showMessageBox({ message: message.payload, title: "TWSNMPについて" });
+          dialog.showMessageBox({ message: message.payload, title: "TWSNMPについて" });
         }, 100);
         return { name: "about", payload: "ok" };
       }
       case "error": {
         setTimeout(() => {
-          astilectron.showErrorBox("エラー", message.payload);
+          dialog.showErrorBox("エラー", message.payload);
         }, 100);
         return { name: "error", payload: "ok" };
       }
