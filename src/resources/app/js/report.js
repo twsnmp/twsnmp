@@ -622,7 +622,7 @@ function showLocFlow() {
 }
 
 function sendShowLoc(lat,long){
-  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${long}&zoom=12`;
+  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${long}`;
   astilectron.sendMessage({ name: "showLoc", payload: url }, message => {
     if (message.payload != "ok" ) {
       dialog.showErrorBox("レポート", "位置を表示できません。");
