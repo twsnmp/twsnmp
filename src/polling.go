@@ -44,6 +44,7 @@ const (
 )
 
 func pollingBackend(ctx context.Context) {
+	loadGrokMap()
 	go pingBackend(ctx)
 	time.Sleep(time.Millisecond * 100)
 	var nextPoll int64

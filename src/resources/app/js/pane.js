@@ -120,7 +120,7 @@ function createMapConfPane() {
   const f5 = pane.addFolder({
     title: 'レポート設定',
   });
-  f5.addInput(mapConfTmp, 'GeoIPPath', { label: "GeoIP DDB" });
+  f5.addInput(mapConfTmp, 'GeoIPPath', { label: "GeoIP DB" });
   f5.addButton({
     title: 'ファイル選択',
   }).on('click', (value) => {
@@ -132,6 +132,22 @@ function createMapConfPane() {
       const paths = r.filePaths;
       if(paths && paths.length > 0) {
         mapConfTmp.GeoIPPath = paths[0];
+      }
+      pane.refresh();
+    });
+  }); 
+  f5.addInput(mapConfTmp, 'GrokPath', { label: "抽出設定" });
+  f5.addButton({
+    title: 'ファイル選択',
+  }).on('click', (value) => {
+    dialog.showOpenDialog({ properties: ['openFile'], title: "抽出設定ファイル" })
+    .then(r => {
+      if(r.canceled){
+        return;
+      }
+      const paths = r.filePaths;
+      if(paths && paths.length > 0) {
+        mapConfTmp.GrokPath = paths[0];
       }
       pane.refresh();
     });

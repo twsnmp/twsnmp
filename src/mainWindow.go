@@ -55,6 +55,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				}
 				updateBackImg()
 				openGeoIP()
+				loadGrokMap()
 			}
 			addEventLog(eventLogEnt{
 				Type:"user",

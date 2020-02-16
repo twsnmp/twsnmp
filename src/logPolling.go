@@ -31,10 +31,14 @@ var (
 	}
 )
 
-func loadGrokMap(path string) error {
-	f, err := os.Open(path)
+func loadGrokMap() {
+	if mapConf.GrokPath == "" {
+		return
+	}
+	f, err := os.Open(mapConf.GrokPath)
 	if err != nil {
-		return err
+		astilog.Errorf("loadGrokMap err=%v", err)
+		return
 	}
 	defer f.Close()
 	s := bufio.NewScanner(f)
@@ -52,7 +56,7 @@ func loadGrokMap(path string) error {
 			Ok:  e[2],
 		}
 	}
-	return nil
+	return
 }
 
 func splitCmd(p string) []string {
@@ -252,7 +256,6 @@ func doPollingSyslogUser(p *pollingEnt) {
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
 	g.AddPattern(mode, grokEnt.Pat)
-
 	lr := make(map[string]string)
 	json.Unmarshal([]byte(p.LastResult), &lr)
 	st := lr["lastTime"]
@@ -277,7 +280,6 @@ func doPollingSyslogUser(p *pollingEnt) {
 			astilog.Errorf("err=%v", err)
 			continue
 		}
-		astilog.Infof("%v", values)
 		stat, ok := values["stat"]
 		if !ok {
 			continue
@@ -320,7 +322,6 @@ func doPollingSyslogFlow(p *pollingEnt) {
 		setPollingState(p, "unkown")
 		return
 	}
-	astilog.Debugf("%q", cmds)
 	filter := cmds[0]
 	mode := cmds[1]
 	if _, err := regexp.Compile(filter); err != nil {
@@ -355,8 +356,9 @@ func doPollingSyslogFlow(p *pollingEnt) {
 	lr["lastTime"] = et
 	lr["count"] = fmt.Sprintf("%d", len(logs))
 	count := 0
+	cap := fmt.Sprintf("%%{%s}", mode)
 	for _, l := range logs {
-		values, err := g.Parse(mode, string(l.Log))
+		values, err := g.Parse(cap, string(l.Log))
 		if err != nil {
 			continue
 		}
@@ -382,7 +384,7 @@ func doPollingSyslogFlow(p *pollingEnt) {
 		}
 		bytes, ok := values["bytes"]
 		if !ok {
-			continue
+			bytes = "0"
 		}
 		nProt := getProt(prot)
 		nSPort, _ := strconv.Atoi(sport)
