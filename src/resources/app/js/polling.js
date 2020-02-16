@@ -828,20 +828,29 @@ function getDispParams(){
       axis: "応答時間(秒)"
     }
   }
+  if (polling.Type === "sysloguser"){
+    return {
+      mul: 100.0,
+      axis: "成功率"
+    }
+  }
   return {
-    mul: 1.0/(1000*1000*1000),
-    axis: "応答時間(秒)"
+    mul: 1.0,
+    axis: ""
   }
 }
 
 function updateAIPage() {
   astilectron.sendMessage({ name: "getai", payload: polling.ID}, message => {
-    const aiData = message.payload;
-    if(!aiData || aiData.ScoreData.length < 1){
+    let aiData = message.payload;
+    if(!aiData|| !aiData.ScoreData || aiData.ScoreData.length < 1){
       setTimeout(() => {
         dialog.showErrorBox("AI分析", "該当する分析データがありません。");
       }, 100);
-      return;
+      aiData = {
+        ScoreData: [],
+        LossData: []
+      };
     }
     const lossChartData = [];
     aiData.LossData.forEach(e =>{

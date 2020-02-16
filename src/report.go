@@ -51,10 +51,11 @@ type deviceReportEnt struct {
 }
 
 type userReportEnt struct {
-	Time    int64
-	UserID  string
-	Service string
-	Bad     bool
+	Time   int64
+	UserID string
+	Server string
+	Client string
+	Ok     bool
 }
 
 type flowReportEnt struct {
@@ -81,10 +82,13 @@ type deviceEnt struct {
 }
 
 type userEnt struct {
-	ID         string // User ID + Device
+	ID         string // User ID + Server
 	UserID     string
-	Service    string
-	Info       string
+	Server     string
+	ServerName string
+	Clients    map[string]int64
+	Total      int
+	Ok         int
 	Score      float64
 	Penalty    int64
 	FirstTime  int64
@@ -371,11 +375,22 @@ func reportBackend(ctx context.Context) {
 
 func checkUserReport(r *userReportEnt) {
 	now := time.Now().UnixNano()
-	id := fmt.Sprintf("%s:%s", r.UserID, r.Service)
+	id := fmt.Sprintf("%s:%s", r.UserID, r.Server)
 	u, ok := users[id]
 	if ok {
-		if r.Bad {
+		u.Total++
+		if r.Ok {
+			u.Ok++
+		} else {
 			u.Penalty++
+		}
+		if _, ok := u.Clients[r.Client]; ok {
+			u.Clients[r.Client]++
+		} else {
+			// 複数の場所からログインは問題
+			u.Penalty++
+			u.Clients[r.Client] = 1
+			checkUserClient(u, r.Client)
 		}
 		u.LastTime = r.Time
 		u.UpdateTime = now
@@ -384,16 +399,49 @@ func checkUserReport(r *userReportEnt) {
 	u = &userEnt{
 		ID:         id,
 		UserID:     r.UserID,
-		Service:    r.Service,
+		Server:     r.Server,
+		ServerName: findNameFromIP(r.Server),
+		Clients:    make(map[string]int64),
+		Total:      1,
 		FirstTime:  r.Time,
 		LastTime:   r.Time,
 		UpdateTime: now,
 	}
-	if r.Bad {
+	u.Clients[r.Client] = 1
+	checkUserClient(u, r.Client)
+	if r.Ok {
+		u.Ok = 1
+	} else {
 		u.Penalty = 1
 	}
 	users[id] = u
 	astilog.Debugf("add users %v", u)
+}
+
+func checkUserClient(u *userEnt, client string) {
+	if !strings.Contains(client, ".") {
+		return
+	}
+	loc := getLoc(client)
+	a := strings.Split(loc, ",")
+	if len(a) > 0 {
+		loc = a[0]
+	}
+	// DNSで解決できない場合
+	if client == findNameFromIP(client) {
+		u.Penalty++
+	}
+	if loc != "" && loc != "LOCAL" {
+		id := fmt.Sprintf("*:*:%s", loc)
+		if _, ok := dennyRules[id]; ok {
+			u.Penalty++
+		}
+	}
+	if u.Penalty > 0 {
+		if _, ok := badIPs[client]; !ok {
+			badIPs[client] = u.Penalty
+		}
+	}
 }
 
 func checkFlowReport(r *flowReportEnt) {

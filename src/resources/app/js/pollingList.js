@@ -59,7 +59,7 @@ function makePollingTable() {
     "autoWidth": true,
     "language": {
       "decimal": "",
-      "emptyTable": "表示するログがありません。",
+      "emptyTable": "表示するポーリングがありません。",
       "info": "全 _TOTAL_ 件中 _START_ - _END_ 表示",
       "infoEmpty": "",
       "infoFiltered": "(全 _MAX_ 件)",
@@ -69,7 +69,7 @@ function makePollingTable() {
       "loadingRecords": "読み込み中...",
       "processing": "処理中...",
       "search": "検索:",
-      "zeroRecords": "一致するログがありません。",
+      "zeroRecords": "一致するポーリングがありません。",
       "paginate": {
         "first": "最初",
         "last": "最後",

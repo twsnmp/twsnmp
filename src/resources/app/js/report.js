@@ -64,16 +64,29 @@ function showUsers(){
       users = [];
     } else if (users.length < 1 ) {
       dialog.showErrorBox("レポート", "該当するデータがありません。");
-    }  
+    }
+    const serverMap = {};
     for (let i = 0 ;i < users.length;i++) {
       const u = users[i]
       const ft = moment(u.FirstTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss");
       const lt = moment(u.LastTime / (1000 * 1000)).format("Y/MM/DD HH:mm:ss");
       const score = getScoreHtml(u.Score)
-      usersTable.row.add([score, u.Name,u.Service, ft,lt,u.ID]);
+      const clients = Object.keys(u.Clients);
+      let rate = 0.0;
+      if(u.Total > 0) {
+        rate = 100.0* u.Ok /u.Total;
+      }
+      usersTable.row.add([score, u.UserID,u.Server,u.ServerName,u.Total,rate,clients.length,clients.join(), ft,lt,u.ID]);
+      if (!serverMap[u.Server]){
+        serverMap[u.Server] = [0,0,0,0,0,0,0];
+      }
+      serverMap[u.Server][0]++;
+      const si = getScoreIndex(u.Score);
+      serverMap[u.Server][si]++; 
     }
     $('#wait').addClass("hidden");
     usersTable.draw();
+    showUserChart(serverMap);
   });
 }
 
@@ -299,6 +312,7 @@ function makeTable(id,opt,mode){
 document.addEventListener('astilectron-ready', function () {
   makeTables();
   makeDeviceChart();
+  makeUserChart();
   makeServerChart();
   makeFlowChart();
   astilectron.onMessage(function (message) {
@@ -771,6 +785,223 @@ function showDeviceChart(data) {
   }
   deviceChart.setOption( opt);
   deviceChart.resize();
+}
+
+function  makeServerChart(){
+  const option = {
+    backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+      offset: 0,
+      color: '#4b5769'
+    }, {
+      offset: 1,
+      color: '#404a59'
+    }]),
+    grid: {
+      left: '7%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    geo: {
+      map: 'world',
+      silent: true,
+      emphasis: {
+          label: {
+              show: false,
+              areaColor: '#eee'
+          }
+      },
+      itemStyle: {
+          borderWidth: 0.2,
+          borderColor: '#404a59'
+      },
+      roam: true
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: function (params) {
+        return params.name + ' : ' + params.value[2];
+      }
+    },
+    series: [{
+      type: 'scatter',
+      coordinateSystem: 'geo',
+      label: {
+              formatter: '{b}',
+              position: 'right',
+              color: "#eee",
+              show: false
+      },
+      emphasis: {
+              label: {
+                  show: true
+              }
+      },
+      symbolSize: 6,
+      itemStyle: {
+        color: function (params) {
+          const s = params.data.value[2];
+          if(s > 66  ){
+            return "#1f78b4";
+          } else if (s > 50 ) {
+            return "#a6cee3";
+          } else if (s > 42 ) {
+            return "#dfdf22";
+          } else if (s > 33){
+            return "#fb9a99";
+          } else if (s <= 0){
+            return "#aaa"
+          }
+          return "#e31a1c";
+        }
+      },
+      data:[]
+    }]
+  };
+  serverChart = echarts.init(document.getElementById('server_chart'));
+  serverChart.setOption(option);
+}
+
+function  makeUserChart(){
+  const option = {
+      backgroundColor: new echarts.graphic.RadialGradient(0.5, 0.5, 0.4, [{
+        offset: 0,
+        color: '#4b5769'
+      }, {
+        offset: 1,
+        color: '#404a59'
+      }]),
+      tooltip : {
+          trigger: 'axis',
+          axisPointer : {
+              type : 'shadow'
+          }
+      },
+      color:[ "#e31a1c","#fb9a99","#dfdf22","#a6cee3","#1f78b4","#999"],
+      legend: {
+        orient: "vertical",
+        top:   50,
+        right: 10,
+        textStyle:{
+          fontSize: 10,
+          color: "#ccc",
+        },
+        data: ['32以下','33-41','42-50','51-66','67以上','調査中']
+      },
+      grid: {
+          top: '3%',
+          left: '7%',
+          right: '10%',
+          bottom: '3%',
+          containLabel: true
+      },
+      xAxis:  {
+          type: 'value',
+          name: "人数",
+          nameTextStyle:{
+            color:"#ccc",
+            fontSize: 10,
+            margin: 2,
+          },
+          axisLabel:{
+            color:"#ccc",
+            fontSize: 10,
+            margin: 2,
+          },
+          axisLine: {
+            lineStyle:{
+              color: '#ccc'
+            }
+          }
+      },
+      yAxis: {
+          type: 'category',
+          axisLine: {
+            show:false,
+          },
+          axisTick:{
+            show:false,
+          },
+          axisLabel:{
+            color:"#ccc",
+            fontSize: 8,
+            margin: 2,
+          },  
+          data: []
+      },
+      series: [
+        {
+          name: '32以下',
+          type: 'bar',
+          stack: '人数',
+          data: []
+        },
+        {
+          name: '33-41',
+          type: 'bar',
+          stack: '人数',
+          data: []
+        },
+        {
+          name: '42-50',
+          type: 'bar',
+          stack: '人数',
+          data: []
+        },
+        {
+          name: '51-66',
+          type: 'bar',
+          stack: '人数',
+          data: []
+        },
+        {
+          name: '67以上',
+          type: 'bar',
+          stack: '人数',
+          data: []
+        },
+        {
+          name: '調査中',
+          type: 'bar',
+          stack: '人数',
+          data: []
+        },
+      ],
+  };
+  userChart = echarts.init(document.getElementById('user_chart'));
+  userChart.setOption(option);
+}
+
+function showUserChart(data) {
+  const opt = {
+    yAxis:{
+      data:[],
+    },
+    series:[
+      {data:[]},
+      {data:[]},
+      {data:[]},
+      {data:[]},
+      {data:[]},
+      {data:[]}
+    ]
+  };
+  const keys = Object.keys(data);
+  keys.sort(function(a,b){
+    return data[b][0] -data[a][0];
+  });
+  let i = keys.length-1;
+  if(i > 49 ){
+    i = 49
+  }
+  for(;i >= 0;i--){
+    opt.yAxis.data.push(keys[i]);
+    for(let j =0; j < 6;j++){
+      opt.series[j].data.push(data[keys[i]][j+1]);
+    }
+  }
+  userChart.setOption( opt);
+  userChart.resize();
 }
 
 function  makeServerChart(){

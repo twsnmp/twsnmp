@@ -111,10 +111,11 @@ function setPollingBtns(show,bAn){
 
 function makePollingTable() {
   polling = $('#polling_table').DataTable({
-    "paging": false,
+    "paging": true,
     "info": false,
-    "ordering": false,
+    "order": [[0, "desc"]],
     "searching": true,
+    "autoWidth": true,
     "autoWidth": true,
     "language": {
       "decimal":        "",
@@ -124,6 +125,12 @@ function makePollingTable() {
       "processing":     "処理中...",
       "search":         "検索:",
       "zeroRecords":    "一致するポーリングがありません。",
+      "paginate": {
+        "first": "最初",
+        "last": "最後",
+        "next": "次へ",
+        "previous": "前へ"
+      }, 
       "aria": {
           "sortAscending":  ": 昇順でソート",
           "sortDescending": ": 降順でソート"
