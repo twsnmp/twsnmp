@@ -355,7 +355,7 @@ function deleteNode() {
   if (!selectNode || !nodes[selectNode]) {
     return;
   }
-  if (!confirm(`${nodes[selectNode].Name}を削除しますか?`)) {
+  if (!confirmDialog("ノード削除",`${nodes[selectNode].Name}を削除しますか?`)) {
     return;
   }
   astilectron.sendMessage({ name: "deleteNode", payload: selectNode }, function (message) {
@@ -584,7 +584,7 @@ document.addEventListener('astilectron-ready', function () {
 });
 
 function checkAllPoll() {
-  if (!confirm(`全てのノードの再確認を実施しますか?`)) {
+  if (!confirmDialog("全ノード削除",`全てのノードの再確認を実施しますか?`)) {
     return;
   }
   astilectron.sendMessage({ name: "checkAllPoll", payload: "" }, function (message) {

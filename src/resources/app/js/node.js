@@ -163,7 +163,7 @@ function makePollingTable() {
     if(!id){
       return;
     }
-    if (!confirm(`${pollingList[id].Name}を削除しますか?`)) {
+    if (!confirmDialog("ノード削除",`${pollingList[id].Name}を削除しますか?`)) {
       return;
     }
     astilectron.sendMessage({ name: "deletePolling", payload: id }, message => {

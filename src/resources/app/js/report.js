@@ -409,7 +409,7 @@ function setRuleDeleteBtns(show){
 }
 
 function resetReportEnt() {
-  if (!confirm(`信用スコアを再計算しますか?`)) {
+  if (!confirmDialog("信用スコア",`信用スコアを再計算しますか?`)) {
     return;
   }
   $('#wait').removeClass("hidden");
@@ -463,7 +463,7 @@ function deleteReportEnt() {
   if (!id) {
     return;
   }
-  if (!confirm(`レポート${id}を削除しますか?`)) {
+  if (!confirmDialog("レポート削除",`レポート${id}を削除しますか?`)) {
     return;
   }
   astilectron.sendMessage({ name: cmd, payload: id }, message => {
@@ -574,7 +574,7 @@ function deleteRule() {
   if (!id) {
     return;
   }
-  if (!confirm(`ルール${id}を削除しますか?`)) {
+  if (!confirmDialog("ルール削除",`ルール${id}を削除しますか?`)) {
     return;
   }
   astilectron.sendMessage({ name: "deleteRules", payload: id }, message => {

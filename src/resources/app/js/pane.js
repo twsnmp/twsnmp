@@ -654,7 +654,7 @@ function createActionPane() {
   pane.addButton({
     title: 'ARPリセット...',
   }).on('click', (value) => {
-    if (!confirm("ARP監視をリセットしますか？")){
+    if (!confirmDialog("ARPリセット","ARP監視をリセットしますか？")){
       return
     }
     astilectron.sendMessage({ name: "resetArpTable", payload: "" }, message => {
@@ -669,7 +669,7 @@ function createActionPane() {
   pane.addButton({
     title: 'AIモデル削除...',
   }).on('click', (value) => {
-    if (!confirm("全てのAIモデルをクリアしますか？")){
+    if (!confirmDialog("AIモデルリセット","全てのAIモデルをクリアしますか？")){
       return
     }
     astilectron.sendMessage({ name: "clearAllAIMoldes", payload: "" }, message => {
@@ -681,7 +681,7 @@ function createActionPane() {
   pane.addButton({
     title: 'レポートクリア...',
   }).on('click', (value) => {
-    if (!confirm("全てのレポートをクリアしますか？")){
+    if (!confirmDialog("レポートクリア","全てのレポートをクリアしますか？")){
       return
     }
     astilectron.sendMessage({ name: "clearAllReport", payload: "" }, message => {

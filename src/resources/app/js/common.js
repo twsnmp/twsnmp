@@ -198,3 +198,10 @@ const levelList = {
   "注意": "warn",
   "情報": "info",
 };
+
+
+function confirmDialog(title,msg) {
+  return dialog.showMessageBoxSync(
+   {type:"question",title:title,cancelId:1,message:msg,buttons:["OK","Cancel"]} 
+  ) == 0;
+}

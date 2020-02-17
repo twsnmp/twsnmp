@@ -654,7 +654,7 @@ document.addEventListener('astilectron-ready', function () {
     });
   });
   $('.toolbar-actions button.clear').click(() => {
-    if (!confirm("ポーリングログをクリアしますか?")) {
+    if (!confirmDialog("ログクリア","ポーリングログをクリアしますか?")) {
       return;
     }
     astilectron.sendMessage({ name: "clear", payload: polling.ID }, message => {
