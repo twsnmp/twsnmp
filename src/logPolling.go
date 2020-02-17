@@ -28,6 +28,8 @@ var (
 		"EPSLOGIN":  &grokEnt{Pat: `Login %{GREEDYDATA:stat}: \[%{USER:user}\].+cli %{MAC:client}`, Ok: "OK"},
 		"FZLOGIN":   &grokEnt{Pat: `FileZen: %{IP:client} %{USER:user} "Authentication %{GREEDYDATA:stat}`, Ok: "succeeded."},
 		"NAOSLOGIN": &grokEnt{Pat: `Login %{GREEDYDATA:stat}: \[.+\] %{USER:user}`, Ok: "Success"},
+		"LAPDEVICE": &grokEnt{Pat: `mac=%{MAC:mac} ip=%{IP:ip}`},
+		"WELFFLOW":  &grokEnt{Pat: `src=%{IP:src}:%{:sport}:.+ dst=%{IP:dst}:%{BASE10NUM:dport}:.+proto=%{WORD:prot}/.+ sent=%{BASE10NUM:sent} .+rcvd=%{BASE10NUM:rcvd}`},
 	}
 )
 
@@ -226,6 +228,76 @@ func doPollingSyslogPri(p *pollingEnt) bool {
 	return true
 }
 
+func doPollingSyslogDevice(p *pollingEnt) {
+	cmds := splitCmd(p.Polling)
+	if len(cmds) != 2 {
+		astilog.Errorf("Invalid SyslogDevice format Polling=%s", p.Polling)
+		p.LastResult = "Invalid SyslogDevice format"
+		setPollingState(p, "unkown")
+		return
+	}
+	filter := cmds[0]
+	mode := cmds[1]
+	if _, err := regexp.Compile(filter); err != nil {
+		astilog.Errorf("Invalid SyslogDevice format Polling=%s err=%v", p.Polling, err)
+		p.LastResult = "Invalid SyslogDevice format"
+		setPollingState(p, "unkown")
+		return
+	}
+	grokEnt, ok := grokMap[mode]
+	if !ok {
+		astilog.Errorf("Invalid SyslogDevice format Polling=%s", p.Polling)
+		p.LastResult = "Invalid SyslogDevice format"
+		setPollingState(p, "unkown")
+		return
+	}
+	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
+	g.AddPattern(mode, grokEnt.Pat)
+	lr := make(map[string]string)
+	json.Unmarshal([]byte(p.LastResult), &lr)
+	st := lr["lastTime"]
+	if _, err := time.Parse("2006-01-02T15:04", st); err != nil {
+		st = time.Now().Add(-time.Second * time.Duration(p.PollInt)).Format("2006-01-02T15:04")
+	}
+	et := time.Now().Format("2006-01-02T15:04")
+	logs := getLogs(&filterEnt{
+		Filter:    filter,
+		StartTime: st,
+		EndTime:   et,
+		LogType:   "syslog",
+	})
+	lr["lastTime"] = et
+	lr["count"] = fmt.Sprintf("%d", len(logs))
+	count := 0
+	cap := fmt.Sprintf("%%{%s}", mode)
+	for _, l := range logs {
+		values, err := g.Parse(cap, string(l.Log))
+		if err != nil {
+			astilog.Errorf("err=%v", err)
+			continue
+		}
+		mac, ok := values["mac"]
+		if !ok {
+			continue
+		}
+		ip, ok := values["ip"]
+		if !ok {
+			continue
+		}
+		mac = normMACAddr(mac)
+		count++
+		deviceReportCh <- &deviceReportEnt{
+			Time: l.Time,
+			MAC:  mac,
+			IP:   ip,
+		}
+	}
+	p.LastVal = float64(count)
+	p.LastResult = makeLastResult(lr)
+	setPollingState(p, "normal")
+	return
+}
+
 func doPollingSyslogUser(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
@@ -382,15 +454,17 @@ func doPollingSyslogFlow(p *pollingEnt) {
 		if !ok {
 			continue
 		}
-		bytes, ok := values["bytes"]
-		if !ok {
-			bytes = "0"
+		nBytes := 0
+		for _, b := range []string{"bytes", "sent", "rcvd"} {
+			bytes, ok := values[b]
+			if ok {
+				nB, _ := strconv.Atoi(bytes)
+				nBytes += nB
+			}
 		}
 		nProt := getProt(prot)
 		nSPort, _ := strconv.Atoi(sport)
 		nDPort, _ := strconv.Atoi(dport)
-		nBytes, _ := strconv.Atoi(bytes)
-
 		flowReportCh <- &flowReportEnt{
 			Time:    l.Time,
 			SrcIP:   src,

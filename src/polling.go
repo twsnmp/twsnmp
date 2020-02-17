@@ -146,6 +146,9 @@ func doPolling(p *pollingEnt) {
 		if !doPollingSyslogPri(p) {
 			return
 		}
+	case "syslogdevice":
+		doPollingSyslogDevice(p)
+		updatePolling(p)
 	case "sysloguser":
 		doPollingSyslogUser(p)
 		updatePolling(p)

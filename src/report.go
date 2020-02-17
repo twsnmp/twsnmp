@@ -36,9 +36,6 @@ var (
 		17:  "udp",
 		112: "vrrp",
 	}
-	serviceNameMap = map[string]string{
-		"http/tcp": "WEB",
-	}
 	privateIPBlocks []*net.IPNet
 	geoip           *geoip2.Reader
 	geoipMap        = make(map[string]string)

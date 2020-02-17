@@ -47,8 +47,11 @@ const  stateHtmlMap = new Map(stateHtmlArray);
 
 // Service Name Map
 const serviceNameArray = [
-  ["http/tcp","WEB"],
-  ["https/tcp","WEB"],
+  ["submission/tcp","SMTP"],
+  ["http/tcp","HTTP"],
+  ["https/tcp","HTTPS"],
+  ["ldap/tcp","LDAP"],
+  ["ldaps/tcp","LDAPS"],
   ["domain/tcp","DNS"],
   ["domain/udp","DNS"],
   ["snmp/udp","SNMP"],
@@ -181,6 +184,7 @@ const pollingTypeList = {
   "NTP": "ntp",
   "SYSLOG": "syslog",
   "SYSLOG PRI": "syslogpri",
+  "SYSLOG Device": "syslogdevice",
   "SYSLOG User": "sysloguser",
   "SYSLOG Flow": "syslogflow",
   "TRAP":   "trap",
