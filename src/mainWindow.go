@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
@@ -18,30 +18,30 @@ import (
 func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "getMIBModuleList":
-		return getMIBModuleList(),nil
+		return getMIBModuleList(), nil
 	case "addMIBFile":
-		if err:= addMIBFile(&m);err != nil {
+		if err := addMIBFile(&m); err != nil {
 			astilog.Error(err)
-			return fmt.Sprintf("%v",err),err
+			return fmt.Sprintf("%v", err), err
 		}
-		return "ok",nil
+		return "ok", nil
 	case "delMIBModule":
-		if err:= delMIBModule(&m);err != nil {
+		if err := delMIBModule(&m); err != nil {
 			astilog.Error(err)
-			return fmt.Sprintf("%v",err),err
+			return fmt.Sprintf("%v", err), err
 		}
-		return "ok",nil
+		return "ok", nil
 	case "resetArpTable":
 		resetArpTable()
-		return "ok",nil
+		return "ok", nil
 	case "clearAllReport":
 		clearAllReport()
-		return "ok",nil
+		return "ok", nil
 	case "clearAllAIMoldes":
-		if err := bootstrap.SendMessage(aiWindow, "clearAllAIMoldes",""); err != nil {
+		if err := bootstrap.SendMessage(aiWindow, "clearAllAIMoldes", ""); err != nil {
 			astilog.Errorf("sendSendMessage clearAllAIMoldes error=%v", err)
 		}
-		return "ok",nil
+		return "ok", nil
 	case "mapConf":
 		{
 			if len(m.Payload) > 0 {
@@ -58,11 +58,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				loadGrokMap()
 			}
 			addEventLog(eventLogEnt{
-				Type:"user",
-				Level: "info",
-				NodeID: "",
+				Type:     "user",
+				Level:    "info",
+				NodeID:   "",
 				NodeName: "",
-				Event: "MAP設定を更新",
+				Event:    "MAP設定を更新",
 			})
 			return "ok", nil
 		}
@@ -79,11 +79,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				}
 			}
 			addEventLog(eventLogEnt{
-				Type:"user",
-				Level: "info",
-				NodeID: "",
+				Type:     "user",
+				Level:    "info",
+				NodeID:   "",
 				NodeName: "",
-				Event: "通知設定を更新",
+				Event:    "通知設定を更新",
 			})
 			return "ok", nil
 		}
@@ -124,7 +124,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		return struct {
 			Conf discoverConfEnt
 			Stat discoverStatEnt
-		} {
+		}{
 			Conf: discoverConf,
 			Stat: discoverStat,
 		}, nil
@@ -157,16 +157,17 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 					ntmp.IP = n.IP
 					ntmp.Icon = n.Icon
 					ntmp.Name = n.Name
+					ntmp.URL = n.URL
 					if err := updateNode(ntmp); err != nil {
 						astilog.Errorf("editNode %s error=%v", m.Name, err)
 						return "ng", err
 					}
 					addEventLog(eventLogEnt{
-						Type:"user",
-						Level: "info",
-						NodeID: n.ID,
+						Type:     "user",
+						Level:    "info",
+						NodeID:   n.ID,
 						NodeName: n.Name,
-						Event: "ノード設定を更新",
+						Event:    "ノード設定を更新",
 					})
 				}
 			}
@@ -214,11 +215,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", err
 			}
 			addEventLog(eventLogEnt{
-				Type:"user",
-				Level: "info",
-				NodeID: nodeID,
+				Type:     "user",
+				Level:    "info",
+				NodeID:   nodeID,
 				NodeName: name,
-				Event: "ノード削除",
+				Event:    "ノード削除",
 			})
 			return "ok", nil
 		}
@@ -249,11 +250,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", err
 			}
 			addEventLog(eventLogEnt{
-				Type:"user",
-				Level: "info",
-				NodeID: n.ID,
+				Type:     "user",
+				Level:    "info",
+				NodeID:   n.ID,
 				NodeName: n.Name,
-				Event: "ノード複製",
+				Event:    "ノード複製",
 			})
 			return n, nil
 		}
@@ -276,22 +277,22 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 						return "ng", err
 					}
 				}
-				if n,ok := nodes[l.NodeID1];ok {
+				if n, ok := nodes[l.NodeID1]; ok {
 					addEventLog(eventLogEnt{
-						Type:"user",
-						Level: "info",
-						NodeID: l.NodeID1,
+						Type:     "user",
+						Level:    "info",
+						NodeID:   l.NodeID1,
 						NodeName: n.Name,
-						Event: "ライン更新",
+						Event:    "ライン更新",
 					})
 				}
-				if n,ok := nodes[l.NodeID2];ok {
+				if n, ok := nodes[l.NodeID2]; ok {
 					addEventLog(eventLogEnt{
-						Type:"user",
-						Level: "info",
-						NodeID: l.NodeID2,
+						Type:     "user",
+						Level:    "info",
+						NodeID:   l.NodeID2,
 						NodeName: n.Name,
-						Event: "ライン更新",
+						Event:    "ライン更新",
 					})
 				}
 				updateLineState()
@@ -315,22 +316,22 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 					astilog.Errorf("deleteLine %s error=%v", m.Name, err)
 					return "ng", err
 				}
-				if n,ok := nodes[l.NodeID1];ok {
+				if n, ok := nodes[l.NodeID1]; ok {
 					addEventLog(eventLogEnt{
-						Type:"user",
-						Level: "info",
-						NodeID: l.NodeID1,
+						Type:     "user",
+						Level:    "info",
+						NodeID:   l.NodeID1,
 						NodeName: n.Name,
-						Event: "ライン削除",
+						Event:    "ライン削除",
 					})
 				}
-				if n,ok := nodes[l.NodeID2];ok {
+				if n, ok := nodes[l.NodeID2]; ok {
 					addEventLog(eventLogEnt{
-						Type:"user",
-						Level: "info",
-						NodeID: l.NodeID2,
+						Type:     "user",
+						Level:    "info",
+						NodeID:   l.NodeID2,
 						NodeName: n.Name,
-						Event: "ライン削除",
+						Event:    "ライン削除",
 					})
 				}
 			}
@@ -390,7 +391,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			})
 			return dlgParam, nil
 		}
-	case"showNodeInfo","showNodeLog","showPolling":
+	case "showNodeInfo", "showNodeLog", "showPolling":
 		{
 			var nodeID string
 			if len(m.Payload) < 1 {
@@ -400,18 +401,18 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
 				return "ng", err
 			}
-			if err := bootstrap.SendMessage(nodeWindow, "setNodeID",nodeID); err != nil {
-				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
-				return "ng",err
-			}	
-			if err := bootstrap.SendMessage(nodeWindow, "setMode",m.Name); err != nil {
-				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
-				return "ng",err
-			}	
+			if err := bootstrap.SendMessage(nodeWindow, "setNodeID", nodeID); err != nil {
+				astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+				return "ng", err
+			}
+			if err := bootstrap.SendMessage(nodeWindow, "setMode", m.Name); err != nil {
+				astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+				return "ng", err
+			}
 			nodeWindow.Show()
 			return "ok", nil
 		}
-	case"pollNow":
+	case "pollNow":
 		{
 			var nodeID string
 			if len(m.Payload) < 1 {
@@ -424,7 +425,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 			pollNowNode(nodeID)
 			return "ok", nil
 		}
-	case"showMIB":
+	case "showMIB":
 		{
 			var nodeID string
 			if len(m.Payload) < 1 {
@@ -435,56 +436,58 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 				return "ng", err
 			}
 			params := struct {
-				NodeID string
+				NodeID   string
 				NodeName string
 				MibNames []string
 			}{
-				NodeID: nodeID,
+				NodeID:   nodeID,
 				MibNames: mib.GetNameList(),
 			}
-			n,ok := nodes[nodeID];
+			n, ok := nodes[nodeID]
 			if !ok {
-				astilog.Errorf("showMIB Invalid nodID %s",nodeID)
-				return "ng",nil
+				astilog.Errorf("showMIB Invalid nodID %s", nodeID)
+				return "ng", nil
 			}
 			params.NodeName = n.Name
-			if err := bootstrap.SendMessage(mibWindow, "setParams",params); err != nil {
-				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
-				return "ng",err
-			}	
+			if err := bootstrap.SendMessage(mibWindow, "setParams", params); err != nil {
+				astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+				return "ng", err
+			}
 			mibWindow.Show()
 			return "ok", nil
 		}
-	case"logDisp":
+	case "logDisp":
 		{
-			if err := bootstrap.SendMessage(logWindow, "show",""); err != nil {
-				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
-				return "ng",err
-			}	
+			if err := bootstrap.SendMessage(logWindow, "show", ""); err != nil {
+				astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+				return "ng", err
+			}
 			logWindow.Show()
 			return "ok", nil
 		}
-	case"reportDisp":
+	case "reportDisp":
 		{
-			if err := bootstrap.SendMessage(reportWindow, "show",""); err != nil {
-				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
-				return "ng",err
-			}	
+			if err := bootstrap.SendMessage(reportWindow, "show", ""); err != nil {
+				astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+				return "ng", err
+			}
 			reportWindow.Show()
 			return "ok", nil
 		}
-	case"showPollingList":
+	case "showPollingList":
 		{
-			if err := bootstrap.SendMessage(pollingListWindow, "show",""); err != nil {
-				astilog.Errorf("sendSendMessage %s error=%v",m.Name, err)
-				return "ng",err
-			}	
+			if err := bootstrap.SendMessage(pollingListWindow, "show", ""); err != nil {
+				astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+				return "ng", err
+			}
 			pollingListWindow.Show()
 			return "ok", nil
 		}
-	case"checkAllPoll":
+	case "checkAllPoll":
 		checkAllPoll()
 		return "ok", nil
+	case "openUrl":
+		return openUrl(&m)
 	}
 	return "ok", nil
 }
@@ -534,7 +537,7 @@ func mainWindowBackend(ctx context.Context) {
 			doPollingCh <- true
 			lastLog = sendLogs(lastLog)
 			if len(stateCheckNodes) > 0 {
-				astilog.Infof("State Change Nodes %d",len(stateCheckNodes))
+				astilog.Infof("State Change Nodes %d", len(stateCheckNodes))
 				for k := range stateCheckNodes {
 					updateNodeState(k)
 					delete(stateCheckNodes, k)
@@ -543,7 +546,7 @@ func mainWindowBackend(ctx context.Context) {
 				applyMapData()
 			}
 			i++
-			if( i > 5 ){
+			if i > 5 {
 				updateDBStats()
 				i = 0
 				if err := bootstrap.SendMessage(mainWindow, "dbStats", dbStats); err != nil {
@@ -558,7 +561,7 @@ func mainWindowBackend(ctx context.Context) {
 func sendLogs(lastLog string) string {
 	list := getEventLogList(lastLog, mapConf.LogDispSize)
 	if len(list) > 0 {
-		astilog.Infof("Send Logs %d",len(list))
+		astilog.Infof("Send Logs %d", len(list))
 		if err := bootstrap.SendMessage(mainWindow, "logs", list); err != nil {
 			astilog.Errorf("sendSendMessage logs error=%v", err)
 		} else {
@@ -574,7 +577,7 @@ func updateNodeState(nodeID string) {
 		return
 	}
 	n.State = "unkown"
-	pollings.Range(func(_,p interface{}) bool {
+	pollings.Range(func(_, p interface{}) bool {
 		if p.(*pollingEnt).NodeID != nodeID {
 			return true
 		}
@@ -590,7 +593,7 @@ func updateNodeState(nodeID string) {
 		if n.State == "low" {
 			return true
 		}
-		if  s == "repair" {
+		if s == "repair" {
 			n.State = "repair"
 		}
 		if n.State == "repair" || n.State != "unkown" {
@@ -614,28 +617,28 @@ func updateLineState() {
 
 func pollNowNode(nodeID string) {
 	nodeName := "Unknown"
-	if n,ok := nodes[nodeID]; ok {
+	if n, ok := nodes[nodeID]; ok {
 		nodeName = n.Name
 	}
 	updateList := []*pollingEnt{}
-	pollings.Range(func (_,v interface{}) bool {
+	pollings.Range(func(_, v interface{}) bool {
 		p := v.(*pollingEnt)
 		if p.NodeID == nodeID && p.State != "normal" {
 			p.State = "unkown"
 			p.NextTime = 0
 			pollingStateChangeCh <- p
 			addEventLog(eventLogEnt{
-				Type:"user",
-				Level: p.State,
-				NodeID: p.NodeID,
+				Type:     "user",
+				Level:    p.State,
+				NodeID:   p.NodeID,
 				NodeName: nodeName,
-				Event: "ポーリング再確認:" + p.Name,
+				Event:    "ポーリング再確認:" + p.Name,
 			})
-			updateList = append(updateList,p)
+			updateList = append(updateList, p)
 		}
 		return true
 	})
-	for _,p := range updateList{
+	for _, p := range updateList {
 		updatePolling(p)
 	}
 	doPollingCh <- true
@@ -643,50 +646,50 @@ func pollNowNode(nodeID string) {
 
 func checkAllPoll() {
 	updateList := []*pollingEnt{}
-	pollings.Range(func (_,v interface{}) bool {
+	pollings.Range(func(_, v interface{}) bool {
 		p := v.(*pollingEnt)
 		if p.State != "normal" {
 			p.State = "unkown"
 			p.NextTime = 0
 			nodeName := "Unknown"
-			if n,ok := nodes[p.NodeID]; ok {
+			if n, ok := nodes[p.NodeID]; ok {
 				nodeName = n.Name
 			}
 			pollingStateChangeCh <- p
 			addEventLog(eventLogEnt{
-				Type:"user",
-				Level: p.State,
-				NodeID: p.NodeID,
+				Type:     "user",
+				Level:    p.State,
+				NodeID:   p.NodeID,
 				NodeName: nodeName,
-				Event: "ポーリング再確認:" + p.Name,
+				Event:    "ポーリング再確認:" + p.Name,
 			})
-			updateList = append(updateList,p)
+			updateList = append(updateList, p)
 		}
 		return true
 	})
-	for _,p := range updateList{
+	for _, p := range updateList {
 		updatePolling(p)
 	}
 	doPollingCh <- true
 }
 
 func updateBackImg() {
-	path := filepath.Join(app.Paths().DataDirectory(), "resources","app","images", "backimg")
+	path := filepath.Join(app.Paths().DataDirectory(), "resources", "app", "images", "backimg")
 	if mapConf.BackImg != "" {
 		os.Remove(path)
-		src,err := os.Open(mapConf.BackImg)
+		src, err := os.Open(mapConf.BackImg)
 		if err != nil {
-			astilog.Errorf("updateBackImg err=%v",err)
+			astilog.Errorf("updateBackImg err=%v", err)
 			return
 		}
 		defer src.Close()
-		dst,err := os.Create(path)
+		dst, err := os.Create(path)
 		if err != nil {
-			astilog.Errorf("updateBackImg err=%v",err)
+			astilog.Errorf("updateBackImg err=%v", err)
 			return
 		}
 		defer dst.Close()
-		io.Copy(dst,src)
+		io.Copy(dst, src)
 	} else {
 		os.Remove(path)
 	}

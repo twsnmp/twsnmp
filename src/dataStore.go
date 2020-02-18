@@ -51,6 +51,7 @@ type nodeEnt struct {
 	IP        string
 	MAC       string
 	Community string
+	URL       string
 }
 
 type lineEnt struct {

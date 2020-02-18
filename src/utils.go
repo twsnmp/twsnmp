@@ -10,9 +10,9 @@ import (
 	astilog "github.com/asticode/go-astilog"
 )
 
-func openBrowser(m *bootstrap.MessageIn) (interface{}, error) {
+func openUrl(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) < 1 {
-		astilog.Errorf("openBrowser no payload")
+		astilog.Errorf("openUrl no payload")
 		return "ng", nil
 	}
 	var url string
@@ -32,7 +32,7 @@ func openBrowser(m *bootstrap.MessageIn) (interface{}, error) {
 		err = fmt.Errorf("unsupported platform")
 	}
 	if err != nil {
-		astilog.Errorf("openBrowser err=%v", err)
+		astilog.Errorf("openUrl err=%v", err)
 		return "ng", err
 	}
 	return "ok", err

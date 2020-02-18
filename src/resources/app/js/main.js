@@ -148,8 +148,22 @@ function mousePressed() {
     updateNodeList();
   }
   if (mouseButton === RIGHT) {
+    let urls;
     let div;
     if (nodes[selectNode]) {
+      urls = nodes[selectNode].URL.split(",",5);
+      let urlMenu = "";
+      for(let i=0;i < urls.length;i++){
+        if( urls[i] == ""){
+          continue;
+        }
+        urlMenu += `
+        <span class="nav-group-item openUrl${i}">
+          <i class="fas fa-external-link-square-alt"></i>
+         ${urls[i]}
+        </span>
+        `;
+      }
       div = `
       <nav class="nav-group">
         <span class="nav-group-item showNodeInfo">
@@ -184,7 +198,8 @@ function mousePressed() {
           <i class="fas fa-trash-alt"></i>
           削除...
         </span>
-      </nav>
+        ${urlMenu}
+        </nav>
       `;
     } else {
       div = `
@@ -301,6 +316,15 @@ function mousePressed() {
     $("#ctxMenu span.checkAllPoll").on("click", () => {
       checkAllPoll();
     });
+    if(urls && urls.length > 0 ){
+      for(let i=0;i < urls.length;i++){
+        if(urls[i] != "") {
+          $(`#ctxMenu span.openUrl${i}`).on("click", () => {
+            openUrl(urls[i]);
+          });  
+        }
+      }
+    }
   }
   lastMouseX = mouseX;
   lastMouseY = mouseY;
@@ -345,14 +369,20 @@ function doubleClicked() {
 }
 
 function showNodeInfo(){
-  if (selectNode != "") {
-    astilectron.sendMessage({ name: "showNodeInfo", payload: selectNode }, function (message) {
-    });
+  if (selectNode == "" || pane) {
+    return;
   }
+  astilectron.sendMessage({ name: "showNodeInfo", payload: selectNode }, function (message) {
+  });
+}
+
+function openUrl(url) {
+  astilectron.sendMessage({ name: "openUrl", payload: url }, function (message) {
+  });
 }
 
 function deleteNode() {
-  if (!selectNode || !nodes[selectNode]) {
+  if (!selectNode || !nodes[selectNode] || pane) {
     return;
   }
   if (!confirmDialog("ノード削除",`${nodes[selectNode].Name}を削除しますか?`)) {

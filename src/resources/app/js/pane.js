@@ -476,6 +476,7 @@ function createEditNodePane(x,y,nodeID) {
     },
   });
   pane.addInput(node, 'Community', { label: "Community" });
+  pane.addInput(node, 'URL', { label: "URL" });
   pane.addInput(node, 'Descr', { label: "説明" });
   pane.addButton({
     title: 'Cancel',

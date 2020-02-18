@@ -41,7 +41,7 @@ func reportMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interfa
 	case "resetReport":
 		return resetReportEnt(&m)
 	case "showLoc":
-		return openBrowser(&m)
+		return openUrl(&m)
 	}
 	astilog.Errorf("Unknow Message Name=%s", m.Name)
 	return "ok", nil
