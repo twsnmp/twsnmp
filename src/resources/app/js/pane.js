@@ -446,6 +446,7 @@ function createEditNodePane(x,y,nodeID) {
       Y: Math.round(y),
       IP: "",
       Community: "",
+      URL: "",
     };
   }
   pane = new Tweakpane({

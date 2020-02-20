@@ -173,13 +173,17 @@
           <i class="fas fa-sync"></i>
           再計算...
         </button>
-        <button class="btn btn-primary refresh">
+        <button class="btn btn-default refresh">
           <i class="fas fa-sync"></i>
           再表示
         </button>
-        <button class="btn btn-primary showloc">
+        <button class="btn btn-default showloc">
           <i class="fas fa-globe-americas"></i>
           位置
+        </button>
+        <button class="btn btn-default ipinfo">
+          <i class="fas fa-globe-americas"></i>
+          IP情報
         </button>
         <button class="btn btn-negative delete">
           <i class="fas fa-trash-alt"></i>
@@ -205,6 +209,26 @@
   <div id='wait' class="hidden">
     <div class='waitMsg'>
       お待ちください.....
+    </div>
+  </div>
+  <div id="ipinfo">
+    <div id="ipinfo_content">
+      <div class="table_base">
+        <table id="ipinfo_table" class="display compact">
+          <thead>
+            <tr>
+              <th>項目</th>
+              <th>値</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+      <button id="close_ipinfo" class="btn btn-default">
+        <i class="fas fa-times"></i>
+        閉じる
+      </button>
     </div>
   </div>
   <script src="./js/common.js"></script>

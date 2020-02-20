@@ -63,3 +63,27 @@
   display: -webkit-flex;
   display: flex;
 }
+
+
+#ipinfo {
+  display: none;
+  height: 100%;
+  width: 100%;
+  background: black;
+  opacity: 0.8;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+#ipinfo_content {
+  background: #fff;
+  padding: 30px;
+  width: 75%;
+}
+
+#ipinfo.show {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

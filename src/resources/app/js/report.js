@@ -9,6 +9,7 @@ let flowChart;
 let serversTable;
 let serverChart;
 let rulesTable;
+let ipInfoTable;
 let currentPage;
 let pane;
 
@@ -284,10 +285,16 @@ function makeTables() {
   flowsTable = makeTable('#flows_table',opt,"report");
   serversTable = makeTable('#servers_table',opt,"report");
   rulesTable = makeTable('#rules_table',opt,"rules");
+  opt.pageLength = 25;
+  opt.order = false;
+  ipInfoTable = makeTable("#ipinfo_table",opt,"none");
 }
 
 function makeTable(id,opt,mode){
   const t = $(id).DataTable(opt);
+  if(mode == "none"){
+    return t
+  }
   $(id +' tbody').on('click', 'tr', function () {
     if ($(this).hasClass('selected')) {
       $(this).removeClass('selected');
@@ -369,6 +376,10 @@ document.addEventListener('astilectron-ready', function () {
     showLoc();
   });
 
+  $('.report_btns button.ipinfo').click(() => {
+    showIPInfo();
+  });
+
   $('.rules_btns button.delete').click(() => {
     deleteRule();
   });
@@ -429,8 +440,13 @@ function refreshChart() {
   switch (currentPage){
     case "servers":
       showServerChart();
+      break;
     case "flows":
       showFlowChart();
+      break;
+    default:
+      showPage(currentPage);
+      break;
   }
 }
 
@@ -642,6 +658,72 @@ function sendShowLoc(lat,long){
       dialog.showErrorBox("レポート", "位置を表示できません。");
       return;
     }
+  });
+}
+
+function getIP() {
+  let ip = "";
+  let loc;
+  if( currentPage == "flows") {
+    const r = flowsTable.row('.selected');
+    if (!r) {
+      return undefined;
+    }
+    const d = r.data();
+    if( !d || d.length < 10){
+      return undefined;
+    }
+    loc = d[6].split(",");
+    if(loc.length < 4 || loc[0] == "LOCAL"){
+      loc = d[3].split(",");
+      if(loc.length < 4 || loc[0] == "LOCAL"){
+        return undefined;
+      }
+      ip = d[1];
+    } else {
+      ip = d[4];
+    }
+  } else {
+    const r = serversTable.row('.selected');
+    if (!r) {
+      return undefined;
+    }
+    const d = r.data();
+    if( !d || d.length < 10){
+      return undefined;
+    }
+    loc = d[7].split(",");
+    if(loc.length < 4|| loc[0] == "LOCAL"){
+      return undefined;
+    }
+    ip = d[1];
+  }
+  return ip;
+}
+
+function showIPInfo() {
+  const ip = getIP();
+  if(!ip){
+    dialog.showErrorBox("レポート", "ローカルIPです。");
+    return;
+  }
+  $('#wait').removeClass("hidden");
+  astilectron.sendMessage({ name: "getIPInfo", payload: ip }, message => {
+    $('#wait').addClass("hidden");
+    const ipinfo = message.payload; 
+    if ( !ipinfo || ipinfo == "ng" ) {
+      dialog.showErrorBox("レポート", "IP情報を取得できません。");
+      return;
+    }
+    ipInfoTable.clear();
+    for(let i = 0 ;i < ipinfo.length;i++){
+      ipInfoTable.row.add(ipinfo[i]);
+    }
+    ipInfoTable.draw();
+    $("#ipinfo").addClass("show").fadeIn().css('display','flex');
+    $("#close_ipinfo").on("click", function() {
+      $("#ipinfo").fadeOut();
+    });
   });
 }
 

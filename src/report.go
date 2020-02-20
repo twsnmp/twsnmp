@@ -8,10 +8,13 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	astilog "github.com/asticode/go-astilog"
 	"github.com/montanaflynn/stats"
+	"github.com/mrichman/godnsbl"
+	"github.com/openrdap/rdap"
 	"github.com/oschwald/geoip2-golang"
 	"go.etcd.io/bbolt"
 )
@@ -758,7 +761,14 @@ func findNameFromIP(ip string) string {
 }
 
 func checkOldReport() {
-	old := time.Now().Add(time.Hour * -24).UnixNano()
+	oh := -24
+	if len(servers) > 10000 {
+		oh = -12 / (len(servers) / 10000)
+		if oh > -3 {
+			oh = -3
+		}
+	}
+	old := time.Now().Add(time.Hour * time.Duration(oh)).UnixNano()
 	toold := time.Now().AddDate(0, 0, -mapConf.LogDays).UnixNano()
 	checkOldServers(old, toold)
 	checkOldFlows(old, toold)
@@ -1164,4 +1174,116 @@ func deleteDennyRule(id string) error {
 		}
 		return nil
 	})
+}
+
+type ipInfoCache struct {
+	Time   int64
+	IPInfo *[][]string
+}
+
+var ipInfoCacheMap = make(map[string]*ipInfoCache)
+
+var blacklists = []string{
+	"b.barracudacentral.org",
+	"bl.spamcop.net",
+	"blacklist.woody.ch",
+	"bogons.cymru.com",
+	"cbl.abuseat.org",
+	"combined.abuse.ch",
+	"db.wpbl.info",
+	"dnsbl-1.uceprotect.net",
+	"dnsbl-2.uceprotect.net",
+	"dnsbl-3.uceprotect.net",
+	"dnsbl.dronebl.org",
+	"dnsbl.inps.de",
+	"dnsbl.sorbs.net",
+	"drone.abuse.ch",
+	"duinv.aupads.org",
+	"dul.dnsbl.sorbs.net",
+	"dyna.spamrats.com",
+	"dynip.rothen.com",
+	"http.dnsbl.sorbs.net",
+	"ips.backscatterer.org",
+	"ix.dnsbl.manitu.net",
+	"korea.services.net",
+	"misc.dnsbl.sorbs.net",
+	"noptr.spamrats.com",
+	"orvedb.aupads.org",
+	"pbl.spamhaus.org",
+	"proxy.bl.gweep.ca",
+	"psbl.surriel.com",
+	"relays.bl.gweep.ca",
+	"relays.nether.net",
+	"sbl.spamhaus.org",
+	"smtp.dnsbl.sorbs.net",
+	"socks.dnsbl.sorbs.net",
+	"spam.abuse.ch",
+	"spam.dnsbl.sorbs.net",
+	"spam.spamrats.com",
+	"spamrbl.imp.ch",
+	"ubl.unsubscore.com",
+	"virus.rbl.jp",
+	"web.dnsbl.sorbs.net",
+	"wormrbl.imp.ch",
+	"xbl.spamhaus.org",
+	"zen.spamhaus.org",
+	"zombie.dnsbl.sorbs.net",
+
+	"z.mailspike.net",
+	"spamsources.fabel.dk",
+	"spambot.bls.digibase.ca",
+	"spam.dnsbl.anonmails.de",
+	"singular.ttk.pte.hu",
+	"all.s5h.net",
+	"ubl.lashback.com",
+	"dnsbl.spfbl.net",
+}
+
+func getIPInfo(ip string) *[][]string {
+	if c, ok := ipInfoCacheMap[ip]; ok {
+		if c.Time > time.Now().Unix()-60*60*24*7 {
+			return c.IPInfo
+		}
+	}
+	ret := [][]string{}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		client := &rdap.Client{}
+		ri, err := client.QueryIP(ip)
+		if err != nil {
+			astilog.Errorf("RDAP QueryIP error=%v", err)
+			return
+		}
+		ret = append(ret, []string{"RDAP:IP Version", ri.IPVersion}) //IPバージョン
+		ret = append(ret, []string{"RDAP:Type", ri.Type})            // 種類
+		ret = append(ret, []string{"RDAP:Handole", ri.Handle})       //範囲
+		ret = append(ret, []string{"RDAP:Name", ri.Name})            // 所有者
+		ret = append(ret, []string{"RDAP:Country", ri.Country})      // 国
+		ret = append(ret, []string{"RDAP:Whois Server", ri.Port43})  // Whoisの情報源
+	}()
+	rblMap := &sync.Map{}
+	for i, source := range blacklists {
+		wg.Add(1)
+		go func(i int, source string) {
+			defer wg.Done()
+			rbl := godnsbl.Lookup(source, ip)
+			if len(rbl.Results) > 0 && rbl.Results[0].Listed {
+				rblMap.Store(source, `<i class="fas fa-exclamation-circle state state_high"></i>Listed :`+rbl.Results[0].Text)
+			} else {
+				rblMap.Store(source, `<i class="fas fa-check-circle state state_repair"></i>Not Listed`)
+			}
+		}(i, source)
+	}
+	wg.Wait()
+	rblMap.Range(func(key, value interface{}) bool {
+		ret = append(ret, []string{"DNSBL:" + key.(string), value.(string)})
+		return true
+	})
+	ipInfoCacheMap[ip] = &ipInfoCache{
+		Time:   time.Now().Unix(),
+		IPInfo: &ret,
+	}
+	return &ret
 }

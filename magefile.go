@@ -27,6 +27,8 @@ var pkgList = []string{
 	"github.com/mattn/go-colorable",
 	"github.com/robertkrimen/otto",
 	"github.com/vjeantet/grok",
+	"github.com/mrichman/godnsbl",
+	"github.com/openrdap/rdap",
 }
 
 // Build 実行ファイルのビルド

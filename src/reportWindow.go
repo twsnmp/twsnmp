@@ -42,6 +42,8 @@ func reportMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interfa
 		return resetReportEnt(&m)
 	case "showLoc":
 		return openUrl(&m)
+	case "getIPInfo":
+		return doGetIPInfo(&m)
 	}
 	astilog.Errorf("Unknow Message Name=%s", m.Name)
 	return "ok", nil
@@ -213,4 +215,17 @@ func deleteRuleEnt(m *bootstrap.MessageIn) (interface{}, error) {
 		}
 	}
 	return "ok", nil
+}
+
+func doGetIPInfo(m *bootstrap.MessageIn) (interface{}, error) {
+	if len(m.Payload) < 3 {
+		astilog.Errorf("doGetIPInfo %s payload=%v", m.Name, m.Payload)
+		return "ng", nil
+	}
+	var ip string
+	if err := json.Unmarshal(m.Payload, &ip); err != nil {
+		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		return "ng", err
+	}
+	return getIPInfo(ip), nil
 }
