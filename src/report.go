@@ -769,19 +769,19 @@ func checkOldReport() {
 		}
 	}
 	old := time.Now().Add(time.Hour * time.Duration(oh)).UnixNano()
-	toold := time.Now().AddDate(0, 0, -mapConf.LogDays).UnixNano()
-	checkOldServers(old, toold)
-	checkOldFlows(old, toold)
+	tooOld := time.Now().AddDate(0, 0, -mapConf.LogDays).UnixNano()
+	checkOldServers(old, tooOld)
+	checkOldFlows(old, tooOld)
 	checkOldDevices(old)
 	checkOldUsers(old)
 }
 
-func checkOldServers(old, toold int64) {
+func checkOldServers(old, tooOld int64) {
 	count := 0
 	ids := []string{}
 	for _, s := range servers {
 		if s.LastTime < old {
-			if s.LastTime < toold || s.LastTime-s.FirstTime < 3600*1000*1000*1000 {
+			if s.LastTime < tooOld || s.LastTime-s.FirstTime < 3600*1000*1000*1000 {
 				ids = append(ids, s.ID)
 			} else {
 				for k, n := range s.Services {
@@ -804,12 +804,12 @@ func checkOldServers(old, toold int64) {
 	}
 }
 
-func checkOldFlows(old, toold int64) {
+func checkOldFlows(old, tooOld int64) {
 	count := 0
 	ids := []string{}
 	for _, f := range flows {
 		if f.LastTime < old {
-			if f.LastTime < toold || f.LastTime-f.FirstTime < 3600*1000*1000*1000 {
+			if f.LastTime < tooOld || f.LastTime-f.FirstTime < 3600*1000*1000*1000 {
 				ids = append(ids, f.ID)
 			} else {
 				for k, n := range f.Services {
@@ -832,11 +832,11 @@ func checkOldFlows(old, toold int64) {
 	}
 }
 
-func checkOldDevices(toold int64) {
+func checkOldDevices(tooOld int64) {
 	count := 0
 	ids := []string{}
 	for _, d := range devices {
-		if d.LastTime < toold {
+		if d.LastTime < tooOld {
 			ids = append(ids, d.ID)
 		}
 	}
@@ -849,11 +849,11 @@ func checkOldDevices(toold int64) {
 	}
 }
 
-func checkOldUsers(toold int64) {
+func checkOldUsers(tooOld int64) {
 	count := 0
 	ids := []string{}
 	for _, u := range users {
-		if u.LastTime < toold {
+		if u.LastTime < tooOld {
 			ids = append(ids, u.ID)
 		}
 	}
