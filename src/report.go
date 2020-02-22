@@ -177,6 +177,11 @@ func isPrivateIP(ip net.IP) bool {
 	return false
 }
 
+func isGlobalUnicast(ips string) bool {
+	ip := net.ParseIP(ips)
+	return ip.IsGlobalUnicast()
+}
+
 func getLoc(ips string) string {
 	if l, ok := geoipMap[ips]; ok {
 		return l
@@ -444,22 +449,26 @@ func checkUserClient(u *userEnt, client string) {
 	}
 }
 
-func checkFlowReport(r *flowReportEnt) {
-	// クライアント、サーバー、サービスを決定するアルゴリズム
-	var service string
-	var server string
-	var client string
+// getFlowDir : クライアント、サーバー、サービスを決定するアルゴリズム
+func getFlowDir(r *flowReportEnt) (server, client, service string) {
+	guc1 := isGlobalUnicast(r.SrcIP)
+	guc2 := isGlobalUnicast(r.DstIP)
+	if !guc1 && !guc2 {
+		// 両方ユニキャストでない場合は含めない。
+		return
+	}
 	s1, ok1 := getServiceName(r.Prot, r.SrcPort)
 	s2, ok2 := getServiceName(r.Prot, r.DstPort)
 	if ok1 {
 		if ok2 {
-			if r.SrcPort < r.DstPort {
-				// ポート番号の小さい方を優先
+			if r.SrcPort < r.DstPort || !guc1 {
+				// ポート番号の小さい方を優先、または、マルチキャストはサーバーとする
 				server = r.SrcIP
 				client = r.DstIP
 				service = s1
 			} else if r.SrcPort == r.DstPort {
-				if _, ok := flows[fmt.Sprintf("%s:%s", r.DstIP, r.SrcIP)]; ok {
+				if _, ok := flows[fmt.Sprintf("%s:%s", r.DstIP, r.SrcIP)]; ok || !guc2 {
+					// 既に登録済みか、マルチキャストをサーバーとする
 					server = r.DstIP
 					client = r.SrcIP
 					service = s2
@@ -484,7 +493,7 @@ func checkFlowReport(r *flowReportEnt) {
 			client = r.SrcIP
 			service = s2
 		} else {
-			if r.SrcPort < r.DstPort {
+			if r.SrcPort < r.DstPort || !guc1 {
 				server = r.SrcIP
 				client = r.DstIP
 				service = s1
@@ -494,6 +503,15 @@ func checkFlowReport(r *flowReportEnt) {
 				service = s2
 			}
 		}
+	}
+	return
+}
+
+func checkFlowReport(r *flowReportEnt) {
+	server, client, service := getFlowDir(r)
+	if server == "" {
+		astilog.Warnf("Skip flow report %v", r)
+		return
 	}
 	checkServerReport(server, service, r.Bytes, r.Time)
 	now := time.Now().UnixNano()
@@ -536,7 +554,6 @@ func checkFlowReport(r *flowReportEnt) {
 	f.Services[service] = 1
 	setFlowPenalty(f)
 	flows[id] = f
-	astilog.Debugf("add flows %v", f)
 }
 
 func checkServerReport(server, service string, bytes, t int64) {
