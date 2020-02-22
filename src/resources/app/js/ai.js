@@ -7,12 +7,12 @@ document.addEventListener('astilectron-ready', function () {
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "doAI":
-        if( !message.payload || !message.payload.PollingID ){
+        if (!message.payload || !message.payload.PollingID) {
           return { name: "doAI", payload: "ng" };
         }
         setTimeout(() => {
           doAI(message.payload);
-        },100);
+        }, 100);
         return { name: "doAI", payload: "ok" };
       case "deleteModel":
         deleteModel(message.payload);
@@ -30,21 +30,21 @@ document.addEventListener('astilectron-ready', function () {
   });
 });
 
-function deleteModel(PollingID){
+function deleteModel(PollingID) {
   const modelPath = `indexeddb://twsnmpai-${PollingID}`;
   try {
     tf.io.removeModel(modelPath);
-    console.log("deleteModel "+modelPath)
+    console.log("deleteModel " + modelPath)
   } catch (e) {
     console.log(e);
   }
 }
 
-function clearAllAIMoldes(){
+function clearAllAIMoldes() {
   try {
-    tf.io.listModels().then(models=>{
-      for(let url in models){
-        console.log("clearAllAIMoldes "+ url)
+    tf.io.listModels().then(models => {
+      for (let url in models) {
+        console.log("clearAllAIMoldes " + url)
         tf.io.removeModel(url);
       }
     });
@@ -57,31 +57,48 @@ async function doAI(req) {
   const modelPath = `indexeddb://twsnmpai-${req.PollingID}`;
   const dataLen = req.Data[0].length
   let autoencoder;
+  const lossData = [];
+  let scoreData = [];
   try {
     autoencoder = await tf.loadLayersModel(modelPath);
   } catch (e) {
     console.log(e);
     const input = tf.input({ shape: [dataLen] });
-    const encoded1 = tf.layers.dense({ units: Math.ceil(dataLen/2), activation: 'relu' });
-    const encoded2 = tf.layers.dense({ units: Math.ceil(dataLen/4), activation: 'relu' });
-    const encoded3 = tf.layers.dense({ units: Math.ceil(dataLen/2), activation: 'relu' });
+    const encoded1 = tf.layers.dense({ units: Math.ceil(dataLen / 2), activation: 'relu' });
+    const encoded2 = tf.layers.dense({ units: Math.ceil(dataLen / 4), activation: 'relu' });
+    const encoded3 = tf.layers.dense({ units: Math.ceil(dataLen / 2), activation: 'relu' });
     const decoded = tf.layers.dense({ units: dataLen, activation: 'sigmoid' });
     const output = decoded.apply(encoded3.apply(encoded2.apply(encoded1.apply(input))));
     autoencoder = tf.model({ inputs: input, outputs: output });
   }
-  autoencoder.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
-  
-  const lossData = [];
-  const x_train = tf.tensor2d(req.Data, [req.Data.length, dataLen]);
-  for (let i = 0; i < epoch; i++) {
-    const h = await autoencoder.fit(x_train, x_train, { epochs: 5, batchSize: 24 });
-    lossData.push([moment().valueOf(), h.history.loss[0]]);
-    console.log("Loss after Epoch " + i + " : " + h.history.loss[0]);
+  try {
+    autoencoder.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
+    const x_train = tf.tensor2d(req.Data, [req.Data.length, dataLen]);
+    for (let i = 0; i < epoch; i++) {
+      const h = await autoencoder.fit(x_train, x_train, { epochs: 5, batchSize: 24 });
+      lossData.push([moment().valueOf(), h.history.loss[0]]);
+      console.log("Loss after Epoch " + i + " : " + h.history.loss[0]);
+    }
+  } catch (e) {
+    // モデルの問題は、モデルを削除して、終了したことにする。次回に期待
+    deleteModel(req.PollingID);
+    console.log(e);
+    astilectron.sendMessage({
+      name: "done", payload: {
+        PollingID: req.PollingID,
+        LastTime: req.TimeStamp[req.Data.length - 1],
+        LossData: [],
+        ScoreData: [],
+      }
+    }, message => {
+      console.log(message);
+    });
   }
+
   // Saveできない場合も終了するため
   try {
     await autoencoder.save(modelPath);
-  } catch(e){
+  } catch (e) {
     console.log(e);
   }
   const evd = [];
@@ -93,17 +110,18 @@ async function doAI(req) {
   let avg = average(evd);
   let sd = standardDeviation(evd, avg);
   let ssArr = standardScore(evd, avg, sd);
-  let scoreData = [];
   for (let i = 0; i < req.Data.length; i++) {
-    scoreData.push([req.TimeStamp[i],ssArr[i]])
+    scoreData.push([req.TimeStamp[i], ssArr[i]])
   }
-  astilectron.sendMessage({ name: "done", payload:{
-    PollingID:req.PollingID,
-    LastTime: req.TimeStamp[req.Data.length-1],
-    LossData: lossData,
-    ScoreData:scoreData
-    }}, message => {
-      console.log(message);
+  astilectron.sendMessage({
+    name: "done", payload: {
+      PollingID: req.PollingID,
+      LastTime: req.TimeStamp[req.Data.length - 1],
+      LossData: lossData,
+      ScoreData: scoreData
+    }
+  }, message => {
+    console.log(message);
   });
 }
 

@@ -533,7 +533,7 @@ function makeAIHeatmap() {
     const d = params.name + ' ' + params.data[1] + ":00:00"; 
     $(".toolbar-actions input[name=start]").val(moment(d).subtract(1, "h").format("Y-MM-DDTHH:00"));
     $(".toolbar-actions input[name=end]").val(moment(d).add(1,"h").format("Y-MM-DDTHH:00"));
-    showPage("log");
+    showPage("result");
     $('.toolbar-actions button.get').click();
     logChart.resize();
   });
@@ -822,21 +822,27 @@ function setWindowTitle(n,p){
 }
 
 function getDispParams(){
-  if (polling.Type === "ping"){
-    return {
-      mul: 1.0/(1000*1000*1000),
-      axis: "応答時間(秒)"
-    }
-  }
-  if (polling.Type === "sysloguser"){
-    return {
-      mul: 100.0,
-      axis: "成功率"
-    }
-  }
-  return {
-    mul: 1.0,
-    axis: ""
+  switch(polling.Type){
+    case "ping":
+    case "tcp":
+    case "http":
+    case "https":
+    case "dns":
+    case "ntp":
+      return {
+        mul: 1.0/(1000*1000*1000),
+        axis: "応答時間(秒)"
+      }
+    case "sysloguser":
+      return {
+        mul: 100.0,
+        axis: "成功率(%)"
+      }
+    default:
+      return {
+        mul: 1.0,
+        axis: ""
+      }
   }
 }
 
