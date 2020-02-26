@@ -119,7 +119,7 @@ function showSyslog(logList) {
       continue;
     }
     const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
-    syslogTable.row.add([ts, getSeverityHtml(ll.severity), getFacilityName(ll.facility), ll.hostname, ll.content]);
+    syslogTable.row.add([ts, getSeverityHtml(ll.severity), getFacilityName(ll.facility), ll.hostname,ll.tag, ll.content]);
     if(!ctm ) {
       ctm = Math.floor(l.Time / (1000 * 1000 * 1000 * 60));
       count++;
