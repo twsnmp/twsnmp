@@ -29,6 +29,7 @@ var pkgList = []string{
 	"github.com/vjeantet/grok",
 	"github.com/mrichman/godnsbl",
 	"github.com/openrdap/rdap",
+	"github.com/asticode/go-astilog",
 }
 
 // Build 実行ファイルのビルド

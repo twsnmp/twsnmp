@@ -14,14 +14,12 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	astilog "github.com/asticode/go-astilog"
 )
 
 func doPollingTCP(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
-		astilog.Errorf("node not found nodeID=%s", p.NodeID)
+		astiLogger.Errorf("node not found nodeID=%s", p.NodeID)
 		return
 	}
 	ok = false
@@ -31,7 +29,7 @@ func doPollingTCP(p *pollingEnt) {
 		conn, err := net.DialTimeout("tcp", n.IP+":"+p.Polling, time.Duration(p.Timeout)*time.Second)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			astilog.Debugf("doPollingTCP err=%v", err)
+			astiLogger.Debugf("doPollingTCP err=%v", err)
 			p.LastResult = fmt.Sprintf("%v", err)
 			continue
 		}
@@ -52,7 +50,7 @@ func doPollingTCP(p *pollingEnt) {
 func doPollingHTTP(p *pollingEnt) {
 	_, ok := nodes[p.NodeID]
 	if !ok {
-		astilog.Errorf("node not found nodeID=%s", p.NodeID)
+		astiLogger.Errorf("node not found nodeID=%s", p.NodeID)
 		return
 	}
 	ok = false
@@ -62,7 +60,7 @@ func doPollingHTTP(p *pollingEnt) {
 		err := doHTTPGet(p)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			astilog.Debugf("doPollingHTTP err=%v", err)
+			astiLogger.Debugf("doPollingHTTP err=%v", err)
 			p.LastResult = fmt.Sprintf("%v", err)
 			continue
 		}
@@ -112,7 +110,7 @@ func doHTTPGet(p *pollingEnt) error {
 func doPollingTLS(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
-		astilog.Errorf("node not found nodeID=%s", p.NodeID)
+		astiLogger.Errorf("node not found nodeID=%s", p.NodeID)
 		return
 	}
 	conf := &tls.Config{
@@ -147,7 +145,7 @@ func doPollingTLS(p *pollingEnt) {
 		conn, err := tls.DialWithDialer(d, "tcp", n.IP+":"+p.Polling, conf)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			astilog.Debugf("doPollingTLS err=%v", err)
+			astiLogger.Debugf("doPollingTLS err=%v", err)
 			p.LastResult = fmt.Sprintf("%v", err)
 			continue
 		}
@@ -188,7 +186,7 @@ var tlsCSMap = make(map[string]string)
 func loadTLSParamsMap(path string) {
 	file, err := os.Open(path)
 	if err != nil {
-		astilog.Errorf("loadTLSParamsMap err=%v", err)
+		astiLogger.Errorf("loadTLSParamsMap err=%v", err)
 		return
 	}
 	defer file.Close()

@@ -7,14 +7,12 @@ import (
 	"runtime"
 	"strings"
 	"time"
-
-	astilog "github.com/asticode/go-astilog"
 )
 
 var arpTable = make(map[string]string)
 
 func arpWatcher(ctx context.Context) {
-	astilog.Debug("start arpWacher")
+	astiLogger.Debug("start arpWacher")
 	loadArpTableFromDB()
 	checkArpTable()
 	timer := time.NewTicker(time.Second * 300)
@@ -22,7 +20,7 @@ func arpWatcher(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			astilog.Debug("Stop arpWatch")
+			astiLogger.Debug("Stop arpWatch")
 			return
 		case <-timer.C:
 			checkArpTable()
@@ -42,7 +40,7 @@ func checkArpTable() {
 func checkArpTableWindows() {
 	out, err := exec.Command("arp", "-a").Output()
 	if err != nil {
-		astilog.Errorf("checkArpTable err=%v", err)
+		astiLogger.Errorf("checkArpTable err=%v", err)
 		return
 	}
 	for _, line := range strings.Split(string(out), "\n") {
@@ -58,7 +56,7 @@ func checkArpTableWindows() {
 func checkArpTableUnix() {
 	out, err := exec.Command("arp", "-an").Output()
 	if err != nil {
-		astilog.Errorf("checkArpTable err=%v", err)
+		astiLogger.Errorf("checkArpTable err=%v", err)
 		return
 	}
 	for _, line := range strings.Split(string(out), "\n") {
@@ -95,7 +93,7 @@ func updateArpTable(ip, mac string) {
 			Type: "arplog",
 			Log:  fmt.Sprintf("New,%s,%s", ip, mac),
 		}
-		astilog.Infof("New %s %s", ip, mac)
+		astiLogger.Infof("New %s %s", ip, mac)
 		return
 	}
 	if mac != m {
@@ -106,7 +104,7 @@ func updateArpTable(ip, mac string) {
 			Type: "arplog",
 			Log:  fmt.Sprintf("Change,%s,%s,%s", ip, m, mac),
 		}
-		astilog.Infof("Change %s %s -> %s", ip, m, mac)
+		astiLogger.Infof("Change %s %s -> %s", ip, m, mac)
 		return
 	}
 	// No Change

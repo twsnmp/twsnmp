@@ -7,7 +7,6 @@ import (
 	"time"
 	"fmt"
 	"strings"
-	astilog "github.com/asticode/go-astilog"
 )
 
 func notifyBackend(ctx context.Context) {
@@ -61,7 +60,7 @@ func checkNotify(lastLog string) string{
 		}
 		if len(body) > 0 {
 			if err := sendMail(notifyConf.Subject,strings.Join(body,"\r\n"));err != nil {
-				astilog.Errorf("sendMail err=%v",err)
+				astiLogger.Errorf("sendMail err=%v",err)
 			}
 		}
 		return fmt.Sprintf("%016x", list[0].Time)
@@ -83,7 +82,7 @@ func sendMail(subject,body string) error {
 	}
 	defer c.Close()
 	if err = c.StartTLS(tlsconfig); err != nil {
-		astilog.Warnf("StartTLS err=%s",err)
+		astiLogger.Warnf("StartTLS err=%s",err)
 	}
 	if notifyConf.User != "" {
 		auth := smtp.PlainAuth("", notifyConf.User,notifyConf.Password,notifyConf.MailServer)
@@ -111,7 +110,7 @@ func sendMail(subject,body string) error {
 	message += "\r\n" + convNewline(body,"\r\n")
 	w.Write([]byte(message))
 	c.Quit()
-	astilog.Infof("Send Mail to %s",notifyConf.MailTo)
+	astiLogger.Infof("Send Mail to %s",notifyConf.MailTo)
 	return nil
 }
 
@@ -134,7 +133,7 @@ func sendTestMail(testConf *notifyConfEnt) error {
 	}
 	defer c.Close()
 	if err = c.StartTLS(tlsconfig); err != nil {
-		astilog.Warnf("StartTLS err=%s",err)
+		astiLogger.Warnf("StartTLS err=%s",err)
 	}
 	if testConf.User != "" {
 		auth := smtp.PlainAuth("", testConf.User,testConf.Password,testConf.MailServer)

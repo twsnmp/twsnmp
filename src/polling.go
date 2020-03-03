@@ -27,7 +27,6 @@ import (
 	"strings"
 	"time"
 
-	astilog "github.com/asticode/go-astilog"
 	"github.com/beevik/ntp"
 )
 
@@ -70,7 +69,7 @@ func pollingBackend(ctx context.Context) {
 				if len(list) < 1 {
 					continue
 				}
-				astilog.Infof("doPolling %d NumGoroutine %d", len(list), runtime.NumGoroutine())
+				astiLogger.Infof("doPolling %d NumGoroutine %d", len(list), runtime.NumGoroutine())
 				sort.Slice(list, func(i, j int) bool {
 					return list[i].NextTime < list[j].NextTime
 				})
@@ -158,7 +157,7 @@ func doPolling(p *pollingEnt) {
 	}
 	if p.LogMode == logModeAlways || p.LogMode == logModeAI || (p.LogMode == logModeOnChange && oldState != p.State) {
 		if err := addPollingLog(p); err != nil {
-			astilog.Errorf("addPollingLog err=%v", err)
+			astiLogger.Errorf("addPollingLog err=%v", err)
 		}
 	}
 }
@@ -166,7 +165,7 @@ func doPolling(p *pollingEnt) {
 func doPollingPing(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
-		astilog.Errorf("node not found nodeID=%s", p.NodeID)
+		astiLogger.Errorf("node not found nodeID=%s", p.NodeID)
 		return
 	}
 	r := doPing(n.IP, p.Timeout, p.Retry, 64)
@@ -184,7 +183,7 @@ func doPollingPing(p *pollingEnt) {
 func doPollingDNS(p *pollingEnt) {
 	_, ok := nodes[p.NodeID]
 	if !ok {
-		astilog.Errorf("node not found nodeID=%s", p.NodeID)
+		astiLogger.Errorf("node not found nodeID=%s", p.NodeID)
 		return
 	}
 	ok = false
@@ -195,7 +194,7 @@ func doPollingDNS(p *pollingEnt) {
 		addr, err := net.ResolveIPAddr("ip", p.Polling)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			astilog.Debugf("doPollingDNS err=%v", err)
+			astiLogger.Debugf("doPollingDNS err=%v", err)
 			p.LastResult = fmt.Sprintf("ERR:%v", err)
 			continue
 		}
@@ -219,7 +218,7 @@ func doPollingDNS(p *pollingEnt) {
 func doPollingNTP(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
-		astilog.Errorf("node not found nodeID=%s", p.NodeID)
+		astiLogger.Errorf("node not found nodeID=%s", p.NodeID)
 		return
 	}
 	ok = false
@@ -227,7 +226,7 @@ func doPollingNTP(p *pollingEnt) {
 		options := ntp.QueryOptions{Timeout: time.Duration(p.Timeout) * time.Second}
 		r, err := ntp.QueryWithOptions(n.IP, options)
 		if err != nil {
-			astilog.Debugf("doPollingNTP err=%v", err)
+			astiLogger.Debugf("doPollingNTP err=%v", err)
 			p.LastResult = fmt.Sprintf("%v", err)
 			continue
 		}

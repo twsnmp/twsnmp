@@ -14,7 +14,7 @@ import (
 	astikit "github.com/asticode/go-astikit"
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
-	astilog "github.com/asticode/go-astilog"
+	"github.com/asticode/go-astilog"
 	mibdb "github.com/twsnmp/go-mibdb"
 )
 
@@ -41,6 +41,7 @@ var (
 	aboutText         = `TWSNMP Manager
 Version 5.0.0
 Copyright (c) 2019 Masayuki Yamai`
+	astiLogger *astilog.Logger
 )
 
 // Define errors
@@ -55,36 +56,37 @@ var (
 func main() {
 	// Init
 	flag.Parse()
+	logConf := astilog.FlagConfig()
+	if logConf.TimestampFormat == "" {
+		logConf.TimestampFormat = "01/02 15:04:05.000"
+	}
+	astiLogger = astilog.New(logConf)
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
-			astilog.Fatalf("could not create CPU profile: %v", err)
+			astiLogger.Fatalf("could not create CPU profile: %v", err)
 		}
 		defer f.Close()
 		if err := pprof.StartCPUProfile(f); err != nil {
-			astilog.Fatalf("could not start CPU profile: %v", err)
+			astiLogger.Fatalf("could not start CPU profile: %v", err)
 		}
 		defer pprof.StopCPUProfile()
 	}
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
 		if err != nil {
-			astilog.Fatalf("could not create memory profile: %v", err)
+			astiLogger.Fatalf("could not create memory profile: %v", err)
 		}
 		defer f.Close()
 		runtime.GC() // get up-to-date statistics
 		if err := pprof.WriteHeapProfile(f); err != nil {
-			astilog.Fatalf("could not write memory profile:%v", err)
+			astiLogger.Fatalf("could not write memory profile:%v", err)
 		}
 	}
-	logConf := astilog.FlagConfig()
-	logConf.FullTimestamp = true
-	logConf.DisableTimestamp = false
-	astilog.SetLogger(astilog.New(logConf))
 	dbPath = flag.Arg(0)
 	if dbPath != "" {
 		if err := checkDB(dbPath); err != nil {
-			astilog.Error(fmt.Sprintf("checkDB(Arg[0]) error=%v", err))
+			astiLogger.Error(fmt.Sprintf("checkDB(Arg[0]) error=%v", err))
 			dbPath = ""
 		}
 	}
@@ -92,7 +94,7 @@ func main() {
 	ctx, cancel := context.WithCancel(pctx)
 
 	// Run bootstrap
-	astilog.Debugf("Running app built at %s", BuiltAt)
+	astiLogger.Debugf("Running app built at %s", BuiltAt)
 	if err := bootstrap.Run(bootstrap.Options{
 		Asset:    Asset,
 		AssetDir: AssetDir,
@@ -101,7 +103,8 @@ func main() {
 			AppIconDarwinPath:  "resources/twsnmp.icns",
 			AppIconDefaultPath: "resources/twsnmp.png",
 		},
-		Debug: *debug,
+		Debug:  *debug,
+		Logger: astiLogger,
 		MenuOptions: []*astilectron.MenuItemOptions{{
 			Label: astikit.StrPtr("File"),
 			SubMenu: []*astilectron.MenuItemOptions{
@@ -110,7 +113,7 @@ func main() {
 					OnClick: func(e astilectron.Event) (deleteListener bool) {
 						if err := bootstrap.SendMessage(mainWindow, "about", aboutText, func(m *bootstrap.MessageIn) {
 						}); err != nil {
-							astilog.Error(fmt.Sprintf("sending about event failed err=%v", err))
+							astiLogger.Error(fmt.Sprintf("sending about event failed err=%v", err))
 						}
 						return
 					},
@@ -229,7 +232,7 @@ func main() {
 			var err error
 			mib, err = mibdb.NewMIBDB(path)
 			if err != nil {
-				astilog.Fatalf("NewMIBDB failed err=%v", err)
+				astiLogger.Fatalf("NewMIBDB failed err=%v", err)
 			}
 			path = filepath.Join(app.Paths().DataDirectory(), "resources", "tlsparams.csv")
 			loadTLSParamsMap(path)
@@ -239,7 +242,7 @@ func main() {
 			loadServiceMap(path)
 			startBackend(ctx)
 			mainWindow.On(astilectron.EventNameWindowEventClosed, func(e astilectron.Event) (deleteListener bool) {
-				astilog.Debug("Main Window Closed")
+				astiLogger.Debug("Main Window Closed")
 				app.Stop()
 				return
 			})
@@ -426,12 +429,12 @@ func main() {
 			},
 		},
 	}); err != nil {
-		astilog.Fatal(fmt.Sprintf("running bootstrap failed err=%v", err))
+		astiLogger.Fatal(fmt.Sprintf("running bootstrap failed err=%v", err))
 	}
 	stopDiscover()
 	cancel()
 	closeDB()
-	astilog.Debug(fmt.Sprintf("End of main()"))
+	astiLogger.Debug(fmt.Sprintf("End of main()"))
 }
 
 func setWindowsShowOrHide(w *astilectron.Window, show bool) {
@@ -454,11 +457,11 @@ func startMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interfac
 		if len(m.Payload) > 0 {
 			var fileName string
 			if err := json.Unmarshal(m.Payload, &fileName); err != nil {
-				astilog.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				astiLogger.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
 				return err.Error(), err
 			}
 			if err := checkDB(fileName); err != nil {
-				astilog.Error(fmt.Sprintf("checkDB  error=%v", err))
+				astiLogger.Error(fmt.Sprintf("checkDB  error=%v", err))
 				return err.Error(), err
 			}
 			dbPath = fileName
@@ -469,11 +472,11 @@ func startMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interfac
 
 // Backen Process
 func startBackend(ctx context.Context) {
-	astilog.Debug("startBackend")
+	astiLogger.Debug("startBackend")
 	go func() {
 		if dbPath == "" {
 			if err := bootstrap.SendMessage(startWindow, "selectDB", ""); err != nil {
-				astilog.Error(fmt.Sprintf("sendSendMessage selectDB error=%v", err))
+				astiLogger.Error(fmt.Sprintf("sendSendMessage selectDB error=%v", err))
 			}
 			timer := time.NewTicker(time.Millisecond * 500)
 			for dbPath == "" {
@@ -489,7 +492,7 @@ func startBackend(ctx context.Context) {
 			time.Sleep(time.Second * 2)
 		}
 		if err := openDB(dbPath); err != nil {
-			astilog.Fatal(fmt.Sprintf("running bootstrap failed err=%v", err))
+			astiLogger.Fatal(fmt.Sprintf("running bootstrap failed err=%v", err))
 		}
 		loadMIBDB()
 		go mainWindowBackend(ctx)

@@ -21,7 +21,6 @@ import (
 
 	gosnmp "github.com/soniah/gosnmp"
 
-	astilog "github.com/asticode/go-astilog"
 	"go.etcd.io/bbolt"
 	"gopkg.in/mcuadros/go-syslog.v2"
 	syslogv2 "gopkg.in/mcuadros/go-syslog.v2"
@@ -32,7 +31,7 @@ var (
 )
 
 func logger(ctx context.Context) {
-	astilog.Debug("start logger")
+	astiLogger.Debug("start logger")
 	var syslogdRunning = false
 	var trapdRunning = false
 	var netflowdRunning = false
@@ -62,7 +61,7 @@ func logger(ctx context.Context) {
 					trapdRunning = false
 					close(stopTrapd)
 				}
-				astilog.Debug("Stop logger")
+				astiLogger.Debug("Stop logger")
 				return
 			}
 		case l := <-logCh:
@@ -72,7 +71,7 @@ func logger(ctx context.Context) {
 		case <-timer.C:
 			{
 				if len(logBuffer) > 0 {
-					astilog.Infof("Save Logs %d", len(logBuffer))
+					astiLogger.Infof("Save Logs %d", len(logBuffer))
 					saveLogBuffer(logBuffer)
 					logBuffer = []*logEnt{}
 				}
@@ -80,29 +79,29 @@ func logger(ctx context.Context) {
 					stopSyslogd = make(chan bool)
 					syslogdRunning = true
 					go syslogd(stopSyslogd)
-					astilog.Debug("start syslogd")
+					astiLogger.Debug("start syslogd")
 				} else if !mapConf.EnableSyslogd && syslogdRunning {
 					close(stopSyslogd)
 					syslogdRunning = false
-					astilog.Debug("stop syslogd")
+					astiLogger.Debug("stop syslogd")
 				}
 				if mapConf.EnableTrapd && !trapdRunning {
 					stopTrapd = make(chan bool)
 					trapdRunning = true
 					go trapd(stopTrapd)
-					astilog.Debug("start trapd")
+					astiLogger.Debug("start trapd")
 				} else if !mapConf.EnableTrapd && trapdRunning {
 					close(stopTrapd)
-					astilog.Debug("stop trapd")
+					astiLogger.Debug("stop trapd")
 				}
 				if mapConf.EnableNetflowd && !netflowdRunning {
 					stopNetflowd = make(chan bool)
 					netflowdRunning = true
 					go netflowd(stopNetflowd)
-					astilog.Debug("start netflowd")
+					astiLogger.Debug("start netflowd")
 				} else if !mapConf.EnableNetflowd && netflowdRunning {
 					close(stopNetflowd)
-					astilog.Debug("stop netflowd")
+					astiLogger.Debug("stop netflowd")
 				}
 			}
 		}
@@ -111,7 +110,7 @@ func logger(ctx context.Context) {
 
 func saveLogBuffer(logBuffer []*logEnt) {
 	if db == nil {
-		astilog.Errorf("saveLogBuffer DB Not open")
+		astiLogger.Errorf("saveLogBuffer DB Not open")
 		return
 	}
 	db.Batch(func(tx *bbolt.Tx) error {
@@ -151,12 +150,12 @@ func syslogd(stopCh chan bool) {
 	server.ListenUDP("0.0.0.0:514")
 	server.ListenTCP("0.0.0.0:514")
 	server.Boot()
-	astilog.Debug("syslogd start")
+	astiLogger.Debug("syslogd start")
 	for {
 		select {
 		case <-stopCh:
 			{
-				astilog.Debug("syslogd stop")
+				astiLogger.Debug("syslogd stop")
 				server.Kill()
 				return
 			}
@@ -179,19 +178,19 @@ func netflowd(stopCh chan bool) {
 	var readSize = 2 << 16
 	var addr *net.UDPAddr
 	var err error
-	astilog.Debug("netflowd start")
+	astiLogger.Debug("netflowd start")
 	if addr, err = net.ResolveUDPAddr("udp", ":2055"); err != nil {
-		astilog.Errorf("netflowd err=%v", err)
+		astiLogger.Errorf("netflowd err=%v", err)
 		return
 	}
 	var server *net.UDPConn
 	if server, err = net.ListenUDP("udp", addr); err != nil {
-		astilog.Errorf("netflowd err=%v", err)
+		astiLogger.Errorf("netflowd err=%v", err)
 		return
 	}
 	defer server.Close()
 	if err = server.SetReadBuffer(readSize); err != nil {
-		astilog.Errorf("netflowd err=%v", err)
+		astiLogger.Errorf("netflowd err=%v", err)
 		return
 	}
 	decoders := make(map[string]*netflow.Decoder)
@@ -200,7 +199,7 @@ func netflowd(stopCh chan bool) {
 		select {
 		case <-stopCh:
 			{
-				astilog.Debug("netflowd stop")
+				astiLogger.Debug("netflowd stop")
 				return
 			}
 		default:
@@ -210,7 +209,7 @@ func netflowd(stopCh chan bool) {
 				var octets int
 				if octets, remote, err = server.ReadFromUDP(buf); err != nil {
 					if !strings.Contains(err.Error(), "timeout") {
-						astilog.Errorf("netflowd err=%v", err)
+						astiLogger.Errorf("netflowd err=%v", err)
 					}
 					continue
 				}
@@ -222,7 +221,7 @@ func netflowd(stopCh chan bool) {
 				}
 				m, err := d.Read(bytes.NewBuffer(buf[:octets]))
 				if err != nil {
-					astilog.Errorf("netflowd err=%v", err)
+					astiLogger.Errorf("netflowd err=%v", err)
 					continue
 				}
 				switch p := m.(type) {
@@ -260,7 +259,7 @@ func logIPFIX(p *ipfix.Message) {
 			}
 			s, err := json.Marshal(record)
 			if err != nil {
-				astilog.Errorf("logIPFIX err=%v", err)
+				astiLogger.Errorf("logIPFIX err=%v", err)
 				continue
 			}
 			logCh <- &logEnt{
@@ -353,7 +352,7 @@ func trapd(stopCh chan bool) {
 		record["Variables"] = vbs
 		js, err := json.Marshal(record)
 		if err != nil {
-			astilog.Debug(err)
+			astiLogger.Debug(err)
 		}
 		logCh <- &logEnt{
 			Time: time.Now().UnixNano(),
@@ -364,13 +363,13 @@ func trapd(stopCh chan bool) {
 	defer tl.Close()
 	go func() {
 		tl.Listen("0.0.0.0:162")
-		astilog.Debug("Trap Listen End")
+		astiLogger.Debug("Trap Listen End")
 	}()
 	for {
 		select {
 		case <-stopCh:
 			{
-				astilog.Debug("Trap Listen Done")
+				astiLogger.Debug("Trap Listen Done")
 				return
 			}
 		}

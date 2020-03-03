@@ -7,7 +7,6 @@ import (
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
-	astilog "github.com/asticode/go-astilog"
 )
 
 // reportMessageHandler handles messages
@@ -41,11 +40,11 @@ func reportMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interfa
 	case "resetReport":
 		return resetReportEnt(&m)
 	case "showLoc":
-		return openUrl(&m)
+		return openURL(&m)
 	case "getIPInfo":
 		return doGetIPInfo(&m)
 	}
-	astilog.Errorf("Unknow Message Name=%s", m.Name)
+	astiLogger.Errorf("Unknow Message Name=%s", m.Name)
 	return "ok", nil
 }
 
@@ -78,7 +77,7 @@ func getFlows() []*flowEnt {
 	for _, d := range flows {
 		fl = append(fl, d)
 	}
-	astilog.Debugf("getFlows len=%d", len(fl))
+	astiLogger.Debugf("getFlows len=%d", len(fl))
 	return fl
 }
 
@@ -124,11 +123,11 @@ func deleteReportEnt(m *bootstrap.MessageIn, r string) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var id string
 		if err := json.Unmarshal(m.Payload, &id); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if err := deleteReport(r, id); err != nil {
-			astilog.Errorf("deleteDeviceFromReport  error=%v", err)
+			astiLogger.Errorf("deleteDeviceFromReport  error=%v", err)
 			return "ng", err
 		}
 	}
@@ -139,7 +138,7 @@ func resetReportEnt(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var r string
 		if err := json.Unmarshal(m.Payload, &r); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		resetPenalty(r)
@@ -158,7 +157,7 @@ func addRuleEnt(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var req addRuleReq
 		if err := json.Unmarshal(m.Payload, &req); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		switch req.Type {
@@ -195,7 +194,7 @@ func deleteRuleEnt(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var id string
 		if err := json.Unmarshal(m.Payload, &id); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		a := strings.SplitN(id, ":", 2)
@@ -204,12 +203,12 @@ func deleteRuleEnt(m *bootstrap.MessageIn) (interface{}, error) {
 		}
 		if strings.Contains(a[0], "allow") {
 			if err := deleteAllowRule(id); err != nil {
-				astilog.Errorf("deleteAllowRule %s error=%v", m.Name, err)
+				astiLogger.Errorf("deleteAllowRule %s error=%v", m.Name, err)
 				return "ng", err
 			}
 		} else {
 			if err := deleteDennyRule(id); err != nil {
-				astilog.Errorf("deleteDennyRule %s error=%v", m.Name, err)
+				astiLogger.Errorf("deleteDennyRule %s error=%v", m.Name, err)
 				return "ng", err
 			}
 		}
@@ -219,12 +218,12 @@ func deleteRuleEnt(m *bootstrap.MessageIn) (interface{}, error) {
 
 func doGetIPInfo(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) < 3 {
-		astilog.Errorf("doGetIPInfo %s payload=%v", m.Name, m.Payload)
+		astiLogger.Errorf("doGetIPInfo %s payload=%v", m.Name, m.Payload)
 		return "ng", nil
 	}
 	var ip string
 	if err := json.Unmarshal(m.Payload, &ip); err != nil {
-		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	return getIPInfo(ip), nil

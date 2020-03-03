@@ -5,7 +5,6 @@ import (
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
-	astilog "github.com/asticode/go-astilog"
 )
 
 // nodeMessageHandler handles messages
@@ -29,7 +28,7 @@ func nodeMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface
 	case "pollNow":
 		return pollNow(&m)
 	}
-	astilog.Errorf("Unknow Message Name=%s",m.Name)
+	astiLogger.Errorf("Unknow Message Name=%s", m.Name)
 	return "ok", nil
 }
 
@@ -38,7 +37,7 @@ func getNodeBasicInfo(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var nodeID string
 		if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if node, ok := nodes[nodeID]; ok {
@@ -52,7 +51,7 @@ func getNodeLog(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var nodeID string
 		if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		return getNodeEventLogs(nodeID), nil
@@ -64,7 +63,7 @@ func getNodePollingsMsg(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var nodeID string
 		if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		return getNodePollings(nodeID), nil
@@ -76,21 +75,21 @@ func savePolling(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var p pollingEnt
 		if err := json.Unmarshal(m.Payload, &p); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if p.ID == "" {
 			if err := addPolling(&p); err != nil {
-				astilog.Errorf("addPolling %s error=%v", m.Name, err)
+				astiLogger.Errorf("addPolling %s error=%v", m.Name, err)
 				return "ng", err
 			}
 		} else {
 			p.LastResult = ""
 			p.NextTime = 0
-			p.State ="unkown"
+			p.State = "unkown"
 			doPollingCh <- true
 			if err := updatePolling(&p); err != nil {
-				astilog.Errorf("updatePolling %s error=%v", m.Name, err)
+				astiLogger.Errorf("updatePolling %s error=%v", m.Name, err)
 				return "ng", err
 			}
 		}
@@ -102,15 +101,15 @@ func deletePollingMsg(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var id string
 		if err := json.Unmarshal(m.Payload, &id); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if err := deletePolling(id); err != nil {
-			astilog.Errorf("deletePolling  error=%v", err)
+			astiLogger.Errorf("deletePolling  error=%v", err)
 			return "ng", err
 		}
-		if err := bootstrap.SendMessage(aiWindow, "deleteModel",id); err != nil {
-			astilog.Errorf("sendSendMessage deleteModel error=%v", err)
+		if err := bootstrap.SendMessage(aiWindow, "deleteModel", id); err != nil {
+			astiLogger.Errorf("sendSendMessage deleteModel error=%v", err)
 		}
 		return "ok", nil
 	}
@@ -121,14 +120,14 @@ func pollNow(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var id string
 		if err := json.Unmarshal(m.Payload, &id); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if p, ok := pollings.Load(id); ok {
 			p.(*pollingEnt).NextTime = 0
 			p.(*pollingEnt).State = "unkown"
 		} else {
-			astilog.Errorf("No Polling")
+			astiLogger.Errorf("No Polling")
 			return "ng", nil
 		}
 		doPollingCh <- true
@@ -141,28 +140,28 @@ func showPolling(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var id string
 		if err := json.Unmarshal(m.Payload, &id); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		var ok bool
 		var v interface{}
 		params := struct {
 			Polling *pollingEnt
-			Node    *nodeEnt	
+			Node    *nodeEnt
 		}{}
 		if v, ok = pollings.Load(id); !ok {
-			astilog.Errorf("No Polling id=%s",id)
+			astiLogger.Errorf("No Polling id=%s", id)
 			return "ng", nil
 		}
 		params.Polling = v.(*pollingEnt)
-		if params.Node,ok = nodes[params.Polling.NodeID];!ok {
-			astilog.Errorf("No Node id=%s",params.Polling.NodeID)
+		if params.Node, ok = nodes[params.Polling.NodeID]; !ok {
+			astiLogger.Errorf("No Node id=%s", params.Polling.NodeID)
 			return "ng", nil
 		}
-		if err := bootstrap.SendMessage(pollingWindow, "setParams",params); err != nil {
-			astilog.Errorf("sendSendMessage error=%v", err)
-			return "ng",err
-		}	
+		if err := bootstrap.SendMessage(pollingWindow, "setParams", params); err != nil {
+			astiLogger.Errorf("sendSendMessage error=%v", err)
+			return "ng", err
+		}
 		pollingWindow.Show()
 		return "ok", nil
 	}

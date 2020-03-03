@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	astilog "github.com/asticode/go-astilog"
 	"github.com/montanaflynn/stats"
 	"github.com/mrichman/godnsbl"
 	"github.com/openrdap/rdap"
@@ -161,7 +160,7 @@ func openGeoIP() {
 	var err error
 	geoip, err = geoip2.Open(mapConf.GeoIPPath)
 	if err != nil {
-		astilog.Errorf("Geoip open err=%v", err)
+		astiLogger.Errorf("Geoip open err=%v", err)
 	}
 }
 
@@ -198,7 +197,7 @@ func getLoc(ips string) string {
 		if err == nil {
 			loc = fmt.Sprintf("%s,%f,%f,%s", record.Country.IsoCode, record.Location.Latitude, record.Location.Longitude, record.City.Names["en"])
 		} else {
-			astilog.Errorf("getLoc err=%v", err)
+			astiLogger.Errorf("getLoc err=%v", err)
 			loc = "LOCAL,0,0,"
 		}
 	}
@@ -358,7 +357,7 @@ func reportBackend(ctx context.Context) {
 			{
 				timer.Stop()
 				saveReport(0)
-				astilog.Info("Stop reportBackend")
+				astiLogger.Info("Stop reportBackend")
 				return
 			}
 		case <-timer.C:
@@ -420,7 +419,7 @@ func checkUserReport(r *userReportEnt) {
 		u.Penalty = 1
 	}
 	users[id] = u
-	astilog.Debugf("add users %v", u)
+	astiLogger.Debugf("add users %v", u)
 }
 
 func checkUserClient(u *userEnt, client string) {
@@ -510,7 +509,7 @@ func getFlowDir(r *flowReportEnt) (server, client, service string) {
 func checkFlowReport(r *flowReportEnt) {
 	server, client, service := getFlowDir(r)
 	if server == "" {
-		astilog.Warnf("Skip flow report %v", r)
+		astiLogger.Warnf("Skip flow report %v", r)
 		return
 	}
 	checkServerReport(server, service, r.Bytes, r.Time)
@@ -591,7 +590,7 @@ func checkServerReport(server, service string, bytes, t int64) {
 	s.Services[service] = 1
 	setServerPenalty(s)
 	servers[id] = s
-	astilog.Debugf("add server %v", s)
+	astiLogger.Debugf("add server %v", s)
 }
 
 func setFlowPenalty(f *flowEnt) {
@@ -716,7 +715,7 @@ func checkDeviceReport(r *deviceReportEnt) {
 	}
 	setDevicePenalty(d)
 	devices[mac] = d
-	astilog.Debugf("add devices %v", d)
+	astiLogger.Debugf("add devices %v", d)
 }
 
 func setDevicePenalty(d *deviceEnt) {
@@ -741,7 +740,7 @@ func checkOldArpLog() {
 	db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("arplog"))
 		if b == nil {
-			astilog.Error("checkOldArpLog no arplog bucket")
+			astiLogger.Error("checkOldArpLog no arplog bucket")
 			return nil
 		}
 		b.ForEach(func(k, v []byte) error {
@@ -817,7 +816,7 @@ func checkOldServers(old, tooOld int64) {
 		count++
 	}
 	if count > 0 {
-		astilog.Infof("Delete Old Severs %d", count)
+		astiLogger.Infof("Delete Old Severs %d", count)
 	}
 }
 
@@ -845,7 +844,7 @@ func checkOldFlows(old, tooOld int64) {
 		count++
 	}
 	if count > 0 {
-		astilog.Infof("Delete Old Flows %d", count)
+		astiLogger.Infof("Delete Old Flows %d", count)
 	}
 }
 
@@ -862,7 +861,7 @@ func checkOldDevices(tooOld int64) {
 		count++
 	}
 	if count > 0 {
-		astilog.Infof("Delete Old Devices %d", count)
+		astiLogger.Infof("Delete Old Devices %d", count)
 	}
 }
 
@@ -879,7 +878,7 @@ func checkOldUsers(tooOld int64) {
 		count++
 	}
 	if count > 0 {
-		astilog.Infof("Delete Old Users %d", count)
+		astiLogger.Infof("Delete Old Users %d", count)
 	}
 }
 
@@ -1270,7 +1269,7 @@ func getIPInfo(ip string) *[][]string {
 		client := &rdap.Client{}
 		ri, err := client.QueryIP(ip)
 		if err != nil {
-			astilog.Errorf("RDAP QueryIP error=%v", err)
+			astiLogger.Errorf("RDAP QueryIP error=%v", err)
 			return
 		}
 		ret = append(ret, []string{"RDAP:IP Version", ri.IPVersion}) //IPバージョン

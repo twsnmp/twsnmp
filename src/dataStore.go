@@ -13,7 +13,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	astilog "github.com/asticode/go-astilog"
 	"go.etcd.io/bbolt"
 )
 
@@ -253,7 +252,7 @@ func loadConfFromDB() error {
 			return nil
 		}
 		if err := json.Unmarshal(v, &mapConf); err != nil {
-			astilog.Error(fmt.Sprintf("Unmarshal mapConf from DB error=%v", err))
+			astiLogger.Error(fmt.Sprintf("Unmarshal mapConf from DB error=%v", err))
 			return err
 		}
 		v = b.Get([]byte("discoverConf"))
@@ -261,7 +260,7 @@ func loadConfFromDB() error {
 			return nil
 		}
 		if err := json.Unmarshal(v, &discoverConf); err != nil {
-			astilog.Error(fmt.Sprintf("Unmarshal discoverConf from DB error=%v", err))
+			astiLogger.Error(fmt.Sprintf("Unmarshal discoverConf from DB error=%v", err))
 			return err
 		}
 		v = b.Get([]byte("notifyConf"))
@@ -269,7 +268,7 @@ func loadConfFromDB() error {
 			return nil
 		}
 		if err := json.Unmarshal(v, &notifyConf); err != nil {
-			astilog.Error(fmt.Sprintf("Unmarshal notifyConf from DB error=%v", err))
+			astiLogger.Error(fmt.Sprintf("Unmarshal notifyConf from DB error=%v", err))
 			return err
 		}
 		return nil
@@ -624,7 +623,7 @@ func getEventLogList(startID string, n int) []eventLogEnt {
 			var e eventLogEnt
 			err := json.Unmarshal(v, &e)
 			if err != nil {
-				astilog.Errorf("getEventLogList err=%v", err)
+				astiLogger.Errorf("getEventLogList err=%v", err)
 				continue
 			}
 			ret = append(ret, e)
@@ -651,7 +650,7 @@ func getNodeEventLogs(nodeID string) []eventLogEnt {
 			var e eventLogEnt
 			err := json.Unmarshal(v, &e)
 			if err != nil {
-				astilog.Errorf("getNodeEventLogs err=%v", err)
+				astiLogger.Errorf("getNodeEventLogs err=%v", err)
 				continue
 			}
 			if nodeID != e.NodeID {
@@ -680,14 +679,14 @@ func getFilterParams(filter *filterEnt) *logFilterParamEnt {
 	if err == nil {
 		ret.StartTime = t.UnixNano()
 	} else {
-		astilog.Errorf("getFilterParams err=%v", err)
+		astiLogger.Errorf("getFilterParams err=%v", err)
 		ret.StartTime = time.Now().Add(-time.Hour * 24).UnixNano()
 	}
 	t, err = time.Parse("2006-01-02T15:04 MST", filter.EndTime+" JST")
 	if err == nil {
 		ret.EndTime = t.UnixNano()
 	} else {
-		astilog.Errorf("getFilterParams err=%v", err)
+		astiLogger.Errorf("getFilterParams err=%v", err)
 		ret.EndTime = time.Now().UnixNano()
 	}
 	ret.StartKey = fmt.Sprintf("%016x", ret.StartTime)
@@ -697,7 +696,7 @@ func getFilterParams(filter *filterEnt) *logFilterParamEnt {
 	}
 	ret.RegexFilter, err = regexp.Compile(filter.Filter)
 	if err != nil {
-		astilog.Errorf("getFilterParams err=%v", err)
+		astiLogger.Errorf("getFilterParams err=%v", err)
 		ret.RegexFilter = nil
 	}
 	return ret
@@ -720,7 +719,7 @@ func getEventLogs(filter *filterEnt) []eventLogEnt {
 			var e eventLogEnt
 			err := json.Unmarshal(v, &e)
 			if err != nil {
-				astilog.Errorf("getEventLogs err=%v", err)
+				astiLogger.Errorf("getEventLogs err=%v", err)
 				continue
 			}
 			if e.Time < f.StartTime {
@@ -749,7 +748,7 @@ func getLogs(filter *filterEnt) []logEnt {
 	db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(filter.LogType))
 		if b == nil {
-			astilog.Errorf("getLogs no Bucket=%s", filter.LogType)
+			astiLogger.Errorf("getLogs no Bucket=%s", filter.LogType)
 			return nil
 		}
 		c := b.Cursor()
@@ -758,7 +757,7 @@ func getLogs(filter *filterEnt) []logEnt {
 			var l logEnt
 			err := json.Unmarshal(v, &l)
 			if err != nil {
-				astilog.Errorf("getLogs err=%v", err)
+				astiLogger.Errorf("getLogs err=%v", err)
 				continue
 			}
 			if l.Time < f.StartTime {
@@ -808,20 +807,20 @@ func getPollingLog(startTime, endTime, pollingID string) []pollingLogEnt {
 	if t, err := time.Parse("2006-01-02T15:04 MST", startTime+" JST"); err == nil {
 		st = t.UnixNano()
 	} else {
-		astilog.Errorf("getPollingLog err=%v", err)
+		astiLogger.Errorf("getPollingLog err=%v", err)
 		st = time.Now().Add(-time.Hour * 24).UnixNano()
 	}
 	if t, err := time.Parse("2006-01-02T15:04 MST", endTime+" JST"); err == nil {
 		et = t.UnixNano()
 	} else {
-		astilog.Errorf("getFilterParams err=%v", err)
+		astiLogger.Errorf("getFilterParams err=%v", err)
 		et = time.Now().UnixNano()
 	}
 	startKey := fmt.Sprintf("%016x", st)
 	db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollingLogs"))
 		if b == nil {
-			astilog.Errorf("getPollingLog no Bucket getPollingLog")
+			astiLogger.Errorf("getPollingLog no Bucket getPollingLog")
 			return nil
 		}
 		c := b.Cursor()
@@ -833,7 +832,7 @@ func getPollingLog(startTime, endTime, pollingID string) []pollingLogEnt {
 			var l pollingLogEnt
 			err := json.Unmarshal(v, &l)
 			if err != nil {
-				astilog.Errorf("getPollingLog err=%v", err)
+				astiLogger.Errorf("getPollingLog err=%v", err)
 				continue
 			}
 			if l.Time < st {
@@ -858,7 +857,7 @@ func getAllPollingLog(pollingID string) []pollingLogEnt {
 	db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollingLogs"))
 		if b == nil {
-			astilog.Errorf("getPollingLog no Bucket getPollingLog")
+			astiLogger.Errorf("getPollingLog no Bucket getPollingLog")
 			return nil
 		}
 		c := b.Cursor()
@@ -870,7 +869,7 @@ func getAllPollingLog(pollingID string) []pollingLogEnt {
 			var l pollingLogEnt
 			err := json.Unmarshal(v, &l)
 			if err != nil {
-				astilog.Errorf("getPollingLog err=%v", err)
+				astiLogger.Errorf("getPollingLog err=%v", err)
 				continue
 			}
 			if l.PollingID != pollingID {
@@ -929,17 +928,17 @@ func deleteOldLog(bucket string, days int) error {
 func deleteOldLogs() {
 	delCount = 0
 	if mapConf.LogDays < 1 {
-		astilog.Error("mapConf.LogDays < 1 ")
+		astiLogger.Error("mapConf.LogDays < 1 ")
 		return
 	}
 	buckets := []string{"logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "arplog"}
 	for _, b := range buckets {
 		if err := deleteOldLog(b, mapConf.LogDays); err != nil {
-			astilog.Errorf("deleteOldLog err=%v")
+			astiLogger.Errorf("deleteOldLog err=%v", err)
 		}
 	}
 	if delCount > 0 {
-		astilog.Infof("Delete Old Logs %d", delCount)
+		astiLogger.Infof("Delete Old Logs %d", delCount)
 	}
 }
 

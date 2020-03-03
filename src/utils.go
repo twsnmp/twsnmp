@@ -7,17 +7,16 @@ import (
 	"runtime"
 
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
-	astilog "github.com/asticode/go-astilog"
 )
 
-func openUrl(m *bootstrap.MessageIn) (interface{}, error) {
+func openURL(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) < 1 {
-		astilog.Errorf("openUrl no payload")
+		astiLogger.Errorf("openUrl no payload")
 		return "ng", nil
 	}
 	var url string
 	if err := json.Unmarshal(m.Payload, &url); err != nil {
-		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	var err error
@@ -32,7 +31,7 @@ func openUrl(m *bootstrap.MessageIn) (interface{}, error) {
 		err = fmt.Errorf("unsupported platform")
 	}
 	if err != nil {
-		astilog.Errorf("openUrl err=%v", err)
+		astiLogger.Errorf("openUrl err=%v", err)
 		return "ng", err
 	}
 	return "ok", err

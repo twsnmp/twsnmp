@@ -11,7 +11,6 @@ import (
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
-	astilog "github.com/asticode/go-astilog"
 )
 
 // mainWindowMessageHandler handles messages
@@ -21,13 +20,13 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		return getMIBModuleList(), nil
 	case "addMIBFile":
 		if err := addMIBFile(&m); err != nil {
-			astilog.Error(err)
+			astiLogger.Error(err)
 			return fmt.Sprintf("%v", err), err
 		}
 		return "ok", nil
 	case "delMIBModule":
 		if err := delMIBModule(&m); err != nil {
-			astilog.Error(err)
+			astiLogger.Error(err)
 			return fmt.Sprintf("%v", err), err
 		}
 		return "ok", nil
@@ -39,7 +38,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		return "ok", nil
 	case "clearAllAIMoldes":
 		if err := bootstrap.SendMessage(aiWindow, "clearAllAIMoldes", ""); err != nil {
-			astilog.Errorf("sendSendMessage clearAllAIMoldes error=%v", err)
+			astiLogger.Errorf("sendSendMessage clearAllAIMoldes error=%v", err)
 		}
 		return "ok", nil
 	case "mapConf":
@@ -91,7 +90,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		checkAllPoll()
 		return "ok", nil
 	case "openUrl":
-		return openUrl(&m)
+		return openURL(&m)
 	}
 	return "ok", nil
 }
@@ -99,11 +98,11 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 func updateMapConf(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		if err := json.Unmarshal(m.Payload, &mapConf); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if err := saveMapConfToDB(); err != nil {
-			astilog.Errorf("saveMapConfToDB  error=%v", err)
+			astiLogger.Errorf("saveMapConfToDB  error=%v", err)
 			return "ng", err
 		}
 		updateBackImg()
@@ -123,11 +122,11 @@ func updateMapConf(m *bootstrap.MessageIn) (interface{}, error) {
 func updateNotifyConf(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		if err := json.Unmarshal(m.Payload, &notifyConf); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if err := saveNotifyConfToDB(); err != nil {
-			astilog.Errorf("saveNotifyConfToDB  error=%v", err)
+			astiLogger.Errorf("saveNotifyConfToDB  error=%v", err)
 			return "ng", err
 		}
 	}
@@ -145,11 +144,11 @@ func doNotify(m *bootstrap.MessageIn) (interface{}, error) {
 	var notifyTestConf notifyConfEnt
 	if len(m.Payload) > 0 {
 		if err := json.Unmarshal(m.Payload, &notifyTestConf); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if err := sendTestMail(&notifyTestConf); err != nil {
-			astilog.Errorf("sendTestMail  error=%v", err)
+			astiLogger.Errorf("sendTestMail  error=%v", err)
 			return "ng", err
 		}
 	}
@@ -162,11 +161,11 @@ func doStartDiscover(m *bootstrap.MessageIn) (interface{}, error) {
 	}
 	if len(m.Payload) > 0 {
 		if err := json.Unmarshal(m.Payload, &discoverConf); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if err := saveDiscoverConfToDB(); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		startDiscover()
@@ -178,18 +177,18 @@ func doSaveNode(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var n nodeEnt
 		if err := json.Unmarshal(m.Payload, &n); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if n.ID == "" {
 			if err := addNode(&n); err != nil {
-				astilog.Errorf("addNode %s error=%v", m.Name, err)
+				astiLogger.Errorf("addNode %s error=%v", m.Name, err)
 				return "ng", err
 			}
 		} else {
 			ntmp, ok := nodes[n.ID]
 			if !ok {
-				astilog.Errorf("%s invalid nodeid %s", m.Name, n.ID)
+				astiLogger.Errorf("%s invalid nodeid %s", m.Name, n.ID)
 				return "ng", errInvalidNode
 			}
 			ntmp.Community = n.Community
@@ -199,7 +198,7 @@ func doSaveNode(m *bootstrap.MessageIn) (interface{}, error) {
 			ntmp.Name = n.Name
 			ntmp.URL = n.URL
 			if err := updateNode(ntmp); err != nil {
-				astilog.Errorf("editNode %s error=%v", m.Name, err)
+				astiLogger.Errorf("editNode %s error=%v", m.Name, err)
 				return "ng", err
 			}
 			addEventLog(eventLogEnt{
@@ -221,18 +220,18 @@ func doUpdateNode(m *bootstrap.MessageIn) (interface{}, error) {
 		return "ng", errNoPayload
 	}
 	if err := json.Unmarshal(m.Payload, &n); err != nil {
-		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	ntmp, ok := nodes[n.ID]
 	if !ok {
-		astilog.Errorf("%s  invalid node %s", m.Name, n.ID)
+		astiLogger.Errorf("%s  invalid node %s", m.Name, n.ID)
 		return "ng", errInvalidNode
 	}
 	ntmp.X = n.X
 	ntmp.Y = n.Y
 	if err := updateNode(ntmp); err != nil {
-		astilog.Errorf("editNode %s error=%v", m.Name, err)
+		astiLogger.Errorf("editNode %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	return "ok", nil
@@ -244,7 +243,7 @@ func doDeleteNode(m *bootstrap.MessageIn) (interface{}, error) {
 		return "ng", errNoPayload
 	}
 	if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	if _, ok := nodes[nodeID]; !ok {
@@ -270,7 +269,7 @@ func doDupNode(m *bootstrap.MessageIn) (interface{}, error) {
 		return "ng", errNoPayload
 	}
 	if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	if _, ok := nodes[nodeID]; !ok {
@@ -286,7 +285,7 @@ func doDupNode(m *bootstrap.MessageIn) (interface{}, error) {
 	n.Icon = nodes[nodeID].Icon
 	n.State = nodes[nodeID].State
 	if err := addNode(&n); err != nil {
-		astilog.Errorf("dupNode %s error=%v", m.Name, err)
+		astiLogger.Errorf("dupNode %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	addEventLog(eventLogEnt{
@@ -303,17 +302,17 @@ func doSaveLine(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var l lineEnt
 		if err := json.Unmarshal(m.Payload, &l); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if l.ID == "" {
 			if err := addLine(&l); err != nil {
-				astilog.Errorf("addLine %s error=%v", m.Name, err)
+				astiLogger.Errorf("addLine %s error=%v", m.Name, err)
 				return "ng", err
 			}
 		} else {
 			if err := updateLine(&l); err != nil {
-				astilog.Errorf("updateLine %s error=%v", m.Name, err)
+				astiLogger.Errorf("updateLine %s error=%v", m.Name, err)
 				return "ng", err
 			}
 		}
@@ -345,15 +344,15 @@ func doDeleteLine(m *bootstrap.MessageIn) (interface{}, error) {
 	if len(m.Payload) > 0 {
 		var l lineEnt
 		if err := json.Unmarshal(m.Payload, &l); err != nil {
-			astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if l.ID == "" {
-			astilog.Errorf("delLine %s ", m.Name)
+			astiLogger.Errorf("delLine %s ", m.Name)
 			return "ng", errInvalidID
 		}
 		if err := deleteLine(l.ID); err != nil {
-			astilog.Errorf("deleteLine %s error=%v", m.Name, err)
+			astiLogger.Errorf("deleteLine %s error=%v", m.Name, err)
 			return "ng", err
 		}
 		if n, ok := nodes[l.NodeID1]; ok {
@@ -385,17 +384,17 @@ func doGetLine(m *bootstrap.MessageIn) (interface{}, error) {
 		return "ng", errNoPayload
 	}
 	if err := json.Unmarshal(m.Payload, &l); err != nil {
-		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	n1, ok := nodes[l.NodeID1]
 	if !ok {
-		astilog.Errorf("Invalid Node %s", m.Name)
+		astiLogger.Errorf("Invalid Node %s", m.Name)
 		return "ng", errInvalidNode
 	}
 	n2, ok := nodes[l.NodeID2]
 	if !ok {
-		astilog.Errorf("Invalid Node %s", m.Name)
+		astiLogger.Errorf("Invalid Node %s", m.Name)
 		return "ng", errInvalidNode
 	}
 	var dlgParam struct {
@@ -438,15 +437,15 @@ func doShowNodeWindow(m *bootstrap.MessageIn) (interface{}, error) {
 		return "ng", errNoPayload
 	}
 	if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	if err := bootstrap.SendMessage(nodeWindow, "setNodeID", nodeID); err != nil {
-		astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	if err := bootstrap.SendMessage(nodeWindow, "setMode", m.Name); err != nil {
-		astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	nodeWindow.Show()
@@ -459,7 +458,7 @@ func doPollNow(m *bootstrap.MessageIn) (interface{}, error) {
 		return "ng", errNoPayload
 	}
 	if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	pollNowNode(nodeID)
@@ -472,7 +471,7 @@ func doShowMIB(m *bootstrap.MessageIn) (interface{}, error) {
 		return "ng", errNoPayload
 	}
 	if err := json.Unmarshal(m.Payload, &nodeID); err != nil {
-		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	params := struct {
@@ -485,12 +484,12 @@ func doShowMIB(m *bootstrap.MessageIn) (interface{}, error) {
 	}
 	n, ok := nodes[nodeID]
 	if !ok {
-		astilog.Errorf("showMIB Invalid nodID %s", nodeID)
+		astiLogger.Errorf("showMIB Invalid nodID %s", nodeID)
 		return "ng", nil
 	}
 	params.NodeName = n.Name
 	if err := bootstrap.SendMessage(mibWindow, "setParams", params); err != nil {
-		astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	mibWindow.Show()
@@ -499,7 +498,7 @@ func doShowMIB(m *bootstrap.MessageIn) (interface{}, error) {
 
 func doShowLogWindow(m *bootstrap.MessageIn) (interface{}, error) {
 	if err := bootstrap.SendMessage(logWindow, "show", ""); err != nil {
-		astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	logWindow.Show()
@@ -508,7 +507,7 @@ func doShowLogWindow(m *bootstrap.MessageIn) (interface{}, error) {
 
 func doShowReportWindow(m *bootstrap.MessageIn) (interface{}, error) {
 	if err := bootstrap.SendMessage(reportWindow, "show", ""); err != nil {
-		astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	reportWindow.Show()
@@ -517,7 +516,7 @@ func doShowReportWindow(m *bootstrap.MessageIn) (interface{}, error) {
 
 func doShowPollingListWindow(m *bootstrap.MessageIn) (interface{}, error) {
 	if err := bootstrap.SendMessage(pollingListWindow, "show", ""); err != nil {
-		astilog.Errorf("sendSendMessage %s error=%v", m.Name, err)
+		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
 	pollingListWindow.Show()
@@ -526,22 +525,22 @@ func doShowPollingListWindow(m *bootstrap.MessageIn) (interface{}, error) {
 
 func applyMapConf() {
 	if err := bootstrap.SendMessage(mainWindow, "mapConf", mapConf); err != nil {
-		astilog.Errorf("sendSendMessage mapConf error=%v", err)
+		astiLogger.Errorf("sendSendMessage mapConf error=%v", err)
 		return
 	}
 	if err := bootstrap.SendMessage(mainWindow, "notifyConf", notifyConf); err != nil {
-		astilog.Errorf("sendSendMessage notifyConf error=%v", err)
+		astiLogger.Errorf("sendSendMessage notifyConf error=%v", err)
 		return
 	}
 }
 
 func applyMapData() {
 	if err := bootstrap.SendMessage(mainWindow, "nodes", nodes); err != nil {
-		astilog.Errorf("sendSendMessage nodes error=%v", err)
+		astiLogger.Errorf("sendSendMessage nodes error=%v", err)
 		return
 	}
 	if err := bootstrap.SendMessage(mainWindow, "lines", lines); err != nil {
-		astilog.Errorf("sendSendMessage lines error=%v", err)
+		astiLogger.Errorf("sendSendMessage lines error=%v", err)
 		return
 	}
 }
@@ -569,7 +568,7 @@ func mainWindowBackend(ctx context.Context) {
 			doPollingCh <- true
 			lastLog = sendLogs(lastLog)
 			if len(stateCheckNodes) > 0 {
-				astilog.Infof("State Change Nodes %d", len(stateCheckNodes))
+				astiLogger.Infof("State Change Nodes %d", len(stateCheckNodes))
 				for k := range stateCheckNodes {
 					updateNodeState(k)
 					delete(stateCheckNodes, k)
@@ -582,7 +581,7 @@ func mainWindowBackend(ctx context.Context) {
 				updateDBStats()
 				i = 0
 				if err := bootstrap.SendMessage(mainWindow, "dbStats", dbStats); err != nil {
-					astilog.Errorf("sendSendMessage dbStats error=%v", err)
+					astiLogger.Errorf("sendSendMessage dbStats error=%v", err)
 					return
 				}
 			}
@@ -593,9 +592,9 @@ func mainWindowBackend(ctx context.Context) {
 func sendLogs(lastLog string) string {
 	list := getEventLogList(lastLog, mapConf.LogDispSize)
 	if len(list) > 0 {
-		astilog.Infof("Send Logs %d", len(list))
+		astiLogger.Infof("Send Logs %d", len(list))
 		if err := bootstrap.SendMessage(mainWindow, "logs", list); err != nil {
-			astilog.Errorf("sendSendMessage logs error=%v", err)
+			astiLogger.Errorf("sendSendMessage logs error=%v", err)
 		} else {
 			return fmt.Sprintf("%016x", list[0].Time)
 		}
@@ -711,13 +710,13 @@ func updateBackImg() {
 		os.Remove(path)
 		src, err := os.Open(mapConf.BackImg)
 		if err != nil {
-			astilog.Errorf("updateBackImg err=%v", err)
+			astiLogger.Errorf("updateBackImg err=%v", err)
 			return
 		}
 		defer src.Close()
 		dst, err := os.Create(path)
 		if err != nil {
-			astilog.Errorf("updateBackImg err=%v", err)
+			astiLogger.Errorf("updateBackImg err=%v", err)
 			return
 		}
 		defer dst.Close()

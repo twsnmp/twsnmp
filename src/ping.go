@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	astilog "github.com/asticode/go-astilog"
-
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 )
@@ -133,7 +131,7 @@ func pingBackend(ctx context.Context) {
 	}
 	conn, err := icmp.ListenPacket(netProto, "0.0.0.0")
 	if err != nil {
-		astilog.Fatalf("pingBackend err=%v", err)
+		astiLogger.Fatalf("pingBackend err=%v", err)
 	}
 	defer conn.Close()
 	for {
@@ -148,14 +146,14 @@ func pingBackend(ctx context.Context) {
 			if p != nil {
 				_, ok := pingMap[p.Tracker]
 				for ok {
-					astilog.Errorf("Dup Tracker %d", p.Tracker)
+					astiLogger.Errorf("Dup Tracker %d", p.Tracker)
 					p.Tracker++
 					_, ok = pingMap[p.Tracker]
 				}
 				pingMap[p.Tracker] = p
 				if err := p.sendICMP(conn); err != nil {
 					p.Error = err
-					astilog.Debugf("sendICMP err=%v", err)
+					astiLogger.Debugf("sendICMP err=%v", err)
 				}
 			}
 		case <-timer.C:
@@ -173,7 +171,7 @@ func pingBackend(ctx context.Context) {
 					}
 					if err := p.sendICMP(conn); err != nil {
 						p.Error = err
-						astilog.Debugf("sendICMP err=%v", err)
+						astiLogger.Debugf("sendICMP err=%v", err)
 					}
 				}
 			}
@@ -195,16 +193,16 @@ func pingBackend(ctx context.Context) {
 						continue
 					}
 				}
-				astilog.Errorf("pingBackend err=%v", err)
+				astiLogger.Errorf("pingBackend err=%v", err)
 				continue
 			}
 			if tracker, tm, err := processPacket(&packet{bytes: bytes, nbytes: n, ttl: ttl}); err != nil {
-				astilog.Debugf("pingBackend processPacket err=%v", err)
+				astiLogger.Debugf("pingBackend processPacket err=%v", err)
 			} else {
 				if p, ok := pingMap[tracker]; ok {
 					sa := strings.Split(src.String(), ":")
 					if p.Target != sa[0] {
-						astilog.Errorf("pingBackend target=%s src=%s", p.Target, src.String())
+						astiLogger.Errorf("pingBackend target=%s src=%s", p.Target, src.String())
 						continue
 					}
 					delete(pingMap, tracker)

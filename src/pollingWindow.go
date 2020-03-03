@@ -5,7 +5,6 @@ import (
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
-	astilog "github.com/asticode/go-astilog"
 )
 
 
@@ -19,14 +18,14 @@ func pollingMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interf
 			if len(m.Payload) > 0 {
 				var pollingID  string
 				if err := json.Unmarshal(m.Payload, &pollingID); err != nil {
-					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+					astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 					return "ng", errInvalidParams
 				}
 				if err := clearPollingLog(pollingID); err != nil {
 					return "ng",err
 				}
 				if err := bootstrap.SendMessage(aiWindow, "deleteModel",pollingID); err != nil {
-					astilog.Errorf("sendSendMessage deleteModel error=%v", err)
+					astiLogger.Errorf("sendSendMessage deleteModel error=%v", err)
 				}
 				return "ok", nil
 			}
@@ -35,7 +34,7 @@ func pollingMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interf
 			if len(m.Payload) > 0 {
 				var id string
 				if err := json.Unmarshal(m.Payload, &id); err != nil {
-					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+					astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 					return &aiResult{}, errInvalidParams
 				}
 				return loadAIReesult(id)
@@ -49,13 +48,13 @@ func pollingMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interf
 					PollingID  string
 				}{}
 				if err := json.Unmarshal(m.Payload, &param); err != nil {
-					astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+					astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 					return []pollingLogEnt{}, errInvalidParams
 				}
 				return getPollingLog(param.StartTime,param.EndTime,param.PollingID),nil
 			}
 			return []pollingLogEnt{}, errInvalidParams
 	}
-	astilog.Errorf("Unknow Message Name=%s",m.Name)
+	astiLogger.Errorf("Unknow Message Name=%s",m.Name)
 	return "ok",nil
 }

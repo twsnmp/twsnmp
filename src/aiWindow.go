@@ -9,7 +9,6 @@ import (
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
-	astilog "github.com/asticode/go-astilog"
 )
 
 var aiBusy = false
@@ -129,7 +128,7 @@ func checkAI() bool {
 			continue
 		}
 		p := v.(*pollingEnt)
-		astilog.Debugf("checkAI %s = %d now=%d diff=%d", id, n, now, now-n)
+		astiLogger.Debugf("checkAI %s = %d now=%d diff=%d", id, n, now, now-n)
 		if n > now {
 			continue
 		}
@@ -139,7 +138,7 @@ func checkAI() bool {
 		}
 	}
 	for _, id := range delList {
-		astilog.Debugf("checkAIMap delete %s", id)
+		astiLogger.Debugf("checkAIMap delete %s", id)
 		delete(checkAIMap, id)
 	}
 	if selID == "" {
@@ -152,11 +151,11 @@ func checkAI() bool {
 func checkLastAIResultTime(id string) bool {
 	last, err := loadAIReesult(id)
 	if err != nil {
-		astilog.Errorf("loadAIReesult  id=%s err=%v", id, err)
+		astiLogger.Errorf("loadAIReesult  id=%s err=%v", id, err)
 		deleteAIReesult(id)
 		return true
 	}
-	astilog.Debugf("checkLastAIResultTime %s = %d diff=%d", id, last.LastTime, time.Now().Unix()-last.LastTime)
+	astiLogger.Debugf("checkLastAIResultTime %s = %d diff=%d", id, last.LastTime, time.Now().Unix()-last.LastTime)
 	if last.LastTime < time.Now().Unix()-60*60 {
 		return true
 	}
@@ -176,12 +175,12 @@ func doAI(id, t string) bool {
 		makeAIDataFromPolling(req)
 	}
 	if len(req.Data) < 10 {
-		astilog.Infof("doAI No data %s %v", id, req)
+		astiLogger.Infof("doAI No data %s %v", id, req)
 		return false
 	}
-	astilog.Infof("doAI %s", id)
+	astiLogger.Infof("doAI %s", id)
 	if err := bootstrap.SendMessage(aiWindow, "doAI", req); err != nil {
-		astilog.Errorf("sendSendMessage doAI error=%v", err)
+		astiLogger.Errorf("sendSendMessage doAI error=%v", err)
 		return false
 	}
 	return true
@@ -323,17 +322,17 @@ func getStateNum(s string) float64 {
 
 func doneAI(m *bootstrap.MessageIn) {
 	if len(m.Payload) < 1 {
-		astilog.Errorf("sendSendMessage doneAI Payload len=0")
+		astiLogger.Errorf("sendSendMessage doneAI Payload len=0")
 		return
 	}
 	var res aiResult
 	if err := json.Unmarshal(m.Payload, &res); err != nil {
-		astilog.Errorf("Unmarshal %s error=%v", m.Name, err)
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return
 	}
-	astilog.Infof("doneAI %s", res.PollingID)
+	astiLogger.Infof("doneAI %s", res.PollingID)
 	if err := saveAIResultToDB(&res); err != nil {
-		astilog.Errorf("saveAIResultToDB err=%v", err)
+		astiLogger.Errorf("saveAIResultToDB err=%v", err)
 	}
 	var p *pollingEnt
 	if v, ok := pollings.Load(res.PollingID); ok {

@@ -4,7 +4,6 @@ import (
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
-	astilog "github.com/asticode/go-astilog"
 )
 
 // pollingListMessageHandler handles messages
@@ -31,7 +30,7 @@ func pollingListMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (in
 	case "pollNow":
 		return pollNow(&m)
 	}
-	astilog.Errorf("Unknow Message Name=%s",m.Name)
+	astiLogger.Errorf("Unknow Message Name=%s",m.Name)
 	return "ok", nil
 }
 

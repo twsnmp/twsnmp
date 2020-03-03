@@ -12,7 +12,6 @@ import (
 	"sync"
 	"github.com/signalsciences/ipv4"
 	"github.com/soniah/gosnmp"
-	astilog "github.com/asticode/go-astilog"
 )
 
 type discoverStatEnt struct {
@@ -63,7 +62,6 @@ func startDiscover() error {
 	if sip > eip {
 		return fmt.Errorf("Discover StartIP > EndIP")
 	}
-	astilog.Debug("Start doDiscover")
 	addEventLog(eventLogEnt{
 		Type: "system",
 		Level:"info",
@@ -150,14 +148,14 @@ func discoverGetSnmpInfo(t string,dent *discoverInfoEnt) {
 	}
 	err := agent.Connect()
 	if err != nil {
-		astilog.Errorf("discoverGetSnmpInfo err=%v",err)
+		astiLogger.Errorf("discoverGetSnmpInfo err=%v",err)
 		return
 	}
 	defer agent.Conn.Close()
 	oids := []string{mib.NameToOID("sysName"), mib.NameToOID("sysObjectID")}
 	result, err := agent.GetNext(oids)
 	if err != nil {
-		astilog.Errorf("discoverGetSnmpInfo err=%v",err)
+		astiLogger.Errorf("discoverGetSnmpInfo err=%v",err)
 		return
 	}
 	for _, variable := range result.Variables {
@@ -200,7 +198,7 @@ func addFoundNode(dent discoverInfoEnt) {
 		n.Icon = "hdd"
 	}
 	if err := addNode(&n); err != nil{
-		astilog.Error(err)
+		astiLogger.Error(err)
 		return
 	}
 	addEventLog(eventLogEnt{
@@ -221,7 +219,7 @@ func addFoundNode(dent discoverInfoEnt) {
 		Retry: mapConf.Retry,
 	}
 	if err := addPolling(p); err != nil{
-		astilog.Error(err)
+		astiLogger.Error(err)
 		return
 	}
 	if dent.SysObjectID == "" {
@@ -239,7 +237,7 @@ func addFoundNode(dent discoverInfoEnt) {
 		Retry: mapConf.Retry,
 	}
 	if err := addPolling(p); err != nil{
-		astilog.Error(err)
+		astiLogger.Error(err)
 		return
 	}
 	for _,i := range dent.IfIndexList {
@@ -255,7 +253,7 @@ func addFoundNode(dent discoverInfoEnt) {
 			Retry: mapConf.Retry,
 		}
 		if err := addPolling(p); err != nil{
-			astilog.Error(err)
+			astiLogger.Error(err)
 			return
 		}
 	}
