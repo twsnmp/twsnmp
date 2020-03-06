@@ -10,35 +10,13 @@ import (
 	"github.com/magefile/mage/sh"
 )
 
-var pkgList = []string{
-	"github.com/jessevdk/go-flags",
-	"github.com/asticode/go-astilectron",
-	"github.com/asticode/go-astilectron-bundler/...",
-	"github.com/asticode/go-astilectron-bootstrap/...",
-	"github.com/asticode/go-astikit",
-	"github.com/twsnmp/go-mibdb",
-	"go.etcd.io/bbolt",
-	"github.com/signalsciences/ipv4",
-	"gopkg.in/mcuadros/go-syslog.v2",
-	"github.com/tehmaze/netflow",
-	"github.com/soniah/gosnmp",
-	"github.com/twsnmp/go-mibdb",
-	"github.com/konsorten/go-windows-terminal-sequences",
-	"github.com/mattn/go-colorable",
-	"github.com/robertkrimen/otto",
-	"github.com/vjeantet/grok",
-	"github.com/mrichman/godnsbl",
-	"github.com/openrdap/rdap",
-	"github.com/asticode/go-astilog",
-}
-
-// Build 実行ファイルのビルド
+// Build : 実行ファイルのビルド
 func Build() error {
 	fmt.Println("Building... ")
 	return buildInternal(true)
 }
 
-// BuildMac Mac用の実行ファイルのビルド
+// BuildMac : Mac用の実行ファイルのビルド
 func BuildMac() error {
 	fmt.Println("Building... ")
 	return buildInternal(false)
@@ -65,19 +43,7 @@ func buildInternal(bWindows bool) error {
 	return nil
 }
 
-// InstallDeps  ビルドに必要なパッケージのインストール
-func InstallDeps() error {
-	fmt.Println("Installing Deps...")
-	for _, p := range pkgList {
-		err := sh.Run("go", "get", p)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// MakeZip リリース用のZIPファイルを作成
+// MakeZip : リリース用のZIPファイルを作成
 func MakeZip() error {
 	mg.Deps(Build)
 	fmt.Println("Make ZIP...")
@@ -112,19 +78,7 @@ func MakeZip() error {
 	return nil
 }
 
-// UpdateDeps  ビルドに必要なパッケージのアップデート
-func UpdateDeps() error {
-	fmt.Println("Installing Deps...")
-	for _, p := range pkgList {
-		err := sh.Run("go", "get", "-u", p)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Clean ビルドした実行ファイルの削除
+// Clean : ビルドした実行ファイルの削除
 func Clean() {
 	fmt.Println("Cleaning...")
 	sh.Run("/bin/sh", "-c", "rm -rf  ./rel/*  ./src/output/*")

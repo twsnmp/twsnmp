@@ -65,18 +65,9 @@ Targets:
   build          実行ファイルのビルド
   buildMac       Mac用の実行ファイルのビルド
   clean          ビルドした実行ファイルの削除
-  installDeps    ビルドに必要なパッケージのインストール
   makeZip        リリース用のZIPファイルを作成
-  updateDeps     ビルドに必要なパッケージのアップデート
 ```
 
-初回のビルド前に、
-```
-$mage installDeps
-```
-を実行して、ビルドに必要なパッケージをインストールします。
-
-その後、
 ```
 $mage build
 ```
