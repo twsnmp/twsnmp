@@ -546,7 +546,10 @@ document.addEventListener('astilectron-ready', function () {
         mapConf = message.payload;
         setWindowTitle();
         if(mapConf.BackImg ){
-          backimg = loadImage("./images/backimg");
+          loadImage("./images/backimg",img => {
+            backimg =  img;
+            redraw();
+          });
         } else {
           backimg = undefined;
         }
