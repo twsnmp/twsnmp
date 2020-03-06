@@ -123,17 +123,26 @@ function mouseDragged() {
 
 let ctxMenu;
 
-function mousePressed() {
+function isInMap() {
   // クリックした位置がマップ以外は、処理しない。
   if (winMouseX < 200 ||
     winMouseY < 32 ||
     winMouseY > windowHeight * 0.75) {
+    return false;
+  }
+  if (pane){
+    return false;
+  }
+  return true
+}
+
+function mousePressed() {
+  if(!isInMap()) {
     return true;
   }
   if (ctxMenu) {
     return true;
   }
-
   const selectNodeBack = selectNode;
   setSelectNode();
   if (keyIsDown(SHIFT) &&
@@ -365,6 +374,9 @@ function keyReleased() {
 }
 
 function doubleClicked() {
+  if(!isInMap()) {
+    return true;
+  }
   showNodeInfo();
 }
 
