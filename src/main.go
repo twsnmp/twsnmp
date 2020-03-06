@@ -510,5 +510,11 @@ func startBackend(ctx context.Context) {
 		go reportBackend(ctx)
 		startWindow.Hide()
 		mainWindow.Show()
+		mainWindow.Resize(mainWindowInfo.Width, mainWindowInfo.Height)
+		if mainWindowInfo.Top < 0 {
+			mainWindow.Center()
+		} else {
+			mainWindow.Move(mainWindowInfo.Left, mainWindowInfo.Top)
+		}
 	}()
 }

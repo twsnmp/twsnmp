@@ -91,6 +91,8 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		return "ok", nil
 	case "openUrl":
 		return openURL(&m)
+	case "setWindowInfo":
+		return setWindowInfo(&m)
 	}
 	return "ok", nil
 }
@@ -462,6 +464,23 @@ func doPollNow(m *bootstrap.MessageIn) (interface{}, error) {
 		return "ng", err
 	}
 	pollNowNode(nodeID)
+	return "ok", nil
+}
+
+func setWindowInfo(m *bootstrap.MessageIn) (interface{}, error) {
+	var wi windowInfoEnt
+	if len(m.Payload) < 1 {
+		return "ng", errNoPayload
+	}
+	if err := json.Unmarshal(m.Payload, &wi); err != nil {
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
+		return "ng", err
+	}
+	mainWindowInfo.Top = wi.Top
+	mainWindowInfo.Left = wi.Left
+	mainWindowInfo.Width = wi.Width
+	mainWindowInfo.Height = wi.Height
+	saveMainWindowInfoToDB()
 	return "ok", nil
 }
 

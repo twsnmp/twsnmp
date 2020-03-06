@@ -30,6 +30,7 @@ var (
 	pollings          = sync.Map{}
 	eventLogCh        = make(chan eventLogEnt, 100)
 	stopEventLoggerCh = make(chan bool)
+	mainWindowInfo    windowInfoEnt
 )
 
 const (
@@ -166,6 +167,13 @@ type dbStatsEnt struct {
 	Rate       float64
 }
 
+type windowInfoEnt struct {
+	Top int
+	Left int
+	Width  int
+	Height int
+}
+
 func checkDB(path string) error {
 	var err error
 	d, err := bbolt.Open(path, 0600, nil)
@@ -221,6 +229,8 @@ func initDB() error {
 	notifyConf.Interval = 60
 	notifyConf.Subject = "TWSNMPからの通知"
 	notifyConf.Level = "none"
+	mainWindowInfo.Width = 1024
+	mainWindowInfo.Height = 800
 	return db.Update(func(tx *bbolt.Tx) error {
 		for _, b := range buckets {
 			pb, err := tx.CreateBucketIfNotExists([]byte(b))
@@ -271,12 +281,24 @@ func loadConfFromDB() error {
 			astiLogger.Error(fmt.Sprintf("Unmarshal notifyConf from DB error=%v", err))
 			return err
 		}
+		v = b.Get([]byte("mainWindowInfo"))
+		if v != nil {
+			if err := json.Unmarshal(v, &mainWindowInfo); err != nil {
+				astiLogger.Error(fmt.Sprintf("Unmarshal mainWindowInfo from DB error=%v", err))
+			}
+		}
 		return nil
 	})
+	if mainWindowInfo.Width < 100 || mainWindowInfo.Height < 100 {
+		mainWindowInfo.Width = 1024
+		mainWindowInfo.Height = 800
+		mainWindowInfo.Top = -1
+	}
 	if err == nil && bSaveConf {
 		saveMapConfToDB()
 		saveNotifyConfToDB()
 		saveDiscoverConfToDB()
+		saveMainWindowInfoToDB()
 	}
 	return err
 }
@@ -313,6 +335,24 @@ func saveNotifyConfToDB() error {
 			return fmt.Errorf("Bucket config is nil")
 		}
 		b.Put([]byte("notifyConf"), s)
+		return nil
+	})
+}
+
+func saveMainWindowInfoToDB() error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	s, err := json.Marshal(mainWindowInfo)
+	if err != nil {
+		return err
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("config"))
+		if b == nil {
+			return fmt.Errorf("Bucket config is nil")
+		}
+		b.Put([]byte("mainWindowInfo"), s)
 		return nil
 	})
 }

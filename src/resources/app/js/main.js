@@ -467,8 +467,11 @@ function updateNodeList() {
   showStatus();
 }
 
-
 document.addEventListener('astilectron-ready', function () {
+  $(window).on('resize', function() {
+    setWindowInfo()
+  });
+  
   function nodeFilter() {
     const text = $('#nodeFilter').val();
     if ("" == text) {
@@ -664,4 +667,29 @@ function showStatus() {
     s += " DBサイズ=" + dbStats.Size;
   }
   $("#status").html(s);
+}
+
+function checkWindowPos() {
+  let oldX = window.screenX,
+      oldY = window.screenY;
+  setInterval(function(){
+    if(oldX != window.screenX || oldY != window.screenY){
+      setWindowInfo();
+    }
+    oldX = window.screenX;
+    oldY = window.screenY;
+  }, 5000);
+}
+
+function setWindowInfo() {
+  astilectron.sendMessage({ name: "setWindowInfo", payload: {
+    Top:   window.screenY,
+    Left:  window.screenX,
+    Width: window.outerWidth,
+    Height:window.outerHeight,
+  } }, function (message) {
+    if (message.payload == "ng") {
+      console.log("setWindowInfo error")
+    }
+  });
 }
