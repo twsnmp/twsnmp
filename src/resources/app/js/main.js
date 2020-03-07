@@ -539,7 +539,24 @@ document.addEventListener('astilectron-ready', function () {
     "language": {
       "search": "フィルター:"
     },
-  });  
+  });
+  $('#log_table tbody').on('dblclick', 'tr', function () {
+    let data = log.row( this ).data();
+    if( !data || data.length < 4 || data[2]=="user" || data[2]=="system" ) {
+      return;
+    }
+    if(data[2] == "polling") {
+      selectNodeFromName(data[3]);
+      if (selectNode != "") {
+        astilectron.sendMessage({ name: "showPolling", payload: selectNode }, function (message) {
+        });
+      }
+      redraw();
+      return;
+    }
+    astilectron.sendMessage({ name: "logDisp", payload: "" }, function (message) {
+    });
+  });
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "mapConf": {
@@ -630,6 +647,15 @@ document.addEventListener('astilectron-ready', function () {
     }
   });
 });
+
+function selectNodeFromName(name) {
+  for (let [key, val] of Object.entries(nodes)) {
+    if(val.Name == name) {
+      selectNode = key;
+      break
+    }
+  }
+}
 
 function checkAllPoll() {
   if (!confirmDialog("全ノード削除",`全てのノードの再確認を実施しますか?`)) {
