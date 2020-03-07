@@ -531,8 +531,8 @@ function makeAIHeatmap() {
   aiHeatmap.setOption(option);
   aiHeatmap.on('dblclick', function (params) {
     const d = params.name + ' ' + params.data[1] + ":00:00"; 
-    $(".toolbar-actions input[name=start]").val(moment(d).subtract(1, "h").format("Y-MM-DDTHH:00"));
-    $(".toolbar-actions input[name=end]").val(moment(d).add(1,"h").format("Y-MM-DDTHH:00"));
+    $(".toolbar-actions input[name=start]").val(moment(d).subtract(2, "h").format("Y-MM-DDTHH:00"));
+    $(".toolbar-actions input[name=end]").val(moment(d).add(2,"h").format("Y-MM-DDTHH:00"));
     showPage("result");
     $('.toolbar-actions button.get').click();
     logChart.resize();

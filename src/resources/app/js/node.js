@@ -137,6 +137,15 @@ function makePollingTable() {
       }
     },
   });
+  $('#polling_table tbody').on('dblclick', 'tr', function () {
+    const data = polling.row( this ).data();
+    if(data && data.length > 1){
+      const id = data[data.length-1];
+      if(pollingList[id] && pollingList[id].LogMode ){
+        showPolling(id);
+      }
+    }
+  });
   $('#polling_table tbody').on('click', 'tr', function () {
     if ($(this).hasClass('selected')) {
       $(this).removeClass('selected');
@@ -212,6 +221,15 @@ function makePollingTable() {
         return;
       }
     });
+  });
+}
+
+function showPolling(id) {
+  astilectron.sendMessage({ name: "showPolling", payload: id }, message => {
+    if (message.payload != "ok" ) {
+      dialog.showErrorBox("ポーリングリスト", "ポーリング分析画面を表示できません。");
+      return;
+    }
   });
 }
 
