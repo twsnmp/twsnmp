@@ -6,7 +6,7 @@ TWSNMPマネージャ 復刻版
 [![Build Status](https://travis-ci.org/twsnmp/twsnmp.svg?branch=master)](https://travis-ci.org/twsnmp/twsnmp)
 [![Go Report Card](https://goreportcard.com/badge/twsnmp/twsnmp)](https://goreportcard.com/report/twsnmp/twsnmp)
 
-## Overviewp
+## Overview
 
 1999年に開発し、今でも多くのユーザーが利用しているTWSNMPマネージャを2019年の技術で復活させるプロジェクトです。
 
@@ -78,6 +78,12 @@ $mage build
 $mage makeZip
 ```
 を実行します。ZIPファイルが`rel/`ディレクトリに作成されます。
+
+## Block図
+
+内部構造は、以下の図の用になっています。概ねソースコードのファイル名と機能ブロックは対応しています。
+
+![TWSNMP](https://d2l930y2yx77uc.cloudfront.net/production/uploads/images/20504835/picture_pc_2f2b09a18c74cfd6f7a2aebfeb9dc096.png)
 
 ## Copyright
 
