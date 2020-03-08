@@ -105,8 +105,12 @@ function showLog(logList) {
 }
 
 function showSyslog(logList) {
-  const data = [];
-  let count = 0;
+  const dataInfo = [];
+  const dataWarn = [];
+  const dataError = [];
+  let countInfo = 0;
+  let countWarn = 0;
+  let countError = 0;
   let ctm;
   syslogTable.clear();
   for (let i = logList.length - 1; i >= 0; i--) {
@@ -122,33 +126,71 @@ function showSyslog(logList) {
     syslogTable.row.add([ts, getSeverityHtml(ll.severity), getFacilityName(ll.facility), ll.hostname,ll.tag, ll.content]);
     if(!ctm ) {
       ctm = Math.floor(l.Time / (1000 * 1000 * 1000 * 60));
-      count++;
+      if(ll.severity < 4){
+        countError++;
+      } else if (ll.severity == 4){
+        countWarn++;
+      } else {
+        countInfo++;
+      }
       continue;
     }
     const newCtm = Math.floor(l.Time / (1000 * 1000 * 1000 * 60));
     if (ctm != newCtm) {
       let t = new Date(ctm * 60 * 1000);
-      data.push({
+      dataInfo.push({
         name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
-        value: [t,count]
+        value: [t,countInfo]
+      });
+      dataWarn.push({
+        name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
+        value: [t,countWarn]
+      });
+      dataError.push({
+        name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
+        value: [t,countError]
       });
       ctm--;
       for(;ctm > newCtm;ctm--) {
         t = new Date(ctm * 60 * 1000);
-        data.push({
+        dataInfo.push({
+          name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
+          value: [t,0]
+        });
+        dataWarn.push({
+          name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
+          value: [t,0]
+        });
+        dataError.push({
           name: echarts.format.formatTime('yyyy/MM/dd hh:mm', t),
           value: [t,0]
         });
       }
-      count=0;
+      countInfo=0;
+      countWarn=0;
+      countError=0;
     }
-    count++;
+    if(ll.severity < 4){
+      countError++;
+    } else if (ll.severity == 4){
+      countWarn++;
+    } else {
+      countInfo++;
+    }
   }
   syslogTable.draw();
   syslogChart.setOption({
-    series: [{
-      data: data
-    }]
+    series: [
+      {
+        data: dataInfo
+      },
+      {
+        data: dataWarn
+      },
+      {
+        data: dataError
+      },
+    ]
   });
   syslogChart.resize();
 }
@@ -523,8 +565,6 @@ function makeCharts() {
   };
   logChart = echarts.init(document.getElementById('log_chart'));
   logChart.setOption(option);
-  syslogChart = echarts.init(document.getElementById('syslog_chart'));
-  syslogChart.setOption(option);
   trapChart = echarts.init(document.getElementById('trap_chart'));
   trapChart.setOption(option);
   netflowChart = echarts.init(document.getElementById('netflow_chart'));
@@ -533,6 +573,41 @@ function makeCharts() {
   ipfixChart.setOption(option);
   arpLogChart = echarts.init(document.getElementById('arplog_chart'));
   arpLogChart.setOption(option);
+  syslogChart = echarts.init(document.getElementById('syslog_chart'));
+  option.series = [
+    {
+      name: "INFO",
+      type: 'bar',
+      color: "#1f78b4",
+      stack: "count",
+      large: true,
+      data: [],
+    },
+    {
+      name: "WARN",
+      type: 'bar',
+      color: "#dfdf22",
+      stack: "count",
+      large: true,
+      data: [],
+    },
+    {
+      name: "ERROR",
+      type: 'bar',
+      color: "#e31a1c",
+      stack: "count",
+      large: true,
+      data: [],
+    },
+  ];
+  option.legend = {
+    textStyle: {
+      fontSize: 10,
+      color: "#ccc",
+    },
+    data:["INFO","WARN","ERROR"]
+  };
+  syslogChart.setOption(option);
 }
 
 function setupTimeVal() {
