@@ -90,3 +90,11 @@ table.dataTable tbody td {
 #wait.hidden {
   display: none;
 }
+
+.table_base button.dt-button {
+  padding: 3px 8px;
+  margin-bottom: 2px;
+  margin-left: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+}

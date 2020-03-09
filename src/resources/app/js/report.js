@@ -233,21 +233,25 @@ function showPage(mode) {
       if (!devicesTable.data().count()) {
         showDevices();
       }
+      $("title").html('TWSNMP - レポート - デバイス');
       break;
     case "users":
       if (!usersTable.data().count()) {
         showUsers();
       }
+      $("title").html('TWSNMP - レポート - ユーザー');
       break;
     case "servers":
       if (!serversTable.data().count()) {
         showServers();
       }
+      $("title").html('TWSNMP - レポート - サーバー');
       break;
     case "flows":
       if (!flowsTable.data().count()) {
         showFlows();
       }
+      $("title").html('TWSNMP - レポート - 通信フロー');
       break;
     case "rules":
       showRules();
@@ -257,6 +261,24 @@ function showPage(mode) {
 
 function makeTables() {
   const opt = {
+    dom: 'Bfrtip',
+    buttons: [
+      {
+        extend:    'copyHtml5',
+        text:      '<i class="fas fa-copy"></i>',
+        titleAttr: 'Copy'
+      },
+      {
+          extend:    'excelHtml5',
+          text:      '<i class="fas fa-file-excel"></i>',
+          titleAttr: 'Excel'
+      },
+      {
+          extend:    'csvHtml5',
+          text:      '<i class="fas fa-file-csv"></i>',
+          titleAttr: 'CSV'
+      }
+    ],
     "paging": true,
     "info": false,
     "pageLength": 10,
@@ -292,6 +314,7 @@ function makeTables() {
   usersTable = makeTable('#users_table', opt, "report");
   flowsTable = makeTable('#flows_table', opt, "report");
   serversTable = makeTable('#servers_table', opt, "report");
+  opt.buttons = [];
   rulesTable = makeTable('#rules_table', opt, "rules");
   opt.pageLength = 25;
   opt.order = false;
