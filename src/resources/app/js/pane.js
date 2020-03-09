@@ -17,8 +17,14 @@ function createMapConfPane() {
   f1.addButton({
     title: '背景画像ファイル選択',
   }).on('click', (value) => {
-    dialog.showOpenDialog({ properties: ['openFile'], title: "背景画像ファイル" })
-    .then(r => {
+    dialog.showOpenDialog({ 
+      title: "背景画像ファイル",
+      message: "背景に表示する画像ファイルを選択してください。",
+      properties: ['openFile'],
+      filters: [
+        { name: 'Images', extensions: ['jpg','jpeg', 'png', 'gif'] },
+      ]
+    }).then(r => {
       if(r.canceled){
         return;
       }
@@ -124,8 +130,14 @@ function createMapConfPane() {
   f5.addButton({
     title: 'ファイル選択',
   }).on('click', (value) => {
-    dialog.showOpenDialog({ properties: ['openFile'], title: "GeoIP DB" })
-    .then(r => {
+    dialog.showOpenDialog({ 
+      title: "GeoIP DB",
+      message: "位置情報データベースファイルを選択してください。",
+      properties: ['openFile'],
+      filters: [
+        { name: 'Geo IP DB', extensions: ['mmdb'] },
+      ]
+     }).then(r => {
       if(r.canceled){
         return;
       }
@@ -140,8 +152,14 @@ function createMapConfPane() {
   f5.addButton({
     title: 'ファイル選択',
   }).on('click', (value) => {
-    dialog.showOpenDialog({ properties: ['openFile'], title: "抽出設定ファイル" })
-    .then(r => {
+    dialog.showOpenDialog({
+      title: "抽出設定ファイル",
+      message: "抽出設定ファイルを選択してください。",
+      properties: ['openFile'],
+      filters: [
+        { name: '抽出設定', extensions: ['txt','conf','cnf'] },
+      ]
+     }).then(r => {
       if(r.canceled){
         return;
       }
@@ -600,8 +618,14 @@ function createMIBDBPane() {
     pane.addButton({
       title: 'MIB追加',
     }).on('click', (value) => {
-      dialog.showOpenDialog({ properties: ['openFile'], title: "MIB追加" })
-      .then(r => {
+      dialog.showOpenDialog({
+         title: "MIB追加",
+         message: "MIBファイルを選択してください。",
+         properties: ['openFile'],
+         filters: [
+           { name: 'MIB', extensions: ['txt','mib'] },
+         ]
+      }).then(r => {
         if(r.canceled){
           return;
         }

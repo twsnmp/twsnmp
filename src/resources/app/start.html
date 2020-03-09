@@ -64,8 +64,16 @@
         });
       });
       $('#new').click(()=>{
-        dialog.showSaveDialog({title: "TWSNMP DB File"})
-        .then(r => {
+        dialog.showSaveDialog({
+          title: "TWSNMP DB File",
+          message: "TWSNMPデータベースファイルを選択してください。",
+          defaultPath: "twsnmp",
+          showsTagField: false,
+          properties: ["createDirectory"],
+          filters: [
+            { name: 'TWSNMP DB', extensions: ['twdb'] },
+          ]          
+        }).then(r => {
           if(r.canceled || !r.filePath || r.filePath.length < 1 ){
             return;
           }
@@ -77,8 +85,15 @@
         });
       });
       $('#open').click(()=>{
-        dialog.showOpenDialog({ properties: ['openFile'], title: "TWSNMP DB File" })
-        .then(r => {
+        dialog.showOpenDialog({ 
+          title: "TWSNMP DB File",
+          properties: ['openFile'], 
+          message: "TWSNMPデータベースファイルを選択してください。",
+          defaultPath: "twsnmp",
+          filters: [
+            { name: 'TWSNMP DB', extensions: ['twdb'] },
+          ]          
+        }).then(r => {
           if(r.canceled){
             return;
           }
