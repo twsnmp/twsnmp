@@ -296,7 +296,7 @@ function makeTables() {
       "lengthMenu": "_MENU_ 件表示",
       "loadingRecords": "読み込み中...",
       "processing": "処理中...",
-      "search": "検索:",
+      "search": "フィルター:",
       "zeroRecords": "一致する情報がありません。",
       "paginate": {
         "first": "最初",

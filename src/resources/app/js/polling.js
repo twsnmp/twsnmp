@@ -35,6 +35,24 @@ function showPage(mode) {
 
 function makeLogTable() {
   const opt =  {
+    dom: 'lBfrtip',
+    buttons: [
+      {
+        extend:    'copyHtml5',
+        text:      '<i class="fas fa-copy"></i>',
+        titleAttr: 'Copy'
+      },
+      {
+          extend:    'excelHtml5',
+          text:      '<i class="fas fa-file-excel"></i>',
+          titleAttr: 'Excel'
+      },
+      {
+          extend:    'csvHtml5',
+          text:      '<i class="fas fa-file-csv"></i>',
+          titleAttr: 'CSV'
+      }
+    ],
     "order": [[1, "desc"]],
     "paging": true,
     "info": false,
@@ -51,7 +69,7 @@ function makeLogTable() {
       "lengthMenu":     "_MENU_ 件表示",
       "loadingRecords": "読み込み中...",
       "processing":     "処理中...",
-      "search":         "検索:",
+      "search":         "フィルター:",
       "zeroRecords":    "一致するログがありません。",
       "paginate": {
           "first":      "最初",

@@ -52,6 +52,24 @@ function setPollingBtns(show,bAn){
 
 function makePollingTable() {
   polling = $('#polling_table').DataTable({
+    dom: 'lBfrtip',
+    buttons: [
+      {
+        extend:    'copyHtml5',
+        text:      '<i class="fas fa-copy"></i>',
+        titleAttr: 'Copy'
+      },
+      {
+          extend:    'excelHtml5',
+          text:      '<i class="fas fa-file-excel"></i>',
+          titleAttr: 'Excel'
+      },
+      {
+          extend:    'csvHtml5',
+          text:      '<i class="fas fa-file-csv"></i>',
+          titleAttr: 'CSV'
+      }
+    ],
     "paging": true,
     "info": false,
     "order": [[0, "desc"]],
@@ -68,7 +86,7 @@ function makePollingTable() {
       "lengthMenu": "_MENU_ 件表示",
       "loadingRecords": "読み込み中...",
       "processing": "処理中...",
-      "search": "検索:",
+      "search": "フィルター:",
       "zeroRecords": "一致するポーリングがありません。",
       "paginate": {
         "first": "最初",

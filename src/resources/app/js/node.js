@@ -123,7 +123,7 @@ function makePollingTable() {
       "thousands":      "",
       "loadingRecords": "読み込み中...",
       "processing":     "処理中...",
-      "search":         "検索:",
+      "search":         "フィルター:",
       "zeroRecords":    "一致するポーリングがありません。",
       "paginate": {
         "first": "最初",
@@ -268,7 +268,7 @@ function makeLogTable() {
       "lengthMenu":     "_MENU_ 件表示",
       "loadingRecords": "読み込み中...",
       "processing":     "処理中...",
-      "search":         "検索:",
+      "search":         "フィルター:",
       "zeroRecords":    "一致するログがありません。",
       "paginate": {
           "first":      "最初",
