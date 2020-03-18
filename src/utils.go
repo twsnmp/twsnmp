@@ -9,16 +9,7 @@ import (
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
 )
 
-func openURL(m *bootstrap.MessageIn) (interface{}, error) {
-	if len(m.Payload) < 1 {
-		astiLogger.Errorf("openUrl no payload")
-		return "ng", nil
-	}
-	var url string
-	if err := json.Unmarshal(m.Payload, &url); err != nil {
-		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
-		return "ng", err
-	}
+func openStrURL(url string) error {
 	var err error
 	switch runtime.GOOS {
 	case "linux":
@@ -32,7 +23,23 @@ func openURL(m *bootstrap.MessageIn) (interface{}, error) {
 	}
 	if err != nil {
 		astiLogger.Errorf("openUrl err=%v", err)
+		return err
+	}
+	return err
+}
+
+func openURL(m *bootstrap.MessageIn) (interface{}, error) {
+	if len(m.Payload) < 1 {
+		astiLogger.Errorf("openUrl no payload")
+		return "ng", nil
+	}
+	var url string
+	if err := json.Unmarshal(m.Payload, &url); err != nil {
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return "ng", err
 	}
-	return "ok", err
+	if err := openStrURL(url); err != nil {
+		return "ng", err
+	}
+	return "ok", nil
 }

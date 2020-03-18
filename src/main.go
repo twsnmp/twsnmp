@@ -106,7 +106,7 @@ func main() {
 		Debug:  *debug,
 		Logger: astiLogger,
 		MenuOptions: []*astilectron.MenuItemOptions{{
-			Label: astikit.StrPtr("File"),
+			Label: astikit.StrPtr("ファイル"),
 			SubMenu: []*astilectron.MenuItemOptions{
 				{
 					Label: astikit.StrPtr("TWSNMPについて"),
@@ -130,8 +130,16 @@ func main() {
 				},
 			},
 		}, {
-			Label: astikit.StrPtr("Edit"),
+			Label: astikit.StrPtr("編集"),
 			SubMenu: []*astilectron.MenuItemOptions{
+				{
+					Label: astikit.StrPtr("全選択"),
+					Role:  astilectron.MenuItemRoleSelectAll,
+				},
+				{
+					Label: astikit.StrPtr("切り取り"),
+					Role:  astilectron.MenuItemRoleCut,
+				},
 				{
 					Label: astikit.StrPtr("コピー"),
 					Role:  astilectron.MenuItemRoleCopy,
@@ -216,7 +224,17 @@ func main() {
 					},
 				},
 			},
-		}},
+		}, {
+			Label: astikit.StrPtr("ヘルプ"),
+			SubMenu: []*astilectron.MenuItemOptions{{
+				Label: astikit.StrPtr("マニュアル"),
+				Type:  astilectron.MenuItemTypeNormal,
+				OnClick: func(e astilectron.Event) bool {
+					openStrURL("https://note.com/twsnmp/m/m15c9aeae6e6d")
+					return false
+				},
+			},
+			}}},
 		OnWait: func(a *astilectron.Astilectron, w []*astilectron.Window, m *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 			startWindow = w[0]
 			mainWindow = w[1]
