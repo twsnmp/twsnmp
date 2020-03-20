@@ -623,7 +623,7 @@ function createMIBDBPane() {
          message: "MIBファイルを選択してください。",
          properties: ['openFile'],
          filters: [
-           { name: 'MIB', extensions: ['txt','mib'] },
+           { name: 'MIB File', extensions: ['txt','mib',"my"] },
          ]
       }).then(r => {
         if(r.canceled){
