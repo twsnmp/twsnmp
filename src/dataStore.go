@@ -168,8 +168,8 @@ type dbStatsEnt struct {
 }
 
 type windowInfoEnt struct {
-	Top int
-	Left int
+	Top    int
+	Left   int
 	Width  int
 	Height int
 }
@@ -711,6 +711,16 @@ type logFilterParamEnt struct {
 	RegexFilter *regexp.Regexp
 }
 
+func parseFilter(f string) string {
+	f = strings.TrimSpace(f)
+	if strings.HasPrefix(f, "`") && strings.HasSuffix(f, "`") {
+		return f[1 : len(f)-2]
+	}
+	f = regexp.QuoteMeta(f)
+	f = strings.ReplaceAll(f, "\\*", ".+")
+	return f
+}
+
 func getFilterParams(filter *filterEnt) *logFilterParamEnt {
 	var err error
 	var t time.Time
@@ -734,7 +744,9 @@ func getFilterParams(filter *filterEnt) *logFilterParamEnt {
 	if filter.Filter == "" {
 		return ret
 	}
-	ret.RegexFilter, err = regexp.Compile(filter.Filter)
+	fs := parseFilter(filter.Filter)
+	astiLogger.Infof("Filter=`%s`", fs)
+	ret.RegexFilter, err = regexp.Compile(fs)
 	if err != nil {
 		astiLogger.Errorf("getFilterParams err=%v", err)
 		ret.RegexFilter = nil
