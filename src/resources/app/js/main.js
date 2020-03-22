@@ -56,11 +56,11 @@ function draw() {
     push();
     translate(nodes[k].X, nodes[k].Y);
     if (selectNode == nodes[k].ID) {
-      fill("aliceblue");
+      fill('rgba(240,248,255,0.9)');
       stroke(getStateColor(nodes[k].State));
       rect(-24, -24, 48, 48);
     } else {
-      fill(250);
+      fill('rgba(250,250,250,0.8)')
       stroke(250);
       rect(-18, -18, 36, 36);
     }
