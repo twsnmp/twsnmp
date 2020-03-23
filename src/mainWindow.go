@@ -151,7 +151,7 @@ func doNotify(m *bootstrap.MessageIn) (interface{}, error) {
 		}
 		if err := sendTestMail(&notifyTestConf); err != nil {
 			astiLogger.Errorf("sendTestMail  error=%v", err)
-			return "ng", err
+			return fmt.Sprintf("%v", err), nil
 		}
 	}
 	return "ok", nil

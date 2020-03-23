@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"net/smtp"
-	"time"
 	"fmt"
+	"net/smtp"
 	"strings"
+	"time"
 )
 
 func notifyBackend(ctx context.Context) {
@@ -24,7 +24,7 @@ func notifyBackend(ctx context.Context) {
 			if i >= notifyConf.Interval {
 				i = 0
 				lastLog = checkNotify(lastLog)
-			} 
+			}
 		}
 	}
 }
@@ -41,7 +41,7 @@ func getLevelNum(l string) int {
 	return 3
 }
 
-func checkNotify(lastLog string) string{
+func checkNotify(lastLog string) string {
 	list := getEventLogList(lastLog, 1000)
 	if len(list) > 0 {
 		nl := getLevelNum(notifyConf.Level)
@@ -50,17 +50,17 @@ func checkNotify(lastLog string) string{
 		}
 		body := []string{}
 		ti := time.Now().Add(time.Duration(-notifyConf.Interval) * time.Minute).UnixNano()
-		for _,l := range list {
+		for _, l := range list {
 			n := getLevelNum(l.Level)
 			if n > nl || ti > l.Time {
 				continue
 			}
-			ts := time.Unix(0,l.Time).Local().Format(time.RFC3339Nano)
-			body = append(body,fmt.Sprintf("%s,%s,%s,%s,%s",l.Level,ts,l.Type,l.NodeName,l.Event))
+			ts := time.Unix(0, l.Time).Local().Format(time.RFC3339Nano)
+			body = append(body, fmt.Sprintf("%s,%s,%s,%s,%s", l.Level, ts, l.Type, l.NodeName, l.Event))
 		}
 		if len(body) > 0 {
-			if err := sendMail(notifyConf.Subject,strings.Join(body,"\r\n"));err != nil {
-				astiLogger.Errorf("sendMail err=%v",err)
+			if err := sendMail(notifyConf.Subject, strings.Join(body, "\r\n")); err != nil {
+				astiLogger.Errorf("sendMail err=%v", err)
 			}
 		}
 		return fmt.Sprintf("%016x", list[0].Time)
@@ -68,7 +68,7 @@ func checkNotify(lastLog string) string{
 	return lastLog
 }
 
-func sendMail(subject,body string) error {
+func sendMail(subject, body string) error {
 	if notifyConf.MailServer == "" || notifyConf.MailFrom == "" || notifyConf.MailTo == "" {
 		return nil
 	}
@@ -82,10 +82,15 @@ func sendMail(subject,body string) error {
 	}
 	defer c.Close()
 	if err = c.StartTLS(tlsconfig); err != nil {
-		astiLogger.Warnf("StartTLS err=%s",err)
+		astiLogger.Warnf("StartTLS err=%s", err)
+	}
+	msv := notifyConf.MailServer
+	a := strings.SplitN(notifyConf.MailServer, ":", 2)
+	if len(a) == 2 {
+		msv = a[0]
 	}
 	if notifyConf.User != "" {
-		auth := smtp.PlainAuth("", notifyConf.User,notifyConf.Password,notifyConf.MailServer)
+		auth := smtp.PlainAuth("", notifyConf.User, notifyConf.Password, msv)
 		if err = c.Auth(auth); err != nil {
 			return err
 		}
@@ -93,7 +98,7 @@ func sendMail(subject,body string) error {
 	if err = c.Mail(notifyConf.MailFrom); err != nil {
 		return err
 	}
-	for _,rcpt := range strings.Split(notifyConf.MailTo,",") {
+	for _, rcpt := range strings.Split(notifyConf.MailTo, ",") {
 		if err = c.Rcpt(rcpt); err != nil {
 			return err
 		}
@@ -105,20 +110,20 @@ func sendMail(subject,body string) error {
 	defer w.Close()
 	message := ""
 	message += "From: " + notifyConf.MailFrom + "\r\n"
-	message += "To: " +  notifyConf.MailTo + "\r\n"
-	message += "Subject: " +  subject + "\r\n"
-	message += "\r\n" + convNewline(body,"\r\n")
+	message += "To: " + notifyConf.MailTo + "\r\n"
+	message += "Subject: " + subject + "\r\n"
+	message += "\r\n" + convNewline(body, "\r\n")
 	w.Write([]byte(message))
 	c.Quit()
-	astiLogger.Infof("Send Mail to %s",notifyConf.MailTo)
+	astiLogger.Infof("Send Mail to %s", notifyConf.MailTo)
 	return nil
 }
 
 func convNewline(str, nlcode string) string {
 	return strings.NewReplacer(
-			"\r\n", nlcode,
-			"\r", nlcode,
-			"\n", nlcode,
+		"\r\n", nlcode,
+		"\r", nlcode,
+		"\n", nlcode,
 	).Replace(str)
 }
 
@@ -133,10 +138,15 @@ func sendTestMail(testConf *notifyConfEnt) error {
 	}
 	defer c.Close()
 	if err = c.StartTLS(tlsconfig); err != nil {
-		astiLogger.Warnf("StartTLS err=%s",err)
+		astiLogger.Warnf("StartTLS err=%s", err)
+	}
+	msv := testConf.MailServer
+	a := strings.SplitN(testConf.MailServer, ":", 2)
+	if len(a) == 2 {
+		msv = a[0]
 	}
 	if testConf.User != "" {
-		auth := smtp.PlainAuth("", testConf.User,testConf.Password,testConf.MailServer)
+		auth := smtp.PlainAuth("", testConf.User, testConf.Password, msv)
 		if err = c.Auth(auth); err != nil {
 			return err
 		}
@@ -144,7 +154,7 @@ func sendTestMail(testConf *notifyConfEnt) error {
 	if err = c.Mail(testConf.MailFrom); err != nil {
 		return err
 	}
-	for _,rcpt := range strings.Split(testConf.MailTo,",") {
+	for _, rcpt := range strings.Split(testConf.MailTo, ",") {
 		if err = c.Rcpt(rcpt); err != nil {
 			return err
 		}
@@ -156,8 +166,8 @@ func sendTestMail(testConf *notifyConfEnt) error {
 	defer w.Close()
 	message := ""
 	message += "From: " + testConf.MailFrom + "\r\n"
-	message += "To: " +  testConf.MailTo + "\r\n"
-	message += "Subject: " +  testConf.Subject + "\r\n"
+	message += "To: " + testConf.MailTo + "\r\n"
+	message += "Subject: " + testConf.Subject + "\r\n"
 	message += "\r\n Test Mail.\r\n"
 	w.Write([]byte(message))
 	c.Quit()

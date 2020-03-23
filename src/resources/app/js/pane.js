@@ -254,9 +254,9 @@ function createNotifyConfPane() {
   }).on('click', (value) => {
     astilectron.sendMessage({ name: "notifyTest", payload: notifyConfTmp }, message => {
       if(message.payload !== "ok") {
-        dialog.showErrorBox("試験通知", "送信に失敗しました。");
+        dialog.showErrorBox("試験通知", "送信に失敗しました。\n(" + message.payload + ")");
       } else {
-        dialog.showErrorBox("通信通知", "送信しました。");
+        dialog.showErrorBox("試験通知", "送信しました。");
       }
       return
     });
