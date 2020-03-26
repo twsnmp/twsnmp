@@ -177,6 +177,7 @@ function makePollingTable() {
     if(!id){
       return;
     }
+    showPolling(id);
   });
 }
 
