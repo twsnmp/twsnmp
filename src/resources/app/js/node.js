@@ -120,7 +120,12 @@ function makePollingTable() {
     "language": {
       "decimal":        "",
       "emptyTable":     "ポーリングがありません。",
-      "thousands":      "",
+      "info":           "全 _TOTAL_ 件中 _START_ - _END_ 表示",
+      "infoEmpty":      "",
+      "infoFiltered":   "(全 _MAX_ 件)",
+      "infoPostFix":    "",
+      "thousands":      ",",
+      "lengthMenu":     "_MENU_ 件表示",
       "loadingRecords": "読み込み中...",
       "processing":     "処理中...",
       "search":         "フィルター:",
