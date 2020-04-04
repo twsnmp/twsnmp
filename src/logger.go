@@ -6,8 +6,11 @@ package main
 
 import (
 	"bytes"
+	"compress/flate"
 	"context"
 	"encoding/json"
+	"io/ioutil"
+
 	"fmt"
 	"net"
 	"strings"
@@ -73,6 +76,7 @@ func logger(ctx context.Context) {
 				if len(logBuffer) > 0 {
 					astiLogger.Infof("Save Logs %d", len(logBuffer))
 					saveLogBuffer(logBuffer)
+					astiLogger.Infof("logSize=%d compLogSize=%d", logSize, compLogSize)
 					logBuffer = []*logEnt{}
 				}
 				if mapConf.EnableSyslogd && !syslogdRunning {
@@ -108,6 +112,33 @@ func logger(ctx context.Context) {
 	}
 }
 
+var logSize = 0
+var compLogSize = 0
+
+func compressLog(s []byte) []byte {
+	var b bytes.Buffer
+	f, _ := flate.NewWriter(&b, flate.DefaultCompression)
+	if _, err := f.Write(s); err != nil {
+		return s
+	}
+	if err := f.Flush(); err != nil {
+		return s
+	}
+	if err := f.Close(); err != nil {
+		return s
+	}
+	return b.Bytes()
+}
+
+func deCompressLog(s []byte) []byte {
+	r := flate.NewReader(bytes.NewBuffer(s))
+	d, err := ioutil.ReadAll(r)
+	if err != nil {
+		return s
+	}
+	return d
+}
+
 func saveLogBuffer(logBuffer []*logEnt) {
 	if db == nil {
 		astiLogger.Errorf("saveLogBuffer DB Not open")
@@ -125,6 +156,11 @@ func saveLogBuffer(logBuffer []*logEnt) {
 			if err != nil {
 				return err
 			}
+			logSize += len(s)
+			if len(s) > 100 {
+				s = compressLog(s)
+			}
+			compLogSize += len(s)
 			switch l.Type {
 			case "syslog":
 				syslog.Put([]byte(k), []byte(s))

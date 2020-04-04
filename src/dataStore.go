@@ -806,6 +806,9 @@ func getLogs(filter *filterEnt) []logEnt {
 		c := b.Cursor()
 		i := 0
 		for k, v := c.Seek([]byte(f.StartKey)); k != nil && i < MaxDispLog; k, v = c.Next() {
+			if bytes.HasSuffix(v, []byte{0, 0, 255, 255}) {
+				v = deCompressLog(v)
+			}
 			var l logEnt
 			err := json.Unmarshal(v, &l)
 			if err != nil {
