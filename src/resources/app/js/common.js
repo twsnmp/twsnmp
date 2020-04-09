@@ -152,6 +152,23 @@ function getFacilityName(f) {
   return  "unkown";
 }
 
+const trapGenericNames = [
+  "coldStart",
+  "warmStart",
+  "linkDown",
+  "linkUp",
+  "authenticationFailure",
+  "egpNeighborLoss",
+  "enterpriseSpecific"
+];
+
+function getTrapGenericName(g) {
+  if( g >=0 && g < trapGenericNames.length){
+    return trapGenericNames[g];
+  }
+  return  `unkown(${g})`;
+}
+
 const logModeHtml = [
   '<i class="fas fa-stop-circle state state_unknown"></i>しない',
   '<i class="fas fa-video state state_info"></i>常時',

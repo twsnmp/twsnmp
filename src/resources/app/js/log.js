@@ -209,7 +209,7 @@ function showTrap(logList) {
     const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
     trapTable.row.add([ts,
       ll.FromAddress,
-      ll.GenericTrap, ll.SpecificTrap,
+      getTrapGenericName(ll.GenericTrap), ll.SpecificTrap,
       ll.Enterprise,
       ll.Variables
     ]);
@@ -427,6 +427,9 @@ function showArp(arpResEnt) {
 
 
 function showPage(mode) {
+  if (pane) {
+    return;
+  }
   const pages = ["log", "syslog", "trap", "netflow", "ipfix","arp"];
   pages.forEach(p => {
     if (mode == p) {
@@ -674,10 +677,16 @@ document.addEventListener('astilectron-ready', function () {
     showPage("arp");
   });
   $('.log_btns button.search').click(function () {
+    if (pane) {
+      return;
+    }
     $('#wait').removeClass("hidden");
     setTimeout(()=>{
       searchLog();
     },100);
+  });
+  $('.log_btns button.cond').click(function () {
+    createLogSearchPane();
   });
   const sh = function() {
     return function findMatches(q, cb) {

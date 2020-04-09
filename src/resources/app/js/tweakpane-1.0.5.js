@@ -1256,9 +1256,11 @@ function create(document, target, params) {
         return NumberInputBindingControllerCreators.create(document, target, normalizeParams(params, NumberConverter.fromMixed));
     }
     if (typeof initialValue === 'string') {
-        var color = color_1.default(initialValue);
-        if (color) {
-            return ColorInputBindingControllerCreators.create(document, target, color, params);
+        if(params.input === 'color'){
+            var color = color_1.default(initialValue);
+            if (color) {
+                return ColorInputBindingControllerCreators.create(document, target, color, params);
+            }
         }
         return StringInputBindingControllerCreators.create(document, target, normalizeParams(params, StringConverter.fromMixed));
     }

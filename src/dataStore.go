@@ -713,8 +713,11 @@ type logFilterParamEnt struct {
 
 func parseFilter(f string) string {
 	f = strings.TrimSpace(f)
+	if f == "``" {
+		return ""
+	}
 	if strings.HasPrefix(f, "`") && strings.HasSuffix(f, "`") {
-		return f[1 : len(f)-2]
+		return f[1 : len(f)-1]
 	}
 	f = regexp.QuoteMeta(f)
 	f = strings.ReplaceAll(f, "\\*", ".+")
