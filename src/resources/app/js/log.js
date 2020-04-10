@@ -425,6 +425,23 @@ function showArp(arpResEnt) {
   arpLogChart.resize();
 }
 
+function isEmptyTable(){
+  switch (currentPage) {
+    case "log":
+      return logTable.data().count() < 1;
+    case "syslog":
+      return syslogTable.data().count() < 1;
+    case "trap":
+      return trapTable.data().count() < 1;
+    case "netflow":
+      return netflowTable.data().count() < 1;
+    case "ipfix":
+      return ipfixTable.data().count() < 1;
+    case "arp":
+      return arpTable.data().count() < 1;
+  }
+  return true;
+}
 
 function showPage(mode) {
   if (pane) {
@@ -440,8 +457,11 @@ function showPage(mode) {
       $("#" + p).removeClass("active");
     }
   });
-  $(".log_btns input[name=filter]").val("");
   currentPage = mode;
+  if( !isEmptyTable() ){
+    return;
+  }
+  $(".log_btns input[name=filter]").val("");
   $('.log_btns button.search').click();
 }
 
