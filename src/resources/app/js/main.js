@@ -624,16 +624,20 @@ document.addEventListener('astilectron-ready', function () {
       case "dbStats":{
         if(message.payload && message.payload.Time ){
           if(dbStats){
-            dbStats.Time = message.payload.Time
-            dbStats.Size = message.payload.Size
-            dbStats.TotalWrite = message.payload.TotalWrite
-            dbStats.LastWrite = message.payload.LastWrite
-            dbStats.PeakWrite = message.payload.PeakWrite
-            dbStats.AvgWrite = message.payload.AvgWrite
-            dbStats.StartTime = message.payload.StartTime
-            dbStats.Speed = message.payload.Speed
-            dbStats.Peak = message.payload.Peak
-            dbStats.Rate = message.payload.Rate
+            dbStats.Time = message.payload.Time;
+            dbStats.Size = message.payload.Size;
+            dbStats.TotalWrite = message.payload.TotalWrite;
+            dbStats.LastWrite = message.payload.LastWrite;
+            dbStats.PeakWrite = message.payload.PeakWrite;
+            dbStats.AvgWrite = message.payload.AvgWrite;
+            dbStats.StartTime = message.payload.StartTime;
+            dbStats.Speed = message.payload.Speed;
+            dbStats.Peak = message.payload.Peak;
+            dbStats.Rate = message.payload.Rate;
+            dbStats.BackupFile = message.payload.BackupFile;
+            dbStats.BackupTime = message.payload.BackupTime;
+            dbStats.BackupDaily = message.payload.BackupDaily;
+            dbStats.BackupConfigOnly = message.payload.BackupConfigOnly;
           }else {
             dbStats = message.payload;
           }

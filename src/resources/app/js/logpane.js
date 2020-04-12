@@ -61,7 +61,7 @@ function createLogPane() {
     title: "イベントログ検索条件"
   });
   pane.addInput(logFilter, 'type', { 
-    label: "Severity",
+    label: "種別",
     options: {
       "指定しない": "",
       "システム": "system",

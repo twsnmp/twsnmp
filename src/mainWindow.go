@@ -93,6 +93,8 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		return openURL(&m)
 	case "setWindowInfo":
 		return setWindowInfo(&m)
+	case "doDBBackup":
+		return doDBBackup(&m)
 	}
 	return "ok", nil
 }
@@ -579,6 +581,7 @@ func mainWindowBackend(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			stopBackup = true
 			timer.Stop()
 			return
 		case p := <-pollingStateChangeCh:
@@ -743,4 +746,53 @@ func updateBackImg() {
 	} else {
 		os.Remove(path)
 	}
+}
+
+type dbBackupParamEnt struct {
+	ConfigOnly bool
+	Daily      bool
+	BackupFile string
+}
+
+func doDBBackup(m *bootstrap.MessageIn) (interface{}, error) {
+	var p dbBackupParamEnt
+	if len(m.Payload) > 0 {
+		if err := json.Unmarshal(m.Payload, &p); err != nil {
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
+			return "ng", err
+		}
+		if dstDB != nil {
+			astiLogger.Errorf("Backup in progress")
+			return "ng", nil
+		}
+		dbStats.BackupConfigOnly = p.ConfigOnly
+		dbStats.BackupFile = p.BackupFile
+		dbStats.BackupDaily = p.Daily
+		saveBackupParamToDB(&p)
+		if p.Daily {
+			astiLogger.Infof("Backup daily = %s", p.BackupFile)
+			now := time.Now()
+			nextBackup = time.Date(now.Year(), now.Month(), now.Day(), 3, 0, 0, 0, time.Local).UnixNano()
+		} else {
+			nextBackup = 0
+			go func() {
+				addEventLog(eventLogEnt{
+					Type:  "system",
+					Level: "info",
+					Event: "バックアップ開始:" + dbStats.BackupFile,
+				})
+				astiLogger.Infof("Backup start = %s", dbStats.BackupFile)
+				if err := backupDB(); err != nil {
+					astiLogger.Errorf("backupDB err=%v", err)
+				}
+				astiLogger.Infof("Backup end = %s", dbStats.BackupFile)
+				addEventLog(eventLogEnt{
+					Type:  "system",
+					Level: "info",
+					Event: "バックアップ終了:" + dbStats.BackupFile,
+				})
+			}()
+		}
+	}
+	return "ok", nil
 }

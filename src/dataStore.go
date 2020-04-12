@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -155,16 +156,20 @@ type aiResult struct {
 }
 
 type dbStatsEnt struct {
-	Time       string
-	Size       string
-	TotalWrite string
-	LastWrite  string
-	PeakWrite  string
-	AvgWrite   string
-	StartTime  string
-	Speed      string
-	Peak       string
-	Rate       float64
+	Time             string
+	Size             string
+	TotalWrite       string
+	LastWrite        string
+	PeakWrite        string
+	AvgWrite         string
+	StartTime        string
+	Speed            string
+	Peak             string
+	Rate             float64
+	BackupConfigOnly bool
+	BackupDaily      bool
+	BackupFile       string
+	BackupTime       string
 }
 
 type windowInfoEnt struct {
@@ -287,6 +292,25 @@ func loadConfFromDB() error {
 				astiLogger.Error(fmt.Sprintf("Unmarshal mainWindowInfo from DB error=%v", err))
 			}
 		}
+		var p dbBackupParamEnt
+		v = b.Get([]byte("backup"))
+		if v != nil {
+			if err := json.Unmarshal(v, &p); err != nil {
+				astiLogger.Error(fmt.Sprintf("Unmarshal mainWinbackupdowInfo from DB error=%v", err))
+			} else {
+				if p.BackupFile != "" && p.Daily {
+					dbStats.BackupConfigOnly = p.ConfigOnly
+					dbStats.BackupFile = p.BackupFile
+					dbStats.BackupDaily = p.Daily
+					now := time.Now()
+					d := 0
+					if now.Hour() > 2 {
+						d = 1
+					}
+					nextBackup = time.Date(now.Year(), now.Month(), now.Day()+d, 3, 0, 0, 0, time.Local).UnixNano()
+				}
+			}
+		}
 		return nil
 	})
 	if mainWindowInfo.Width < 100 || mainWindowInfo.Height < 100 {
@@ -335,6 +359,24 @@ func saveNotifyConfToDB() error {
 			return fmt.Errorf("Bucket config is nil")
 		}
 		b.Put([]byte("notifyConf"), s)
+		return nil
+	})
+}
+
+func saveBackupParamToDB(p *dbBackupParamEnt) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	s, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("config"))
+		if b == nil {
+			return fmt.Errorf("Bucket config is nil")
+		}
+		b.Put([]byte("backup"), s)
 		return nil
 	})
 }
@@ -1156,6 +1198,28 @@ func updateDBStats() {
 	}
 	dbStats.Time = time.Now().Format("15:04:05")
 	prevDBStats = s
+
+	if dbStats.BackupFile != "" && nextBackup != 0 && nextBackup < time.Now().UnixNano() {
+		nextBackup += (24 * 3600 * 1000 * 1000 * 1000)
+		go func() {
+			astiLogger.Infof("Backup start = %s", dbStats.BackupFile)
+			addEventLog(eventLogEnt{
+				Type:  "system",
+				Level: "info",
+				Event: "バックアップ開始:" + dbStats.BackupFile,
+			})
+			if err := backupDB(); err != nil {
+				astiLogger.Errorf("backupDB err=%v", err)
+			}
+			astiLogger.Infof("Backup end = %s", dbStats.BackupFile)
+			addEventLog(eventLogEnt{
+				Type:  "system",
+				Level: "info",
+				Event: "バックアップ終了:" + dbStats.BackupFile,
+			})
+		}()
+		dbStats.BackupTime = dbStats.Time
+	}
 }
 
 func saveLogList(list []eventLogEnt) {
@@ -1280,4 +1344,142 @@ func deleteAIReesult(id string) error {
 		b.Delete([]byte(id))
 		return nil
 	})
+}
+
+var stopBackup = false
+var nextBackup int64
+var dbBackupSize int64
+var dstDB *bbolt.DB
+var dstTx *bbolt.Tx
+
+func backupDB() error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	if dstDB != nil {
+		return fmt.Errorf("Backup in progress")
+	}
+	os.Remove(dbStats.BackupFile)
+	var err error
+	dstDB, err = bbolt.Open(dbStats.BackupFile, 0600, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		dstDB.Close()
+		dstDB = nil
+	}()
+	dstTx, err = dstDB.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer dstTx.Rollback()
+	err = db.View(func(srcTx *bbolt.Tx) error {
+		return srcTx.ForEach(func(name []byte, b *bbolt.Bucket) error {
+			return walkBucket(b, nil, name, nil, b.Sequence())
+		})
+	})
+	if err != nil {
+		return err
+	}
+	if !dbStats.BackupConfigOnly {
+		mapConfTmp := mapConf
+		mapConfTmp.EnableNetflowd = false
+		mapConfTmp.EnableSyslogd = false
+		mapConfTmp.EnableTrapd = false
+		mapConfTmp.LogDays = 0
+		if s, err := json.Marshal(mapConfTmp); err == nil {
+			if b := dstTx.Bucket([]byte("config")); b != nil {
+				b.Put([]byte("mapConf"), s)
+			}
+		}
+	}
+	dstTx.Commit()
+	return nil
+}
+
+var configBuckets = []string{"config", "nodes", "lines", "pollings", "mibdb"}
+
+func walkBucket(b *bbolt.Bucket, keypath [][]byte, k, v []byte, seq uint64) error {
+	if stopBackup {
+		return fmt.Errorf("Stop Backup")
+	}
+	if dbStats.BackupConfigOnly && v == nil {
+		c := false
+		for _, cbn := range configBuckets {
+			if k != nil && cbn == string(k) {
+				c = true
+				break
+			}
+		}
+		if !c {
+			return nil
+		}
+	}
+	if dbBackupSize > 64*1024 {
+		dstTx.Commit()
+		var err error
+		dstTx, err = dstDB.Begin(true)
+		if err != nil {
+			return err
+		}
+		dbBackupSize = 0
+	}
+	// Execute callback.
+	if err := walkFunc(keypath, k, v, seq); err != nil {
+		return err
+	}
+	dbBackupSize += int64(len(k) + len(v))
+
+	// If this is not a bucket then stop.
+	if v != nil {
+		return nil
+	}
+
+	// Iterate over each child key/value.
+	keypath = append(keypath, k)
+	return b.ForEach(func(k, v []byte) error {
+		if v == nil {
+			bkt := b.Bucket(k)
+			return walkBucket(bkt, keypath, k, nil, bkt.Sequence())
+		}
+		return walkBucket(b, keypath, k, v, b.Sequence())
+	})
+}
+
+func walkFunc(keys [][]byte, k, v []byte, seq uint64) error {
+	// Create bucket on the root transaction if this is the first level.
+	nk := len(keys)
+	if nk == 0 {
+		bkt, err := dstTx.CreateBucket(k)
+		if err != nil {
+			return err
+		}
+		if err := bkt.SetSequence(seq); err != nil {
+			return err
+		}
+		return nil
+	}
+	// Create buckets on subsequent levels, if necessary.
+	b := dstTx.Bucket(keys[0])
+	if nk > 1 {
+		for _, k := range keys[1:] {
+			b = b.Bucket(k)
+		}
+	}
+	// Fill the entire page for best compaction.
+	b.FillPercent = 1.0
+	// If there is no value then this is a bucket call.
+	if v == nil {
+		bkt, err := b.CreateBucket(k)
+		if err != nil {
+			return err
+		}
+		if err := bkt.SetSequence(seq); err != nil {
+			return err
+		}
+		return nil
+	}
+	// Otherwise treat it as a key/value pair.
+	return b.Put(k, v)
 }

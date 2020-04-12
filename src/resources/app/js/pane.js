@@ -119,7 +119,7 @@ function createMapConfPane() {
  });
   f4.addInput(mapConfTmp, 'LogDays', { 
     label: "保存日数",
-    min:1,
+    min:0,
     max:365,
     step:1,
   });
@@ -729,8 +729,13 @@ function createDBStatsPane(){
   if(pane || !dbStats){
     return;
   }
+  const backupParam = {
+    Daily: dbStats.BackupDaily,
+    ConfigOnly: dbStats.BackupConfigOnly,
+    BackupFile: dbStats.BackupFile
+  };
   pane = new Tweakpane({
-    title: 'DB統計',
+    title: 'DB情報',
   });
   pane.addMonitor(dbStats, 'Time',{
     label: "更新時刻",
@@ -774,6 +779,62 @@ function createDBStatsPane(){
   pane.addMonitor(dbStats, 'Peak',{
     label: "最大速度",
     interval: 30000,
+  });
+  const f = pane.addFolder({
+    title: 'バックアップ',
+  });
+  f.addMonitor(dbStats, 'BackupFile',{
+    label: "ファイル",
+    interval: 30000,
+  });
+  f.addMonitor(dbStats, 'BackupTime',{
+    label: "最終開始",
+    interval: 30000,
+  });
+  f.addInput(backupParam, 'ConfigOnly', { 
+    label: "対象",
+    options: {
+      "設定のみ": true,
+      "全て": false
+    },
+  });
+  f.addInput(backupParam, 'Daily', { 
+    label: "周期",
+    options: {
+      "１回のみ": false,
+      "毎日3:00AM": true
+    },
+  });
+  f.addButton({
+    title: 'バックアップ',
+  }).on('click', (value) => {
+    dialog.showSaveDialog({
+      title: "バックアップ",
+      message: "バックアップファイルを選択してください。",
+      defaultPath: "twsnmpbackup",
+      showsTagField: false,
+      properties: ["createDirectory"],
+      filters: [
+        { name: 'TWSNMP DB', extensions: ['twdb'] },
+      ]          
+    }).then(r => {
+      if(r.canceled || !r.filePath || r.filePath.length < 1 ){
+        return;
+      }
+      backupParam.BackupFile = r.filePath;
+      astilectron.sendMessage({ name: "doDBBackup", payload: backupParam }, message => {
+        if(message.payload !== "ok") {
+          dialog.showErrorBox("バックアップ", "バックアップを開始できません。");
+          return;
+        }
+        dbStats.BackupConfigOnly = backupParam.ConfigOnly
+        dbStats.BackupFile = backupParam.BackupFile
+        dbStats.BackupDaily = backupParam.Daily
+        pane.dispose();
+        pane = undefined;
+        return
+      });
+    });
   });
   pane.addButton({
     title: 'Close',
