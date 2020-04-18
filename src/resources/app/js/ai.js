@@ -1,6 +1,7 @@
 'use strict';
 const { dialog } = require('electron').remote
 let epoch = 20;
+tf.setBackend("cpu");
 console.log(tf.getBackend());
 
 document.addEventListener('astilectron-ready', function () {
@@ -54,6 +55,7 @@ function clearAllAIMoldes() {
 }
 
 async function doAI(req) {
+  console.log(tf.memory());
   const modelPath = `indexeddb://twsnmpai-${req.PollingID}`;
   const dataLen = req.Data[0].length
   let autoencoder;
@@ -74,8 +76,11 @@ async function doAI(req) {
   try {
     autoencoder.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
     const x_train = tf.tensor2d(req.Data, [req.Data.length, dataLen]);
-    for (let i = 0; i < epoch; i++) {
-      const h = await autoencoder.fit(x_train, x_train, { epochs: 5, batchSize: 24 });
+    for (let i = 0; i < 5; i++) {
+      const h = await autoencoder.fit(x_train, x_train, 
+        { epochs: 20, batchSize: 24,
+          callbacks: tf.callbacks.earlyStopping({monitor: 'loss'}),
+        });
       lossData.push([moment().valueOf(), h.history.loss[0]]);
       console.log("Loss after Epoch " + i + " : " + h.history.loss[0]);
     }
@@ -93,6 +98,7 @@ async function doAI(req) {
     }, message => {
       console.log(message);
     });
+    return;
   }
 
   // Saveできない場合も終了するため
@@ -113,6 +119,8 @@ async function doAI(req) {
   for (let i = 0; i < req.Data.length; i++) {
     scoreData.push([req.TimeStamp[i], ssArr[i]])
   }
+  tf.disposeVariables();
+  console.log(tf.memory());
   astilectron.sendMessage({
     name: "done", payload: {
       PollingID: req.PollingID,

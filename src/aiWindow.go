@@ -118,8 +118,7 @@ func checkAI() bool {
 		return true
 	})
 	now := time.Now().Unix()
-	selID := ""
-	selType := ""
+	var selPolling *pollingEnt
 	delList := []string{}
 	for id, n := range checkAIMap {
 		v, ok := pollings.Load(id)
@@ -128,24 +127,22 @@ func checkAI() bool {
 			continue
 		}
 		p := v.(*pollingEnt)
-		astiLogger.Debugf("checkAI %s = %d now=%d diff=%d", id, n, now, now-n)
 		if n > now {
 			continue
 		}
-		if selID == "" || checkAIMap[selID] > n {
-			selID = id
-			selType = p.Type
+		if selPolling == nil || checkAIMap[selPolling.ID] > n {
+			selPolling = p
 		}
 	}
 	for _, id := range delList {
 		astiLogger.Debugf("checkAIMap delete %s", id)
 		delete(checkAIMap, id)
 	}
-	if selID == "" {
+	if selPolling == nil {
 		return false
 	}
-	checkAIMap[selID] = now + 60*5
-	return doAI(selID, selType)
+	checkAIMap[selPolling.ID] = now + 60*5
+	return doAI(selPolling)
 }
 
 func checkLastAIResultTime(id string) bool {
@@ -162,23 +159,24 @@ func checkLastAIResultTime(id string) bool {
 	return false
 }
 
-func doAI(id, t string) bool {
-	if !checkLastAIResultTime(id) {
+func doAI(p *pollingEnt) bool {
+	if !checkLastAIResultTime(p.ID) {
+		astiLogger.Warnf("doAI Skip ResultTime %s %s", p.ID, p.Name)
 		return false
 	}
 	req := &aiReq{
-		PollingID: id,
+		PollingID: p.ID,
 	}
-	if t == "syslogpri" {
+	if p.Type == "syslogpri" {
 		makeAIDataFromSyslogPriPolling(req)
 	} else {
 		makeAIDataFromPolling(req)
 	}
 	if len(req.Data) < 10 {
-		astiLogger.Infof("doAI No data %s %v", id, req)
+		astiLogger.Infof("doAI Skip No data %s %s %v", p.ID, p.Name, req)
 		return false
 	}
-	astiLogger.Infof("doAI %s", id)
+	astiLogger.Infof("doAI Start %s %s %d", p.ID, p.Name, len(req.Data))
 	if err := bootstrap.SendMessage(aiWindow, "doAI", req); err != nil {
 		astiLogger.Errorf("sendSendMessage doAI error=%v", err)
 		return false
@@ -330,7 +328,9 @@ func doneAI(m *bootstrap.MessageIn) {
 		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 		return
 	}
-	astiLogger.Infof("doneAI %s", res.PollingID)
+	if len(res.ScoreData) < 1 {
+		return
+	}
 	if err := saveAIResultToDB(&res); err != nil {
 		astiLogger.Errorf("saveAIResultToDB err=%v", err)
 	}
@@ -341,6 +341,7 @@ func doneAI(m *bootstrap.MessageIn) {
 	if p == nil {
 		return
 	}
+	astiLogger.Infof("doneAI %s %s", res.PollingID, p.Name)
 	if len(res.ScoreData) > 0 {
 		ls := res.ScoreData[len(res.ScoreData)-1][1]
 		if ls > float64(mapConf.AIThreshold) {
