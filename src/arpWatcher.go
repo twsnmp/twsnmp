@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -10,20 +11,96 @@ import (
 )
 
 var arpTable = make(map[string]string)
+var localCheckAddrs []string
 
 func arpWatcher(ctx context.Context) {
 	astiLogger.Debug("start arpWacher")
 	loadArpTableFromDB()
 	checkArpTable()
+	makeLoacalCheckAddrs()
 	timer := time.NewTicker(time.Second * 300)
+	pinger := time.NewTicker(time.Second * 3)
 	for {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
 			astiLogger.Debug("Stop arpWatch")
 			return
+		case <-pinger.C:
+			if len(localCheckAddrs) > 0 {
+				a := localCheckAddrs[0]
+				doPing(a, 1, 0, 64)
+				localCheckAddrs[0] = ""
+				localCheckAddrs = localCheckAddrs[1:]
+			}
 		case <-timer.C:
 			checkArpTable()
+			if len(localCheckAddrs) < 1 {
+				makeLoacalCheckAddrs()
+			} else {
+				astiLogger.Infof("arpWatcher localCheckAddrs Count %d", len(localCheckAddrs))
+			}
+		}
+	}
+}
+
+func makeLoacalCheckAddrs() {
+	ifs, err := net.Interfaces()
+	if err != nil {
+		astiLogger.Errorf("makeLoacalCheckAddrs err=%v", err)
+		return
+	}
+	localIPCount := 0
+	localHitCount := 0
+	for _, i := range ifs {
+		if (i.Flags&net.FlagLoopback) == net.FlagLoopback ||
+			(i.Flags&net.FlagUp) != net.FlagUp {
+			continue
+		}
+		addrs, err := i.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, a := range addrs {
+			cidr := a.String()
+			ip, ipnet, err := net.ParseCIDR(cidr)
+			if err != nil {
+				continue
+			}
+			if ip.To4() == nil {
+				continue
+			}
+			astiLogger.Infof("arpWatch Check IP %s", cidr)
+			for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); incIP(ip) {
+				if !ip.IsGlobalUnicast() {
+					continue
+				}
+				localIPCount++
+				sa := ip.String()
+				if _, ok := arpTable[sa]; ok {
+					localHitCount++
+				}
+				localCheckAddrs = append(localCheckAddrs, sa)
+			}
+		}
+	}
+	lau := 0.0
+	if localIPCount > 0 {
+		lau = 100.0 * float64(localHitCount) / float64(localIPCount)
+	}
+	addEventLog(eventLogEnt{
+		Type:  "system",
+		Level: "info",
+		Event: fmt.Sprintf("ARP監視 ローカルアドレス使用量 %d/%d %.2f%%", localHitCount, localIPCount, lau),
+	})
+	astiLogger.Infof("Local Address Usage %d/%d", localHitCount, localIPCount)
+}
+
+func incIP(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
 		}
 	}
 }
@@ -80,8 +157,8 @@ func updateArpTable(ip, mac string) {
 		return
 	}
 	deviceReportCh <- &deviceReportEnt{
-		IP:ip,
-		MAC:mac,
+		IP:   ip,
+		MAC:  mac,
 		Time: time.Now().UnixNano(),
 	}
 	m, ok := arpTable[ip]
@@ -127,21 +204,21 @@ func normMACAddr(m string) string {
 }
 
 // ノードリストのMACアドレスをチェックする
-func checkNodeMAC(){
-	for _,n := range nodes {
-		if m, ok := arpTable[n.IP];ok {
-			if !strings.Contains(n.MAC,m) {
+func checkNodeMAC() {
+	for _, n := range nodes {
+		if m, ok := arpTable[n.IP]; ok {
+			if !strings.Contains(n.MAC, m) {
 				new := m
 				v := oui.Find(m)
 				if v != "" {
-					new += fmt.Sprintf("(%s)",v)
+					new += fmt.Sprintf("(%s)", v)
 				}
 				addEventLog(eventLogEnt{
-					Type: "arpwatch",
-					Level: mapConf.ArpWatchLevel,
-					NodeID: n.ID,
+					Type:     "arpwatch",
+					Level:    mapConf.ArpWatchLevel,
+					NodeID:   n.ID,
 					NodeName: n.Name,
-					Event: fmt.Sprintf("MACアドレス変化 %s -> %s",n.MAC,new),
+					Event:    fmt.Sprintf("MACアドレス変化 %s -> %s", n.MAC, new),
 				})
 				n.MAC = new
 				updateNode(n)
