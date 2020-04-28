@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
@@ -43,6 +44,8 @@ func reportMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interfa
 		return openURL(&m)
 	case "getIPInfo":
 		return doGetIPInfo(&m)
+	case "inquiryAddr":
+		return doInquiryAddr(&m)
 	}
 	astiLogger.Errorf("Unknow Message Name=%s", m.Name)
 	return "ok", nil
@@ -227,4 +230,57 @@ func doGetIPInfo(m *bootstrap.MessageIn) (interface{}, error) {
 		return "ng", err
 	}
 	return getIPInfo(ip), nil
+}
+
+type inquiryAddrEnt struct {
+	Mode string
+	Name string
+	Addr string
+}
+
+func doInquiryAddr(m *bootstrap.MessageIn) (interface{}, error) {
+	if len(m.Payload) < 3 {
+		astiLogger.Errorf("doNewAddr %s payload=%v", m.Name, m.Payload)
+		return "ng", nil
+	}
+	var na inquiryAddrEnt
+	if err := json.Unmarshal(m.Payload, &na); err != nil {
+		astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
+		return "ng", err
+	}
+	//	astiLogger.Infof("%v", na)
+	now := time.Now().UnixNano()
+	if na.Mode == "servers" {
+		if _, ok := servers[na.Addr]; ok {
+			return "dup", nil
+		}
+		servers[na.Addr] = &serverEnt{
+			ID:         na.Addr,
+			Server:     na.Addr,
+			Services:   make(map[string]int64),
+			ServerName: fmt.Sprintf("%s(%s)", na.Name, findNameFromIP(na.Addr)),
+			Loc:        getLoc(na.Addr),
+			Count:      1,
+			Bytes:      0,
+			FirstTime:  now,
+			LastTime:   now,
+			UpdateTime: now,
+		}
+	} else if na.Mode == "devices" {
+		mac := normMACAddr(na.Addr)
+		_, ok := devices[mac]
+		if ok {
+			return "dup", nil
+		}
+		devices[mac] = &deviceEnt{
+			ID:         mac,
+			IP:         "",
+			Name:       na.Name,
+			Vendor:     oui.Find(mac),
+			FirstTime:  now,
+			LastTime:   now,
+			UpdateTime: now,
+		}
+	}
+	return "ok", nil
 }

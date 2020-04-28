@@ -395,6 +395,10 @@ document.addEventListener('astilectron-ready', function () {
     refreshPage();
   });
 
+  $('.report_btns button.inquiry').click(() => {
+    inquiryAddrPane();
+  });
+
   $('.report_btns button.apply').click(() => {
     refreshChart();
   });
@@ -445,6 +449,11 @@ function setReportBtns(show) {
     $('.report_btns button.apply').addClass("hidden");
   } else {
     $('.report_btns button.apply').removeClass("hidden");
+  }
+  if (currentPage == "devices" || currentPage == "servers") {
+    $('.report_btns button.inquiry').removeClass("hidden");
+  } else {
+    $('.report_btns button.inquiry').addClass("hidden");
   }
   ["add", "showloc", "ipinfo"].forEach(b => {
     if (!show) {
@@ -1413,4 +1422,56 @@ function showFlowChart() {
   }
   flowChart.setOption(opt);
   flowChart.resize();
+}
+
+function inquiryAddrPane() {
+  if (pane) {
+    return;
+  }
+  const inquiryAddrEnt = {
+    Mode: currentPage,
+    Addr: "",
+    Name: ""
+  };
+  pane = new Tweakpane({
+    title: "アドレス調査"
+  });
+  pane.addInput(inquiryAddrEnt, 'Addr', { label: "アドレス"});
+  pane.addInput(inquiryAddrEnt, 'Name', { label: "名前" });
+  pane.addButton({
+    title: 'Cancel',
+  }).on('click', (value) => {
+    pane.dispose();
+    pane = undefined;
+  });
+  pane.addButton({
+    title: '実行',
+  }).on('click', (value) => {
+    astilectron.sendMessage({ name: "inquiryAddr", payload: inquiryAddrEnt }, message => {
+      if (message.payload == "ng") {
+        dialog.showErrorBox("アドレス調査", "アドレスの調査でエラーが発生しました。");
+        return;
+      }
+      if (message.payload == "dup") {
+        if (currentPage == "servers" ){
+          serversTable.search(inquiryAddrEnt.Addr,false,false).draw();
+        } else {
+          devicesTable.search(inquiryAddrEnt.Addr,false,false).draw();
+        }
+        return;
+      }
+      pane.dispose();
+      pane = undefined;
+      setTimeout(()=>{
+        refreshPage();
+        if (currentPage == "servers" ){
+          serversTable.search(inquiryAddrEnt.Addr,false,false).draw();
+        } else {
+          devicesTable.search(inquiryAddrEnt.Addr,false,false).draw();
+        }
+      },100);
+    });
+  
+  });
+  return;
 }
