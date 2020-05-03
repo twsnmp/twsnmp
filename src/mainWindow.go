@@ -470,6 +470,9 @@ func doPollNow(m *bootstrap.MessageIn) (interface{}, error) {
 }
 
 func setWindowInfo(m *bootstrap.MessageIn) (interface{}, error) {
+	if *debug {
+		return "ok", nil
+	}
 	var wi windowInfoEnt
 	if len(m.Payload) < 1 {
 		return "ng", errNoPayload
