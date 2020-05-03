@@ -136,6 +136,7 @@ type notifyConfEnt struct {
 	Subject            string
 	Interval           int
 	Level              string
+	ExecCmd            string
 }
 
 type discoverConfEnt struct {

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/smtp"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -25,6 +26,7 @@ func notifyBackend(ctx context.Context) {
 				i = 0
 				lastLog = checkNotify(lastLog)
 			}
+			checkExecCmd()
 		}
 	}
 }
@@ -41,6 +43,55 @@ func getLevelNum(l string) int {
 	return 3
 }
 
+var lastExecLevel = -1
+
+func checkExecCmd() {
+	if notifyConf.ExecCmd == "" {
+		return
+	}
+	execLevel := 3
+	for _, n := range nodes {
+		ns := getLevelNum(n.State)
+		if execLevel > ns {
+			execLevel = ns
+			if ns == 0 {
+				break
+			}
+		}
+	}
+	if execLevel != lastExecLevel {
+		err := execNotifyCmd(execLevel)
+		r := ""
+		if err != nil {
+			astiLogger.Errorf("execNotifyCmd err=%v", err)
+			r = fmt.Sprintf("エラー=%v", err)
+		}
+		addEventLog(eventLogEnt{
+			Type:  "system",
+			Level: "info",
+			Event: fmt.Sprintf("外部通知コマンド実行 レベル=%d %s", execLevel, r),
+		})
+		lastExecLevel = execLevel
+	}
+}
+
+func execNotifyCmd(level int) error {
+	cl := strings.Split(notifyConf.ExecCmd, " ")
+	if len(cl) < 1 {
+		return nil
+	}
+	strLevel := fmt.Sprintf("%d", level)
+	if len(cl) == 1 {
+		return exec.Command(cl[0]).Start()
+	}
+	for i, v := range cl {
+		if v == "$level" {
+			cl[i] = strLevel
+		}
+	}
+	return exec.Command(cl[0], cl[1:]...).Start()
+}
+
 func checkNotify(lastLog string) string {
 	list := getEventLogList(lastLog, 1000)
 	if len(list) > 0 {
@@ -51,19 +102,30 @@ func checkNotify(lastLog string) string {
 		body := []string{}
 		ti := time.Now().Add(time.Duration(-notifyConf.Interval) * time.Minute).UnixNano()
 		for _, l := range list {
+			if ti > l.Time {
+				continue
+			}
 			n := getLevelNum(l.Level)
-			if n > nl || ti > l.Time {
+			if n > nl {
 				continue
 			}
 			ts := time.Unix(0, l.Time).Local().Format(time.RFC3339Nano)
 			body = append(body, fmt.Sprintf("%s,%s,%s,%s,%s", l.Level, ts, l.Type, l.NodeName, l.Event))
 		}
 		if len(body) > 0 {
-			if err := sendMail(notifyConf.Subject, strings.Join(body, "\r\n")); err != nil {
+			err := sendMail(notifyConf.Subject, strings.Join(body, "\r\n"))
+			r := ""
+			if err != nil {
 				astiLogger.Errorf("sendMail err=%v", err)
+				r = fmt.Sprintf("失敗 エラー=%v", err)
 			}
+			addEventLog(eventLogEnt{
+				Type:  "system",
+				Level: "info",
+				Event: fmt.Sprintf("通知メール送信 %s", r),
+			})
 		}
-		return fmt.Sprintf("%016x", list[0].Time)
+		lastLog = fmt.Sprintf("%016x", list[0].Time)
 	}
 	return lastLog
 }

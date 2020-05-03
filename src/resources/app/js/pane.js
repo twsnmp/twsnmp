@@ -243,6 +243,7 @@ function createNotifyConfPane() {
       "重度": "high",
     },
   });
+  pane.addInput(notifyConfTmp, 'ExecCmd', { label: "外部コマンド" });
   pane.addButton({
     title: 'Cancel',
   }).on('click', (value) => {
