@@ -25,7 +25,17 @@
     <header class="toolbar toolbar-header">
       <h1 class="title">ポーリングリスト</h1>
     </header>
-    <div class="window-content">
+    <div class="tab-group">
+      <div class="tab-item" id="polling">
+        <i class="fas fa-exchange-alt"></i>
+        ポーリング
+      </div>
+      <div class="tab-item" id="template">
+        <i class="fas fa-clone"></i>
+        テンプレート
+      </div>
+    </div>
+    <div class="window-content" id="polling_page">
       <div class="table_base">
         <table id="polling_table" class="display compact">
           <thead>
@@ -48,6 +58,24 @@
         </table>
       </div>
     </div>
+    <div class="window-content hidden" id="template_page">
+      <div class="table_base">
+        <table id="template_table" class="display compact nowarp">
+          <thead>
+            <tr>
+              <th>種別</th>
+              <th>名前</th>
+              <th>ポーリング</th>
+              <th>ノード種別</th>
+              <th>説明</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
     <footer class="toolbar toolbar-footer">
       <div class="toolbar-actions polling_btns">
         <button class="btn btn-primary add">
@@ -62,6 +90,10 @@
           <i class="fas fa-trash-alt"></i>
           削除
         </button>
+        <button class="btn btn-default template">
+          <i class="fas fa-clone"></i>
+          テンプレート登録
+        </button>
         <button class="btn btn-default poll">
           <i class="fas fa-sync"></i>
           確認
@@ -69,6 +101,36 @@
         <button class="btn btn-default show">
           <i class="fas fa-chart-area"></i>
           分析
+        </button>
+        <button class="btn btn-default pull-right close">
+          <i class="fas fa-times"></i>
+          閉じる
+        </button>
+      </div>
+      <div class="toolbar-actions template_btns hidden">
+        <button class="btn btn-primary add">
+          <i class="fas fa-plus-circle"></i>
+          新規
+        </button>
+        <button class="btn btn-primary edit">
+          <i class="fas fa-edit"></i>
+          編集
+        </button>
+        <button class="btn btn-negative delete">
+          <i class="fas fa-trash-alt"></i>
+          削除
+        </button>
+        <button class="btn btn-primary select">
+          <i class="fas fa-clone"></i>
+          ポーリング追加
+        </button>
+        <button class="btn btn-default import">
+          <i class="fas fa-file-import"></i>
+          インポート
+        </button>
+        <button class="btn btn-default export">
+          <i class="fas fa-file-export"></i>
+          エクスポート
         </button>
         <button class="btn btn-default pull-right close">
           <i class="fas fa-times"></i>

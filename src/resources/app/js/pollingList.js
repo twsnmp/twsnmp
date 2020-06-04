@@ -1,10 +1,29 @@
 'use strict';
 
+let currentPage = "";
 let polling;
+let template;
 let pane;
 
 let pollingList = {};
+let templateList = {};
 let nodes = {};
+
+function showPage(mode) {
+  const pages = ["polling", "template"];
+  pages.forEach(p => {
+    if (mode == p) {
+      $("#" + p + "_page").removeClass("hidden");
+      $("div." + p + "_btns").removeClass("hidden");
+      $("#" + p).addClass("active");
+    } else {
+      $("#" + p + "_page").addClass("hidden");
+      $("div." + p + "_btns").addClass("hidden");
+      $("#" + p).removeClass("active");
+    }
+  });
+  currentPage = mode;
+}
 
 function setupPolling() {
   astilectron.sendMessage({ name: "getPollings", payload: "" }, message => {
@@ -35,7 +54,7 @@ function setupPolling() {
 
 
 function setPollingBtns(show,bAn){
-  const btns = ["edit","delete","poll"];
+  const btns = ["edit","delete","poll","template"];
   btns.forEach( b =>{
     if(!show) {
       $('.polling_btns button.'+ b).addClass("hidden");
@@ -49,6 +68,18 @@ function setPollingBtns(show,bAn){
     $('.polling_btns button.show').addClass("hidden");
   }
 }
+
+function setTemplateBtns(show){
+  const btns = ["select","edit","delete"];
+  btns.forEach( b =>{
+    if(!show) {
+      $('.template_btns button.'+ b).addClass("hidden");
+    } else {
+      $('.template_btns button.'+ b).removeClass("hidden");
+    }
+  });
+}
+
 
 function makePollingTable() {
   polling = $('#polling_table').DataTable({
@@ -167,10 +198,10 @@ function makePollingTable() {
     if(!id){
       return;
     }
-    createEditPollingPane(id);
+    createEditPollingPane(id,"");
   });
   $('.polling_btns button.add').click(function () {
-    createEditPollingPane("");
+    createEditPollingPane("","");
   });
   $('.polling_btns button.show').click(function () {
     const id = getSelectedPollingID()
@@ -178,6 +209,13 @@ function makePollingTable() {
       return;
     }
     showPolling(id);
+  });
+  $('.polling_btns button.template').click(function () {
+    const id = getSelectedPollingID()
+    if(!id){
+      return;
+    }
+    createEditTemplatePane("",id);
   });
 }
 
@@ -206,12 +244,209 @@ function getSelectedPollingID() {
   return id
 }
 
+function makeTemplateTable() {
+  template = $('#template_table').DataTable({
+    dom: 'lBfrtip',
+    buttons: [
+      {
+        extend:    'copyHtml5',
+        text:      '<i class="fas fa-copy"></i>',
+        titleAttr: 'Copy'
+      },
+      {
+          extend:    'excelHtml5',
+          text:      '<i class="fas fa-file-excel"></i>',
+          titleAttr: 'Excel'
+      },
+      {
+          extend:    'csvHtml5',
+          text:      '<i class="fas fa-file-csv"></i>',
+          titleAttr: 'CSV'
+      }
+    ],
+    "paging": true,
+    "info": false,
+    "order": [[0, "desc"]],
+    "searching": true,
+    "autoWidth": true,
+    "language": {
+      "decimal": "",
+      "emptyTable": "表示するテンプレートがありません。",
+      "info": "全 _TOTAL_ 件中 _START_ - _END_ 表示",
+      "infoEmpty": "",
+      "infoFiltered": "(全 _MAX_ 件)",
+      "infoPostFix": "",
+      "thousands": ",",
+      "lengthMenu": "_MENU_ 件表示",
+      "loadingRecords": "読み込み中...",
+      "processing": "処理中...",
+      "search": "フィルター:",
+      "zeroRecords": "一致するテンプレートがありません。",
+      "paginate": {
+        "first": "最初",
+        "last": "最後",
+        "next": "次へ",
+        "previous": "前へ"
+      },
+      "aria": {
+        "sortAscending": ": 昇順でソート",
+        "sortDescending": ": 降順でソート"
+      }
+    },
+  });
+  $('#template_table tbody').on('dblclick', 'tr', function () {
+    const data = polling.row( this ).data();
+    if(data && data.length > 1){
+      const id = data[data.length-1];
+      if(id && templateList[id]){
+        createEditPollingPane("",id);
+      }
+    }
+  });
+  $('#template_table tbody').on('click', 'tr', function () {
+    if ($(this).hasClass('selected')) {
+      $(this).removeClass('selected');
+      setTemplateBtns(false);
+    } else {
+      template.$('tr.selected').removeClass('selected');
+      $(this).addClass('selected');
+      setTemplateBtns(true);
+    }
+  });
+  $('.template_btns button.delete').click(function () {
+    const id = getSelectedTemplateID()
+    if(!id){
+      return;
+    }
+    if (!confirmDialog("テンプレート削除",`${templateList[id].Name}を削除しますか?`)) {
+      return;
+    }
+    astilectron.sendMessage({ name: "deleteTemplate", payload: id }, message => {
+      if (message.payload != "ok" ) {
+        dialog.showErrorBox("テンプレート削除", "削除できません。");
+        return;
+      }
+      const r = template.row('.selected');
+      if (r) {
+        r.remove().draw(false);
+      }
+    });
+  });
+  $('.template_btns button.edit').click(function () {
+    const id = getSelectedTemplateID()
+    if(!id){
+      return;
+    }
+    createEditTemplatePane(id,"");
+  });
+  $('.template_btns button.select').click(function () {
+    const id = getSelectedTemplateID()
+    if(id && templateList[id]){
+      createEditPollingPane("",id);
+    }
+  });
+  $('.template_btns button.add').click(function () {
+    createEditTemplatePane("","");
+  });
+  $('.template_btns button.import').click(function () {
+    importTemplate();
+  });
+  $('.template_btns button.export').click(function () {
+    exportTemplate();
+  });
+}
+
+function importTemplate() {
+  dialog.showOpenDialog({ 
+    title: "TWSNMPポーリング定義",
+    message: "TWSNMPポーリング定義ファイルを選択してください。",
+    properties: ['openFile'],
+    filters: [
+      { name: 'TWSNMPポーリング定義', extensions: ['json'] },
+    ]
+   }).then(r => {
+    if(r.canceled){
+      return;
+    }
+    const paths = r.filePaths;
+    if(paths && paths.length > 0) {
+      astilectron.sendMessage({ name: "importTemplate", payload: paths[0] }, message => {
+        if(message.payload !== "ok") {
+          dialog.showErrorBox("インポート", "テンプレートをインポートできません。");
+          return;
+        }
+        showPage("template");
+        setupTemplate();
+      });
+    }
+  });
+}
+
+function exportTemplate() {
+  dialog.showSaveDialog({
+    title: "TWSNMPポーリング定義",
+    message: "テンプレートファイルを選択してください。",
+    defaultPath: "twsnmpPolling",
+    showsTagField: false,
+    properties: ["createDirectory"],
+    filters: [
+      { name: 'TWSNMPポーリング定義', extensions: ['json'] },
+    ]          
+  }).then(r => {
+    if(r.canceled || !r.filePath || r.filePath.length < 1 ){
+      return;
+    }
+    astilectron.sendMessage({ name: "exportTemplate", payload: r.filePath }, message => {
+      if(message.payload !== "ok") {
+        dialog.showErrorBox("エクスポート", "テンプレートをエクスポートできません。");
+        return;
+      }
+    });
+  });
+}
+
+function getSelectedTemplateID() {
+  const r = template.row('.selected');
+  if (!r) {
+    return undefined;
+  }
+  const d = r.data();
+  if (!d) {
+    return undefined;
+  }
+  const id = d[d.length-1];
+  if (!templateList[id]) {
+    return undefined;
+  }
+  return id
+}
+
+function setupTemplate() {
+  astilectron.sendMessage({ name: "getTemplates", payload: "" }, message => {
+    if (!message.payload) {
+      dialog.showErrorBox("ポーリングリスト", "テンプレートを取得できません。");
+      return;
+    }
+    template.clear();
+    templateList =  message.payload;
+    for(let id in templateList){
+      const t = templateList[id];
+      template.row.add([t.Type,t.Name,t.Polling,t.NodeType,t.Descr,t.ID]);
+    }
+    template.draw();
+    setTemplateBtns(false);
+  });
+}
+
 document.addEventListener('astilectron-ready', function () {
   makePollingTable();
+  makeTemplateTable();
+  showPage("polling");
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "show":
         setupPolling()
+        setupTemplate()
         return { name: "show", payload: "ok" };
       case "error":
         setTimeout(() => {
@@ -220,16 +455,21 @@ document.addEventListener('astilectron-ready', function () {
         return { name: "error", payload: "ok" };
     }
   });
+  $("#polling").click(() => {
+    showPage("polling");
+  });
+  $("#template").click(() => {
+    showPage("template");
+  });
   $('.toolbar-actions button.close').click(() => {
     astilectron.sendMessage({ name: "close", payload: "" }, message => {
     });
   });
 });
 
-function createEditPollingPane(id){
+function createEditPollingPane(id,tid){
   if(pane){
-    pane.dispose();
-    pane = undefined;
+    return;
   }
   let p;
   if( pollingList[id] ){
@@ -252,6 +492,11 @@ function createEditPollingPane(id){
       LastResult: "",
       State: "unkown",
     };
+    if(tid && templateList[tid]) {
+      p.Type = templateList[tid].Type;
+      p.Name = templateList[tid].Name;
+      p.Polling = templateList[tid].Polling;
+    }
   }
   pane = new Tweakpane({
     title: id === "" ? "新規ポーリング" : "ポーリング編集",
@@ -320,10 +565,72 @@ function createEditPollingPane(id){
         dialog.showErrorBox("ポーリング編集", "保存に失敗しました。");
         return;
       }
+      showPage("polling");
       setupPolling();
     });
     pane.dispose();
     pane = undefined;
   });
 }
+
+function createEditTemplatePane(id,pid){
+  if(pane){
+    return;
+  }
+  let pt;
+  if( templateList[id] ){
+    pt = templateList[id];
+  } else {
+    pt = {
+      ID: "",
+      Name: "",
+      Type: "ping",
+      Polling: "",
+      NodeType: "",
+      Descr: "",
+    };
+    if(pid && pollingList[pid]) {
+      pt.Name = pollingList[pid].Name;
+      pt.Type = pollingList[pid].Type;
+      pt.Polling = pollingList[pid].Polling;
+    } 
+  }
+  pane = new Tweakpane({
+    title: id === "" ? "新規テンプレート" : "テンプレート編集",
+  });
+  pane.addInput(pt, 'Name', { label: "名前" });
+  pane.addInput(pt, 'Type', { 
+    label: "種別",
+    options: pollingTypeList,
+  });
+  pane.addInput(pt, 'Polling', { label: "定義" });
+  pane.addInput(pt, 'NodeType', { label: "ノード種別" });
+  pane.addInput(pt, 'Descr', { label: "説明" });
+  pane.addButton({
+    title: 'Cancel',
+  }).on('click', (value) => {
+    pane.dispose();
+    pane = undefined;
+  });
+  pane.addButton({
+    title: 'Save',
+  }).on('click', (value) => {
+    // Check Values
+    if( pt.Name == "" ){
+      dialog.showErrorBox("テンプレート編集", "名前を指定してください。");
+      return;
+    }
+    astilectron.sendMessage({ name: "saveTemplate", payload: pt }, message => {
+      if(message.payload !== "ok") {
+        dialog.showErrorBox("テンプレート編集", "保存に失敗しました。");
+        return;
+      }
+      showPage("template");
+      setupTemplate();
+    });
+    pane.dispose();
+    pane = undefined;
+  });
+}
+
 

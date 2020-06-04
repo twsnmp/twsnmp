@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -32,6 +33,7 @@ var (
 	eventLogCh        = make(chan eventLogEnt, 100)
 	stopEventLoggerCh = make(chan bool)
 	mainWindowInfo    windowInfoEnt
+	pollingTemplates  = make(map[string]*pollingTemplateEnt)
 )
 
 const (
@@ -53,6 +55,7 @@ type nodeEnt struct {
 	MAC       string
 	Community string
 	URL       string
+	Type      string
 }
 
 type lineEnt struct {
@@ -81,6 +84,15 @@ type pollingEnt struct {
 	LastResult string
 	LastVal    float64
 	State      string
+}
+
+type pollingTemplateEnt struct {
+	ID       string
+	Name     string
+	Type     string
+	Polling  string
+	NodeType string
+	Descr    string
 }
 
 type eventLogEnt struct {
@@ -213,11 +225,13 @@ func openDB(path string) error {
 		db.Close()
 		return err
 	}
+	loadPollingTemplateFromDB()
 	return nil
 }
 
 func initDB() error {
-	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs", "syslog", "trap", "netflow", "ipfix", "arplog", "mibdb", "arp", "ai", "report"}
+	buckets := []string{"config", "nodes", "lines", "pollings", "logs", "pollingLogs",
+		"syslog", "trap", "netflow", "ipfix", "arplog", "mibdb", "arp", "ai", "report", "pollingTemplates"}
 	reports := []string{"devices", "users", "flows", "servers", "allows", "dennys"}
 	mapConf.Community = "public"
 	mapConf.PollInt = 60
@@ -1483,4 +1497,88 @@ func walkFunc(keys [][]byte, k, v []byte, seq uint64) error {
 	}
 	// Otherwise treat it as a key/value pair.
 	return b.Put(k, v)
+}
+
+func loadPollingTemplateFromDB() error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	err := db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("pollingTemplates"))
+		if b == nil {
+			return nil
+		}
+		b.ForEach(func(k, v []byte) error {
+			var pt pollingTemplateEnt
+			if err := json.Unmarshal(v, &pt); err == nil {
+				pollingTemplates[pt.ID] = &pt
+			}
+			return nil
+		})
+		return nil
+	})
+	return err
+}
+
+func getSha1Key(s string) string {
+	h := sha1.New()
+	h.Write([]byte(s))
+	bs := h.Sum(nil)
+	return fmt.Sprintf("%x", bs)
+}
+
+func addPollingTemplate(pt *pollingTemplateEnt) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	pt.ID = getSha1Key(pt.Name + pt.Type + pt.NodeType + pt.Polling)
+	if _, ok := pollingTemplates[pt.ID]; ok {
+		return fmt.Errorf("duplicate template")
+	}
+	s, err := json.Marshal(pt)
+	if err != nil {
+		return err
+	}
+	db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("pollingTemplates"))
+		b.Put([]byte(pt.ID), s)
+		return nil
+	})
+	pollingTemplates[pt.ID] = pt
+	return nil
+}
+
+func updatePollingTemplate(pt *pollingTemplateEnt) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	if _, ok := pollingTemplates[pt.ID]; !ok {
+		return errInvalidID
+	}
+	s, err := json.Marshal(pt)
+	if err != nil {
+		return err
+	}
+	db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("pollingTemplates"))
+		b.Put([]byte(pt.ID), s)
+		return nil
+	})
+	return nil
+}
+
+func deletePollingTemplate(id string) error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	if _, ok := pollingTemplates[id]; !ok {
+		return errInvalidID
+	}
+	db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("pollingTemplates"))
+		b.Delete([]byte(id))
+		return nil
+	})
+	delete(pollingTemplates, id)
+	return nil
 }
