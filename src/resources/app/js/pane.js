@@ -465,6 +465,7 @@ function createEditNodePane(x,y,nodeID) {
       Y: Math.round(y),
       IP: "",
       Community: "",
+      Type: "",
       URL: "",
     };
   }
@@ -472,6 +473,7 @@ function createEditNodePane(x,y,nodeID) {
     title: nodeID === "" ? "新規ノード" : "ノード編集"
   });
   pane.addInput(node, 'Name', { label: "名前" });
+  pane.addInput(node, 'Type', { label: "種別" });
   pane.addInput(node, 'IP', { label: "IPアドレス" });
   pane.addInput(node, 'Icon', { 
     label: "アイコン",

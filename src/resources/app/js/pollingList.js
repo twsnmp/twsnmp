@@ -431,7 +431,8 @@ function setupTemplate() {
     templateList =  message.payload;
     for(let id in templateList){
       const t = templateList[id];
-      template.row.add([t.Type,t.Name,t.Polling,t.NodeType,t.Descr,t.ID]);
+      const level = getStateHtml(t.Level);
+      template.row.add([level,t.Type,t.Name,t.Polling,t.NodeType,t.Descr,t.ID]);
     }
     template.draw();
     setTemplateBtns(false);
@@ -494,6 +495,7 @@ function createEditPollingPane(id,tid){
     };
     if(tid && templateList[tid]) {
       p.Type = templateList[tid].Type;
+      p.Level = templateList[tid].Level;
       p.Name = templateList[tid].Name;
       p.Polling = templateList[tid].Polling;
     }
@@ -584,6 +586,7 @@ function createEditTemplatePane(id,pid){
     pt = {
       ID: "",
       Name: "",
+      Level:"low",
       Type: "ping",
       Polling: "",
       NodeType: "",
@@ -592,6 +595,7 @@ function createEditTemplatePane(id,pid){
     if(pid && pollingList[pid]) {
       pt.Name = pollingList[pid].Name;
       pt.Type = pollingList[pid].Type;
+      pt.Level = pollingList[pid].Level;
       pt.Polling = pollingList[pid].Polling;
     } 
   }
@@ -599,6 +603,10 @@ function createEditTemplatePane(id,pid){
     title: id === "" ? "新規テンプレート" : "テンプレート編集",
   });
   pane.addInput(pt, 'Name', { label: "名前" });
+  pane.addInput(pt, 'Level', { 
+    label: "レベル",
+    options: levelList,
+  });
   pane.addInput(pt, 'Type', { 
     label: "種別",
     options: pollingTypeList,

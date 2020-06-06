@@ -91,6 +91,7 @@ type pollingTemplateEnt struct {
 	Name     string
 	Type     string
 	Polling  string
+	Level    string
 	NodeType string
 	Descr    string
 }
@@ -1531,7 +1532,7 @@ func addPollingTemplate(pt *pollingTemplateEnt) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	pt.ID = getSha1Key(pt.Name + pt.Type + pt.NodeType + pt.Polling)
+	pt.ID = getSha1Key(pt.Name + ":" + pt.Type + ":" + pt.NodeType + ":" + pt.Polling)
 	if _, ok := pollingTemplates[pt.ID]; ok {
 		return fmt.Errorf("duplicate template")
 	}
@@ -1555,16 +1556,15 @@ func updatePollingTemplate(pt *pollingTemplateEnt) error {
 	if _, ok := pollingTemplates[pt.ID]; !ok {
 		return errInvalidID
 	}
-	s, err := json.Marshal(pt)
-	if err != nil {
-		return err
+	// 更新後に同じ内容のテンプレートがないか確認する
+	newID := getSha1Key(pt.Name + ":" + pt.Type + ":" + pt.NodeType + ":" + pt.Polling)
+	if _, ok := pollingTemplates[newID]; ok {
+		return fmt.Errorf("duplicate template")
 	}
-	db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte("pollingTemplates"))
-		b.Put([]byte(pt.ID), s)
-		return nil
-	})
-	return nil
+	// なければ、削除してから追加する
+	deletePollingTemplate(pt.ID)
+	pt.ID = newID
+	return addPollingTemplate(pt)
 }
 
 func deletePollingTemplate(id string) error {

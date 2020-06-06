@@ -4,3 +4,26 @@
   margin: 10px;
 }
 
+#template_win {
+  display: none;
+  height: 100%;
+  width: 100%;
+  background: #aaa;
+  opacity: 1.0;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+#template_content {
+  background: #fff;
+  padding: 10px;
+  width: 95%;
+  height: 95%;
+}
+
+#template_win.show {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

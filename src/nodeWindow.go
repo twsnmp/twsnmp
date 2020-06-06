@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
@@ -27,6 +28,10 @@ func nodeMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface
 		return deletePollingMsg(&m)
 	case "pollNow":
 		return pollNow(&m)
+	case "autoAddPolling":
+		return autoAddPolling(&m)
+	case "getTemplates":
+		return pollingTemplates, nil
 	}
 	astiLogger.Errorf("Unknow Message Name=%s", m.Name)
 	return "ok", nil
@@ -163,6 +168,54 @@ func showPolling(m *bootstrap.MessageIn) (interface{}, error) {
 			return "ng", err
 		}
 		pollingWindow.Show()
+		return "ok", nil
+	}
+	return "ng", errInvalidNode
+}
+
+func autoAddPolling(m *bootstrap.MessageIn) (interface{}, error) {
+	if len(m.Payload) > 0 {
+		var id string
+		if err := json.Unmarshal(m.Payload, &id); err != nil {
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
+			return "ng", err
+		}
+		n, ok := nodes[id]
+		if !ok {
+			return "ng", nil
+		}
+		plist := getNodePollings(id)
+		pmap := make(map[string]bool)
+		for _, p := range plist {
+			key := getSha1Key(p.Type + ":" + p.Polling)
+			pmap[key] = true
+		}
+		for _, pt := range pollingTemplates {
+			if pt.NodeType != "" {
+				if n.Type == "" || !strings.Contains(n.Type, pt.NodeType) {
+					continue
+				}
+			}
+			key := getSha1Key(pt.Type + ":" + pt.Polling)
+			if _, ok := pmap[key]; ok {
+				continue
+			}
+			p := &pollingEnt{
+				NodeID:  id,
+				Name:    pt.Name,
+				Type:    pt.Type,
+				Level:   pt.Level,
+				Polling: pt.Polling,
+				State:   "unkown",
+				PollInt: mapConf.PollInt,
+				Timeout: mapConf.Timeout,
+				Retry:   mapConf.Retry,
+			}
+			if err := addPolling(p); err != nil {
+				astiLogger.Errorf("addPolling %s %v error=%v", m.Name, p, err)
+				continue
+			}
+		}
 		return "ok", nil
 	}
 	return "ng", errInvalidNode

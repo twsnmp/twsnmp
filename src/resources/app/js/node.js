@@ -4,10 +4,12 @@ let nodeID = "";
 let currentPage = "";
 let basic;
 let polling;
+let template;
 let log;
 let pane;
 
 let pollingList = {};
+let templateList = {};
 
 function setupBasicPage() {
   astilectron.sendMessage({ name: "getNodeBasicInfo", payload: nodeID }, message => {
@@ -18,6 +20,7 @@ function setupBasicPage() {
     basic.clear();
     const node = message.payload;
     basic.row.add(["名前", node.Name]);
+    basic.row.add(["種別", node.Type]);
     basic.row.add(["IPアドレス", node.IP]);
     basic.row.add(["MACアドレス", node.MAC]);
     basic.row.add(["状態", getStateHtml(node.State)]);
@@ -116,7 +119,6 @@ function makePollingTable() {
     "order": [[0, "desc"]],
     "searching": true,
     "autoWidth": true,
-    "autoWidth": true,
     "language": {
       "decimal":        "",
       "emptyTable":     "ポーリングがありません。",
@@ -210,29 +212,27 @@ function makePollingTable() {
     if(!id){
       return;
     }
-    createEditPollingPane(id);
+    createEditPollingPane(id,"");
   });
   $('.polling_btns button.add').click(function () {
-    createEditPollingPane("");
+    showTemplate();
+  });
+  $('.polling_btns button.auto').click(function () {
+    autoAddPolling();
   });
   $('.polling_btns button.show').click(function () {
     const id = getSelectedPollingID()
     if(!id){
       return;
     }
-    astilectron.sendMessage({ name: "showPolling", payload: id }, message => {
-      if (message.payload != "ok" ) {
-        dialog.showErrorBox("ノード情報", "ポーリング分析画面を表示できません。");
-        return;
-      }
-    });
+    showPolling(id);
   });
 }
 
 function showPolling(id) {
   astilectron.sendMessage({ name: "showPolling", payload: id }, message => {
     if (message.payload != "ok" ) {
-      dialog.showErrorBox("ポーリングリスト", "ポーリング分析画面を表示できません。");
+      dialog.showErrorBox("ノード情報", "ポーリング分析画面を表示できません。");
       return;
     }
   });
@@ -293,6 +293,7 @@ document.addEventListener('astilectron-ready', function () {
   makeBasicTable();
   makePollingTable();
   makeLogTable();
+  makeTemplateTable();
   astilectron.onMessage(function (message) {
     switch (message.name) {
       case "setNodeID":
@@ -347,13 +348,13 @@ document.addEventListener('astilectron-ready', function () {
   });
 });
 
-function createEditPollingPane(id){
+function createEditPollingPane(id,tid){
   if(pane){
     pane.dispose();
     pane = undefined;
   }
   let p;
-  if( pollingList[id] ){
+  if( id && pollingList[id] ){
     p = pollingList[id];
   } else {
     p = {
@@ -372,6 +373,12 @@ function createEditPollingPane(id){
       LastResult: "",
       State: "unkown",
     };
+    if(tid) {
+      p.Name = templateList[tid].Name;
+      p.Type = templateList[tid].Type;
+      p.Level = templateList[tid].Level;
+      p.Polling = templateList[tid].Polling;
+    }
   }
   pane = new Tweakpane({
     title: id === "" ? "新規ポーリング" : "ポーリング編集",
@@ -439,4 +446,107 @@ function setWindowTitle(n){
   const t = "ノード情報 - " + n;
   $("title").html(t);
   $("h1.title").html(t);
+}
+
+
+function makeTemplateTable() {
+  template = $('#template_table').DataTable({
+    "paging": true,
+    "info": false,
+    "order": [[0, "desc"]],
+    "searching": true,
+    "autoWidth": true,
+    "language": {
+      "decimal":        "",
+      "emptyTable":     "テンプレートがありません。",
+      "info":           "全 _TOTAL_ 件中 _START_ - _END_ 表示",
+      "infoEmpty":      "",
+      "infoFiltered":   "(全 _MAX_ 件)",
+      "infoPostFix":    "",
+      "thousands":      ",",
+      "lengthMenu":     "_MENU_ 件表示",
+      "loadingRecords": "読み込み中...",
+      "processing":     "処理中...",
+      "search":         "フィルター:",
+      "zeroRecords":    "一致するテンプレートがありません。",
+      "paginate": {
+        "first": "最初",
+        "last": "最後",
+        "next": "次へ",
+        "previous": "前へ"
+      }, 
+      "aria": {
+          "sortAscending":  ": 昇順でソート",
+          "sortDescending": ": 降順でソート"
+      }
+    },
+  });
+  $('#template_table tbody').on('dblclick', 'tr', function () {
+    const data = polling.row( this ).data();
+    if(data && data.length > 1){
+      const id = data[data.length-1];
+      if(templateList[id] ){
+        $('select_template').click();
+      }
+    }
+  });
+  $('#template_table tbody').on('click', 'tr', function () {
+    if ($(this).hasClass('selected')) {
+      $(this).removeClass('selected');
+    } else {
+      template.$('tr.selected').removeClass('selected');
+      $(this).addClass('selected');
+    }
+  });
+}
+
+function getSelectedTemplateID() {
+  const r = template.row('.selected');
+  if (!r) {
+    return undefined;
+  }
+  const d = r.data();
+  if (!d) {
+    return undefined;
+  }
+  const id = d[d.length-1];
+  if (!templateList[id]) {
+    return undefined;
+  }
+  return id
+}
+
+function showTemplate() {
+  astilectron.sendMessage({ name: "getTemplates", payload: "" }, message => {
+    if (!message.payload || message.payload == "ng" ) {
+      createEditPollingPane("","");
+      return;
+    }
+    template.clear();
+    templateList =  message.payload;
+    for(let id in templateList){
+      const t = templateList[id];
+      const level = getStateHtml(t.Level);
+      template.row.add([level,t.Type,t.Name,t.Polling,t.NodeType,t.Descr,t.ID]);
+    }
+    template.draw();
+    $("#template_win").addClass("show").fadeIn().css('display', 'flex');
+    $("#cancel_template").on("click", function () {
+      $("#template_win").fadeOut();
+    });
+    $("#select_template").on("click", function () {
+      $("#template_win").fadeOut();
+      const tid = getSelectedTemplateID();
+      createEditPollingPane("",tid);
+    });
+  });
+}
+
+function autoAddPolling() {
+  astilectron.sendMessage({ name: "autoAddPolling", payload: nodeID }, message => {
+    if (!message.payload || message.payload == "ng") {
+      return;
+    }
+    setupPollingPage();
+  });
 }

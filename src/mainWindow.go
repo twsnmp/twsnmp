@@ -201,6 +201,7 @@ func doSaveNode(m *bootstrap.MessageIn) (interface{}, error) {
 			ntmp.Icon = n.Icon
 			ntmp.Name = n.Name
 			ntmp.URL = n.URL
+			ntmp.Type= n.Type
 			if err := updateNode(ntmp); err != nil {
 				astiLogger.Errorf("editNode %s error=%v", m.Name, err)
 				return "ng", err
