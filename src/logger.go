@@ -96,6 +96,7 @@ func logger(ctx context.Context) {
 					astiLogger.Debug("start trapd")
 				} else if !mapConf.EnableTrapd && trapdRunning {
 					close(stopTrapd)
+					trapdRunning = false
 					astiLogger.Debug("stop trapd")
 				}
 				if mapConf.EnableNetflowd && !netflowdRunning {
@@ -105,6 +106,7 @@ func logger(ctx context.Context) {
 					astiLogger.Debug("start netflowd")
 				} else if !mapConf.EnableNetflowd && netflowdRunning {
 					close(stopNetflowd)
+					netflowdRunning = false
 					astiLogger.Debug("stop netflowd")
 				}
 			}
