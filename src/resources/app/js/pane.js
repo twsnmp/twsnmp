@@ -57,7 +57,21 @@ function createMapConfPane() {
     max: 5,
     step: 1,
   });
+  f2.addInput(mapConf, 'SnmpMode', { 
+    label: "SNMPモード",
+    options: {
+      "SNMPv2c": "",
+      "SNMPv3Auth": "v3Auth",
+      "SNMPv3AuthPriv" : "v3AuthPriv",
+    },
+  });
   f2.addInput(mapConfTmp, 'Community', { label: "Community" });
+  f2.addInput(mapConfTmp, 'User', { label: "ユーザー" });
+  f2.addInput(mapConfTmp, 'Password', { label: "パスワード" });
+  f2.addButton({
+    title: '公開鍵保存',
+  }).on('click', (value) => {
+  }); 
   f2.addInput(mapConfTmp, 'AILevel', { 
     label: "AIレベル",
     options: {
@@ -204,6 +218,7 @@ function createMapConfPane() {
     pane.dispose();
     pane = undefined;
   });
+  setupPanePosAndSize();
   return;
 }
 
@@ -279,6 +294,7 @@ function createNotifyConfPane() {
     pane.dispose();
     pane = undefined;
   });
+  setupPanePosAndSize();
   return;
 }
 
@@ -316,7 +332,6 @@ function createStartDiscoverPane(x,y) {
       max: 5,
       step: 1,
     });
-    pane.addInput(discoverConf, 'Community', { label: "Community" });
     pane.addButton({
       title: 'Cancel',
     }).on('click', (value) => {
@@ -341,6 +356,8 @@ function createStartDiscoverPane(x,y) {
       pane = undefined;
     });  
   });
+  setupPanePosAndSize();
+  return;
 }
 
 function createDiscoverStatPane(ds){
@@ -445,6 +462,7 @@ function createDiscoverStatPane(ds){
     });
   }
   updateStat();
+  setupPanePosAndSize();
 }
 
 
@@ -464,6 +482,10 @@ function createEditNodePane(x,y,nodeID) {
       X: Math.round(x),
       Y: Math.round(y),
       IP: "",
+      SnmpMode:"",
+      User:"",
+      Password:"",
+      PublicKey:"",
       Community: "",
       Type: "",
       URL: "",
@@ -497,7 +519,18 @@ function createEditNodePane(x,y,nodeID) {
       "地球": "globe",
     },
   });
+  pane.addInput(node, 'SnmpMode', { 
+    label: "SNMPモード",
+    options: {
+      "SNMPv2c": "",
+      "SNMPv3Auth": "v3Auth",
+      "SNMPv3AuthPriv" : "v3AuthPriv",
+    },
+  });
   pane.addInput(node, 'Community', { label: "Community" });
+  pane.addInput(node, 'User', { label: "ユーザー" });
+  pane.addInput(node, 'Password', { label: "パスワード" });
+  pane.addInput(node, 'PublicKey', { label: "公開鍵" });
   pane.addInput(node, 'URL', { label: "URL" });
   pane.addInput(node, 'Descr', { label: "説明" });
   pane.addButton({
@@ -523,6 +556,8 @@ function createEditNodePane(x,y,nodeID) {
     pane.dispose();
     pane = undefined;
   });
+  setupPanePosAndSize();
+  return;
 }
 
 function createEditLinePane(nodeID1,nodeID2) {
@@ -599,6 +634,8 @@ function createEditLinePane(nodeID1,nodeID2) {
       pane = undefined;
     });
   });
+  setupPanePosAndSize();
+  return;
 }
 
 function createMIBDBPane() {
@@ -672,8 +709,10 @@ function createMIBDBPane() {
     }).on('click', (value) => {
       pane.dispose();
       pane = undefined;
-    });  
-  }); 
+    });
+  });
+  setupPanePosAndSize();
+  return;
 }
 
 function createActionPane() {
@@ -725,6 +764,7 @@ function createActionPane() {
     pane.dispose();
     pane = undefined;
   });
+  setupPanePosAndSize();
   return;
 }
 
@@ -845,4 +885,18 @@ function createDBStatsPane(){
     pane.dispose();
     pane = undefined;
   });
+  setupPanePosAndSize();
+  return;
+}
+
+function setupPanePosAndSize() {
+  $('.tp-dfwv').css({
+    "position": "absolute",
+    "top": "30px",
+    "right": "20px",
+    "width": "320px",
+  });
+  $('.tp-lblv_v').css({
+    "width": "180px",
+  })
 }

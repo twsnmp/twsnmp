@@ -64,6 +64,27 @@ func snmpWalk(nodeID, mibName string) ([]string, error) {
 		ExponentialTimeout: true,
 		MaxOids:            gosnmp.MaxOids,
 	}
+	if n.SnmpMode != "" {
+		agent.Version = gosnmp.Version3
+		agent.SecurityModel = gosnmp.UserSecurityModel
+		if n.SnmpMode == "v3auth" {
+			agent.MsgFlags = gosnmp.AuthNoPriv
+			agent.SecurityParameters = &gosnmp.UsmSecurityParameters{
+				UserName:                 n.User,
+				AuthenticationProtocol:   gosnmp.SHA,
+				AuthenticationPassphrase: n.Password,
+			}
+		} else {
+			agent.MsgFlags = gosnmp.AuthPriv
+			agent.SecurityParameters = &gosnmp.UsmSecurityParameters{
+				UserName:                 n.User,
+				AuthenticationProtocol:   gosnmp.SHA,
+				AuthenticationPassphrase: n.Password,
+				PrivacyProtocol:          gosnmp.AES,
+				PrivacyPassphrase:        n.Password,
+			}
+		}
+	}
 	err := agent.Connect()
 	if err != nil {
 		astiLogger.Errorf("snmpWalk err=%v", err)

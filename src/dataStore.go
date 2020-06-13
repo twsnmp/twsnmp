@@ -53,7 +53,11 @@ type nodeEnt struct {
 	Y         int
 	IP        string
 	MAC       string
+	SnmpMode  string
 	Community string
+	User      string
+	Password  string
+	PublicKey string
 	URL       string
 	Type      string
 }
@@ -127,7 +131,12 @@ type mapConfEnt struct {
 	Retry          int
 	LogDays        int
 	LogDispSize    int
+	SnmpMode       string
 	Community      string
+	User           string
+	Password       string
+	PublicKey      string
+	PravateKey     string
 	EnableSyslogd  bool
 	EnableTrapd    bool
 	EnableNetflowd bool
@@ -153,13 +162,12 @@ type notifyConfEnt struct {
 }
 
 type discoverConfEnt struct {
-	StartIP   string
-	EndIP     string
-	Community string
-	Timeout   int
-	Retry     int
-	X         int
-	Y         int
+	StartIP string
+	EndIP   string
+	Timeout int
+	Retry   int
+	X       int
+	Y       int
 }
 
 type aiResult struct {
@@ -243,7 +251,7 @@ func initDB() error {
 	mapConf.ArpWatchLevel = "info"
 	mapConf.AILevel = "info"
 	mapConf.AIThreshold = 81
-	discoverConf.Community = "public"
+	mapConf.Community = "public"
 	discoverConf.Retry = 1
 	discoverConf.Timeout = 1
 	notifyConf.InsecureSkipVerify = true

@@ -365,6 +365,28 @@ func logNetflow(p *netflow5.Packet) {
 
 func trapd(stopCh chan bool) {
 	tl := gosnmp.NewTrapListener()
+	if mapConf.SnmpMode != "" {
+		tl.Params = &gosnmp.GoSNMP{}
+		tl.Params.Version = gosnmp.Version3
+		tl.Params.SecurityModel = gosnmp.UserSecurityModel
+		if mapConf.SnmpMode == "v3auth" {
+			tl.Params.MsgFlags = gosnmp.AuthNoPriv
+			tl.Params.SecurityParameters = &gosnmp.UsmSecurityParameters{
+				UserName:                 mapConf.User,
+				AuthenticationProtocol:   gosnmp.SHA,
+				AuthenticationPassphrase: mapConf.Password,
+			}
+		} else {
+			tl.Params.MsgFlags = gosnmp.AuthPriv
+			tl.Params.SecurityParameters = &gosnmp.UsmSecurityParameters{
+				UserName:                 mapConf.User,
+				AuthenticationProtocol:   gosnmp.SHA,
+				AuthenticationPassphrase: mapConf.Password,
+				PrivacyProtocol:          gosnmp.AES,
+				PrivacyPassphrase:        mapConf.Password,
+			}
+		}
+	}
 	tl.OnNewTrap = func(s *gosnmp.SnmpPacket, u *net.UDPAddr) {
 		var record = make(map[string]interface{})
 		record["FromAddress"] = u.String()
