@@ -207,12 +207,16 @@ function showTrap(logList) {
       continue;
     }
     const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
-    trapTable.row.add([ts,
-      ll.FromAddress,
-      getTrapGenericName(ll.GenericTrap), ll.SpecificTrap,
-      ll.Enterprise,
-      ll.Variables
-    ]);
+    if( ll.Enterprise  ) {
+      trapTable.row.add([ts,
+        ll.FromAddress,
+        getTrapGenericName(ll.GenericTrap), ll.SpecificTrap,
+        ll.Enterprise,
+        ll.Variables
+      ]);
+    } else {
+      trapTable.row.add([ts,ll.FromAddress,"", "","",ll.Variables]);
+    }
     if(!ctm ) {
       ctm = Math.floor(l.Time / (1000 * 1000 * 1000 * 60));
       count++;

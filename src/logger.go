@@ -391,7 +391,7 @@ func trapd(stopCh chan bool) {
 		var record = make(map[string]interface{})
 		record["FromAddress"] = u.String()
 		record["Timestamp"] = s.Timestamp
-		record["Enterprise"] = s.Enterprise
+		record["Enterprise"] = mib.OIDToName(s.Enterprise)
 		record["GenericTrap"] = s.GenericTrap
 		record["SpecificTrap"] = s.SpecificTrap
 		record["Variables"] = ""
