@@ -72,7 +72,7 @@ func makeLoacalCheckAddrs() {
 			}
 			astiLogger.Infof("arpWatch Check IP %s", cidr)
 			for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); incIP(ip) {
-				if !ip.IsGlobalUnicast() {
+				if !ip.IsGlobalUnicast() || ip.IsMulticast() || ip.Equal(ip.Mask(ipnet.Mask)) {
 					continue
 				}
 				localIPCount++
