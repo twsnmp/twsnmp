@@ -48,6 +48,9 @@ func stopDiscover() {
 	}
 }
 
+// GRID : 自動発見時にノードを配置する間隔
+const GRID = 90
+
 func startDiscover() error {
 	if discoverStat.Running {
 		return fmt.Errorf("Discover already runnning")
@@ -76,8 +79,8 @@ func startDiscover() error {
 	discoverStat.Running = true
 	discoverStat.StartTime = time.Now().UnixNano()
 	discoverStat.EndTime = 0
-	discoverStat.X = (1 + discoverConf.X/100) * 100
-	discoverStat.Y = (1 + discoverConf.Y/100) * 100
+	discoverStat.X = (1 + discoverConf.X/GRID) * GRID
+	discoverStat.Y = (1 + discoverConf.Y/GRID) * GRID
 	var mu sync.Mutex
 	sem := make(chan bool, 20)
 	go func() {
@@ -107,10 +110,10 @@ func startDiscover() error {
 					dent.X = discoverStat.X
 					dent.Y = discoverStat.Y
 					discoverStat.Found++
-					discoverStat.X += 100
-					if discoverStat.X > 2100 {
-						discoverStat.X = 100
-						discoverStat.Y += 100
+					discoverStat.X += GRID
+					if discoverStat.X > GRID*10 {
+						discoverStat.X = GRID
+						discoverStat.Y += GRID
 					}
 					if dent.SysName != "" {
 						discoverStat.Snmp++
@@ -147,7 +150,7 @@ func discoverGetSnmpInfo(t string, dent *discoverInfoEnt) {
 		ExponentialTimeout: true,
 		MaxOids:            gosnmp.MaxOids,
 	}
-	if mapConf.SnmpMode != "" {
+	if discoverConf.SnmpMode != "" {
 		agent.Version = gosnmp.Version3
 		agent.SecurityModel = gosnmp.UserSecurityModel
 		if mapConf.SnmpMode == "v3auth" {

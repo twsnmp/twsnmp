@@ -318,6 +318,14 @@ function createStartDiscoverPane(x,y) {
     pane = new Tweakpane({
       title: "自動発見"
     });
+    pane.addInput(discoverConf, 'SnmpMode', { 
+      label: "SNMPモード",
+      options: {
+        "SNMPv2c": "",
+        "SNMPv3Auth": "v3Auth",
+        "SNMPv3AuthPriv" : "v3AuthPriv",
+      },
+    });
     pane.addInput(discoverConf, 'StartIP', { label: "開始IP" });
     pane.addInput(discoverConf, 'EndIP', { label: "終了IP" });
     pane.addInput(discoverConf, 'Timeout', { 
@@ -892,8 +900,8 @@ function createDBStatsPane(){
 function setupPanePosAndSize() {
   $('.tp-dfwv').css({
     "position": "absolute",
-    "top": "30px",
-    "right": "20px",
+    "top": "35px",
+    "right": "15px",
     "width": "320px",
   });
   $('.tp-lblv_v').css({

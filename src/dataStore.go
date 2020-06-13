@@ -162,12 +162,13 @@ type notifyConfEnt struct {
 }
 
 type discoverConfEnt struct {
-	StartIP string
-	EndIP   string
-	Timeout int
-	Retry   int
-	X       int
-	Y       int
+	SnmpMode string
+	StartIP  string
+	EndIP    string
+	Timeout  int
+	Retry    int
+	X        int
+	Y        int
 }
 
 type aiResult struct {
