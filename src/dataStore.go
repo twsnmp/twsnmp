@@ -136,7 +136,8 @@ type mapConfEnt struct {
 	User           string
 	Password       string
 	PublicKey      string
-	PravateKey     string
+	PrivateKey     string
+	TLSCert        string
 	EnableSyslogd  bool
 	EnableTrapd    bool
 	EnableNetflowd bool
@@ -338,6 +339,9 @@ func loadConfFromDB() error {
 		}
 		return nil
 	})
+	if err == nil && mapConf.PrivateKey == "" {
+		initSecurityKey()
+	}
 	if mainWindowInfo.Width < 100 || mainWindowInfo.Height < 100 {
 		mainWindowInfo.Width = 1024
 		mainWindowInfo.Height = 800
@@ -350,6 +354,29 @@ func loadConfFromDB() error {
 		saveMainWindowInfoToDB()
 	}
 	return err
+}
+
+func initSecurityKey() {
+	key, err := genPrivateKey(4096)
+	if err != nil {
+		astiLogger.Errorf("initSecurityKey err=%v", err)
+		return
+	}
+	pubkey, err := getSSHPublicKey(key)
+	if err != nil {
+		astiLogger.Errorf("initSecurityKey err=%v", err)
+		return
+	}
+	cert, err := genSelfSignCert(key)
+	if err != nil {
+		astiLogger.Errorf("initSecurityKey err=%v", err)
+		return
+	}
+	mapConf.PrivateKey = key
+	mapConf.PublicKey = pubkey
+	mapConf.TLSCert = cert
+	astiLogger.Infof("initSecurityKey Public Key=%v", pubkey)
+	saveMapConfToDB()
 }
 
 func saveMapConfToDB() error {

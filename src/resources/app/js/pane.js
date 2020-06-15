@@ -68,10 +68,24 @@ function createMapConfPane() {
   f2.addInput(mapConfTmp, 'Community', { label: "Community" });
   f2.addInput(mapConfTmp, 'User', { label: "ユーザー" });
   f2.addInput(mapConfTmp, 'Password', { label: "パスワード" });
-  f2.addButton({
-    title: '公開鍵保存',
-  }).on('click', (value) => {
-  }); 
+  if( mapConfTmp.PublicKey){
+    f2.addButton({
+      title: '公開鍵コピー',
+    }).on('click', (value) => {
+      let $textarea = $('<textarea></textarea>');
+      // テキストエリアに文章を挿入
+      $textarea.text(mapConfTmp.PublicKey);
+      // テキストエリアを挿入
+      $('#copy-text').append($textarea);
+      // テキストエリアを選択
+      $textarea.select();
+      // コピー
+      document.execCommand('copy');
+      // テキストエリアの削除
+      $textarea.remove();
+      dialog.showMessageBox({message: "コピーしました。", title: "公開鍵コピー"});
+    }); 
+  }
   f2.addInput(mapConfTmp, 'AILevel', { 
     label: "AIレベル",
     options: {
@@ -272,7 +286,7 @@ function createNotifyConfPane() {
       if(message.payload !== "ok") {
         dialog.showErrorBox("試験通知", "送信に失敗しました。\n(" + message.payload + ")");
       } else {
-        dialog.showErrorBox("試験通知", "送信しました。");
+        dialog.showMessageBox({message: "試験メール送信しました。", title: "試験通知"});
       }
       return
     });
@@ -761,6 +775,18 @@ function createActionPane() {
       return
     }
     astilectron.sendMessage({ name: "clearAllReport", payload: "" }, message => {
+      pane.dispose();
+      pane = undefined;
+      return
+    });
+  });
+  pane.addButton({
+    title: '秘密鍵更新...',
+  }).on('click', (value) => {
+    if (!confirmDialog("秘密鍵更新","秘密鍵更新を更新しますか？")){
+      return
+    }
+    astilectron.sendMessage({ name: "initSecurityKey", payload: "" }, message => {
       pane.dispose();
       pane = undefined;
       return

@@ -89,6 +89,9 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 	case "checkAllPoll":
 		checkAllPoll()
 		return "ok", nil
+	case "initSecurityKey":
+		initSecurityKey()
+		return "ok", nil
 	case "openUrl":
 		return openURL(&m)
 	case "setWindowInfo":
