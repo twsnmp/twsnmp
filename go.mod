@@ -3,6 +3,7 @@ module github.com/twsnmp/twsnmp
 go 1.13
 
 require (
+	github.com/Songmu/timeout v0.4.0
 	github.com/asticode/go-astikit v0.4.0
 	github.com/asticode/go-astilectron v0.12.4
 	github.com/asticode/go-astilectron-bootstrap v0.3.2

@@ -207,6 +207,8 @@ const pollingTypeList = {
   "TRAP":   "trap",
   "NetFlow": "netflow",
   "IPFIX":  "ipfix",
+  "Command":  "cmd",
+  "SSH":  "ssh",
 };
 
 const levelList = {

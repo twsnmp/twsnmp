@@ -154,6 +154,9 @@ func doPolling(p *pollingEnt) {
 	case "syslogflow":
 		doPollingSyslogFlow(p)
 		updatePolling(p)
+	case "cmd":
+		doPollingCmd(p)
+		updatePolling(p)
 	}
 	if p.LogMode == logModeAlways || p.LogMode == logModeAI || (p.LogMode == logModeOnChange && oldState != p.State) {
 		if err := addPollingLog(p); err != nil {

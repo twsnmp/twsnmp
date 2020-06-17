@@ -155,7 +155,7 @@ func doPollingLog(p *pollingEnt) {
 		value, err := vm.Run(script)
 		if err == nil {
 			p.LastResult = makeLastResult(lr)
-			if lv, err := vm.Get("LastVal"); err == nil {
+			if lv, err := vm.Get("LastVal"); err == nil && lv.IsNumber() {
 				if lvf, err := lv.ToFloat(); err == nil {
 					p.LastVal = lvf
 				}
