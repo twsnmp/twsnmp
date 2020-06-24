@@ -174,7 +174,7 @@ func sshConnectToHost(p *pollingEnt, port string) (*ssh.Client, *ssh.Session, er
 	}
 	signer, err := ssh.ParsePrivateKey([]byte(getRawKeyPem(mapConf.PrivateKey)))
 	if err != nil {
-		astiLogger.Errorf("No PrivateKey for SSH")
+		astiLogger.Errorf("sshConnectToHost err=%v", err)
 		return nil, nil, fmt.Errorf("No PrivateKey for SSH")
 	}
 	sshConfig := &ssh.ClientConfig{

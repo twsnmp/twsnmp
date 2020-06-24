@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -252,8 +251,7 @@ func getSSHPublicKey(key string) (string, error) {
 	}
 	rsaKey := priv.PublicKey
 	pubkey, _ := ssh.NewPublicKey(&rsaKey)
-	marshalled := ssh.MarshalAuthorizedKey(pubkey)
-	return fmt.Sprintf("ssh-rsa %s %s", base64.StdEncoding.EncodeToString(marshalled), comment), nil
+	return fmt.Sprintf("%s %s", strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pubkey))), comment), nil
 }
 
 // getRawKeyPem : 暗号化を解除した秘密鍵のPEMを取得する

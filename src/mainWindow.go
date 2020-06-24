@@ -91,6 +91,7 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		return "ok", nil
 	case "initSecurityKey":
 		initSecurityKey()
+		go applyMapConf()
 		return "ok", nil
 	case "openUrl":
 		return openURL(&m)
