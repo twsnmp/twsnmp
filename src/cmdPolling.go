@@ -193,7 +193,14 @@ func sshConnectToHost(p *pollingEnt, port string) (*ssh.Client, *ssh.Session, er
 		}
 		sshConfig.HostKeyCallback = ssh.FixedHostKey(pubkey)
 	} else {
-		sshConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+		sshConfig.HostKeyCallback =
+			func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+				n.PublicKey = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(key)))
+				updateNode(n)
+				pollingStateChangeCh <- p
+				return nil
+			}
+		//ssh.InsecureIgnoreHostKey()
 	}
 	conn, err := net.DialTimeout("tcp", n.IP+":"+port, time.Duration(p.Timeout)*time.Second)
 	if err != nil {

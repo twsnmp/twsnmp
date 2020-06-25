@@ -209,6 +209,7 @@ func doSaveNode(m *bootstrap.MessageIn) (interface{}, error) {
 			ntmp.SnmpMode = n.SnmpMode
 			ntmp.User = n.User
 			ntmp.Password = n.Password
+			ntmp.PublicKey = n.PublicKey
 			if err := updateNode(ntmp); err != nil {
 				astiLogger.Errorf("editNode %s error=%v", m.Name, err)
 				return "ng", err
