@@ -74,9 +74,8 @@ func logger(ctx context.Context) {
 		case <-timer.C:
 			{
 				if len(logBuffer) > 0 {
-					astiLogger.Infof("Save Logs %d", len(logBuffer))
 					saveLogBuffer(logBuffer)
-					astiLogger.Infof("logSize=%d compLogSize=%d", logSize, compLogSize)
+					astiLogger.Infof("SaveLogs=%d logSize=%d compSize=%d",len(logBuffer), logSize, compLogSize)
 					logBuffer = []*logEnt{}
 				}
 				if mapConf.EnableSyslogd && !syslogdRunning {

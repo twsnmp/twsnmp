@@ -816,7 +816,7 @@ func checkOldServers(old, tooOld int64) {
 		count++
 	}
 	if count > 0 {
-		astiLogger.Infof("Delete Old Severs %d", count)
+		astiLogger.Infof("DeleteSevers=%d", count)
 	}
 }
 
@@ -844,7 +844,7 @@ func checkOldFlows(old, tooOld int64) {
 		count++
 	}
 	if count > 0 {
-		astiLogger.Infof("Delete Old Flows %d", count)
+		astiLogger.Infof("DeleteFlows=%d", count)
 	}
 }
 
@@ -861,7 +861,7 @@ func checkOldDevices(tooOld int64) {
 		count++
 	}
 	if count > 0 {
-		astiLogger.Infof("Delete Old Devices %d", count)
+		astiLogger.Infof("DeleteDevices=%d", count)
 	}
 }
 
@@ -878,7 +878,7 @@ func checkOldUsers(tooOld int64) {
 		count++
 	}
 	if count > 0 {
-		astiLogger.Infof("Delete Old Users %d", count)
+		astiLogger.Infof("DeleteUsers=%d", count)
 	}
 }
 

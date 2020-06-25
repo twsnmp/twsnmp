@@ -161,7 +161,6 @@ func checkLastAIResultTime(id string) bool {
 
 func doAI(p *pollingEnt) bool {
 	if !checkLastAIResultTime(p.ID) {
-		astiLogger.Warnf("doAI Skip ResultTime %s %s", p.ID, p.Name)
 		return false
 	}
 	req := &aiReq{
@@ -173,7 +172,7 @@ func doAI(p *pollingEnt) bool {
 		makeAIDataFromPolling(req)
 	}
 	if len(req.Data) < 10 {
-		astiLogger.Infof("doAI Skip No data %s %s %v", p.ID, p.Name, req)
+		astiLogger.Debugf("doAI Skip No data %s %s %v", p.ID, p.Name, req)
 		return false
 	}
 	astiLogger.Infof("doAI Start %s %s %d", p.ID, p.Name, len(req.Data))

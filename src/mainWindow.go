@@ -626,7 +626,6 @@ func mainWindowBackend(ctx context.Context) {
 func sendLogs(lastLog string) string {
 	list := getEventLogList(lastLog, mapConf.LogDispSize)
 	if len(list) > 0 {
-		astiLogger.Infof("Send Logs %d", len(list))
 		if err := bootstrap.SendMessage(mainWindow, "logs", list); err != nil {
 			astiLogger.Errorf("sendSendMessage logs error=%v", err)
 		} else {

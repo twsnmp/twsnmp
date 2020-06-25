@@ -842,7 +842,6 @@ func getFilterParams(filter *filterEnt) *logFilterParamEnt {
 		return ret
 	}
 	fs := parseFilter(filter.Filter)
-	astiLogger.Infof("Filter=`%s`", fs)
 	ret.RegexFilter, err = regexp.Compile(fs)
 	if err != nil {
 		astiLogger.Errorf("getFilterParams err=%v", err)
@@ -1090,7 +1089,7 @@ func deleteOldLogs() {
 		}
 	}
 	if delCount > 0 {
-		astiLogger.Infof("Delete Old Logs %d", delCount)
+		astiLogger.Infof("DeleteLogs=%d", delCount)
 	}
 }
 

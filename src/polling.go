@@ -69,7 +69,7 @@ func pollingBackend(ctx context.Context) {
 				if len(list) < 1 {
 					continue
 				}
-				astiLogger.Infof("doPolling %d NumGoroutine %d", len(list), runtime.NumGoroutine())
+				astiLogger.Infof("doPolling=%d NumGoroutine=%d", len(list), runtime.NumGoroutine())
 				sort.Slice(list, func(i, j int) bool {
 					return list[i].NextTime < list[j].NextTime
 				})
