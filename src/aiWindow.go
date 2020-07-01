@@ -340,7 +340,8 @@ func doneAI(m *bootstrap.MessageIn) {
 	if p == nil {
 		return
 	}
-	astiLogger.Infof("doneAI %s %s", res.PollingID, p.Name)
+	astiLogger.Infof("doneAI pollingID=%s pollingName=%s iffluxdb=%s lenScore=%d",
+		res.PollingID, p.Name, influxdbConf.AIScore, len(res.ScoreData))
 	if len(res.ScoreData) > 0 {
 		ls := res.ScoreData[len(res.ScoreData)-1][1]
 		if ls > float64(mapConf.AIThreshold) {
@@ -355,6 +356,11 @@ func doneAI(m *bootstrap.MessageIn) {
 				NodeName: nodeName,
 				Event:    fmt.Sprintf("AI分析レポート:%s(%s):%f", p.Name, p.Type, ls),
 			})
+		}
+		if influxdbConf.AIScore == "send" {
+			if err := sendAIScoreToInfluxdb(p, &res); err != nil {
+				astiLogger.Errorf("sendAIScoreToInfluxdb err=%v", err)
+			}
 		}
 	}
 	return

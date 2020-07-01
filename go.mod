@@ -10,6 +10,7 @@ require (
 	github.com/asticode/go-astilog v1.7.0
 	github.com/beevik/ntp v0.2.0
 	github.com/dustin/go-humanize v1.0.0
+	github.com/influxdata/influxdb1-client v0.0.0-20200515024757-02f0bf5dbca3
 	github.com/magefile/mage v1.9.0
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/montanaflynn/stats v0.6.3

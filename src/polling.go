@@ -166,6 +166,11 @@ func doPolling(p *pollingEnt) {
 			astiLogger.Errorf("addPollingLog err=%v", err)
 		}
 	}
+	if influxdbConf.PollingLog != "" {
+		if influxdbConf.PollingLog == "all" || p.LogMode != logModeNone {
+			sendPollingLogToInfluxdb(p)
+		}
+	}
 }
 
 func doPollingPing(p *pollingEnt) {

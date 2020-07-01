@@ -737,11 +737,15 @@ function createMIBDBPane() {
   return;
 }
 
-function createActionPane() {
+function createExtConfPane() {
   pane = new Tweakpane({
-    title: "操作"
+    title: "拡張設定"
   });
-  pane.addButton({
+  const f1 = pane.addFolder({
+    title: '操作',
+  });
+
+  f1.addButton({
     title: 'ARPリセット...',
   }).on('click', (value) => {
     if (!confirmDialog("ARPリセット","ARP監視をリセットしますか？")){
@@ -756,7 +760,7 @@ function createActionPane() {
       pane = undefined;
     });
   });
-  pane.addButton({
+  f1.addButton({
     title: 'AIモデル削除...',
   }).on('click', (value) => {
     if (!confirmDialog("AIモデルリセット","全てのAIモデルをクリアしますか？")){
@@ -768,7 +772,7 @@ function createActionPane() {
       return
     });
   });
-  pane.addButton({
+  f1.addButton({
     title: 'レポートクリア...',
   }).on('click', (value) => {
     if (!confirmDialog("レポートクリア","全てのレポートをクリアしますか？")){
@@ -780,13 +784,68 @@ function createActionPane() {
       return
     });
   });
-  pane.addButton({
+  f1.addButton({
     title: '秘密鍵更新...',
   }).on('click', (value) => {
     if (!confirmDialog("秘密鍵更新","秘密鍵更新を更新しますか？")){
       return
     }
     astilectron.sendMessage({ name: "initSecurityKey", payload: "" }, message => {
+      pane.dispose();
+      pane = undefined;
+      return
+    });
+  });
+  const f2 = pane.addFolder({
+    title: 'Influxdb設定',
+  });
+  f2.addInput(influxdbConf, 'URL', { label: "URL" });
+  f2.addInput(influxdbConf, 'User', { label: "ユーザーID" });
+  f2.addInput(influxdbConf, 'Password', { label: "パスワード" });
+  f2.addInput(influxdbConf, 'DB', { label: "データベース" });
+  f2.addInput(influxdbConf, 'Duration', { 
+    label: "保存期間",
+    options: {
+      "無期限": "",
+      "1週間": "7d",
+      "2週間": "14d",
+      "1ヶ月": "30d",
+      "3ヶ月": "90d",
+      "6ヶ月": "180d",
+      "1年": "30d",
+    },
+  });
+  f2.addInput(influxdbConf, 'PollingLog', { 
+    label: "ポーリングログ",
+    options: {
+      "送信しない": "",
+      "ログのみ送信する": "logonly",
+      "全て送信する": "all",
+    },
+  });
+  f2.addInput(influxdbConf, 'AIScore', { 
+    label: "AI分析結果",
+    options: {
+      "送信しない": "",
+      "送信する": "send",
+    },
+  });
+  f2.addButton({
+    title: '適用',
+  }).on('click', (value) => {
+    astilectron.sendMessage({ name: "influxdbConf", payload: influxdbConf }, message => {
+      pane.dispose();
+      pane = undefined;
+      return
+    });
+  });
+  f2.addButton({
+    title: 'Influxdb初期化',
+  }).on('click', (value) => {
+    if (!confirmDialog("Influxdb初期化","Influxdbを初期化しますか？")){
+      return
+    }
+    astilectron.sendMessage({ name: "resetInfluxdb", payload: "" }, message => {
       pane.dispose();
       pane = undefined;
       return

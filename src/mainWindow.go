@@ -45,6 +45,18 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		return updateMapConf(&m)
 	case "notifyConf":
 		return updateNotifyConf(&m)
+	case "influxdbConf":
+		return updateInfluxdbConf(&m)
+	case "resetInfluxdb":
+		if err := dropInfluxdb(); err != nil {
+			astiLogger.Errorf("dropInfluxdb error=%v", err)
+			return "ng", err
+		}
+		if err := setupInfluxdb(); err != nil {
+			astiLogger.Errorf("setupInfluxdb error=%v", err)
+			return "ng", err
+		}
+		return "ok", nil
 	case "notifyTest":
 		return doNotify(&m)
 	case "startDiscover":
@@ -145,6 +157,28 @@ func updateNotifyConf(m *bootstrap.MessageIn) (interface{}, error) {
 		NodeName: "",
 		Event:    "通知設定を更新",
 	})
+	return "ok", nil
+}
+
+func updateInfluxdbConf(m *bootstrap.MessageIn) (interface{}, error) {
+	if len(m.Payload) > 0 {
+		if err := json.Unmarshal(m.Payload, &influxdbConf); err != nil {
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
+			return "ng", err
+		}
+		if err := saveInfluxdbConfToDB(); err != nil {
+			astiLogger.Errorf("saveInfluxdbConfToDB  error=%v", err)
+			return "ng", err
+		}
+		setupInfluxdb()
+		addEventLog(eventLogEnt{
+			Type:     "user",
+			Level:    "info",
+			NodeID:   "",
+			NodeName: "",
+			Event:    "Influxdb設定を更新",
+		})
+	}
 	return "ok", nil
 }
 
@@ -563,6 +597,10 @@ func applyMapConf() {
 	}
 	if err := bootstrap.SendMessage(mainWindow, "notifyConf", notifyConf); err != nil {
 		astiLogger.Errorf("sendSendMessage notifyConf error=%v", err)
+		return
+	}
+	if err := bootstrap.SendMessage(mainWindow, "influxdbConf", influxdbConf); err != nil {
+		astiLogger.Errorf("sendSendMessage influxdbConf error=%v", err)
 		return
 	}
 }

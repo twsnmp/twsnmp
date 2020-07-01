@@ -23,6 +23,7 @@ var (
 	// Data on Memory
 	mapConf           mapConfEnt
 	notifyConf        notifyConfEnt
+	influxdbConf      influxdbConfEnt
 	discoverConf      discoverConfEnt
 	prevDBStats       bbolt.Stats
 	dbStats           dbStatsEnt
@@ -203,6 +204,16 @@ type windowInfoEnt struct {
 	Height int
 }
 
+type influxdbConfEnt struct {
+	URL        string
+	User       string
+	Password   string
+	DB         string
+	Duration   string
+	PollingLog string
+	AIScore    string
+}
+
 func checkDB(path string) error {
 	var err error
 	d, err := bbolt.Open(path, 0600, nil)
@@ -262,6 +273,7 @@ func initDB() error {
 	notifyConf.Level = "none"
 	mainWindowInfo.Width = 1024
 	mainWindowInfo.Height = 800
+	influxdbConf.DB = "twsnmp"
 	return db.Update(func(tx *bbolt.Tx) error {
 		for _, b := range buckets {
 			pb, err := tx.CreateBucketIfNotExists([]byte(b))
@@ -337,6 +349,12 @@ func loadConfFromDB() error {
 				}
 			}
 		}
+		v = b.Get([]byte("influxdbConf"))
+		if v != nil {
+			if err := json.Unmarshal(v, &influxdbConf); err != nil {
+				astiLogger.Error(fmt.Sprintf("Unmarshal notifyConf from DB error=%v", err))
+			}
+		}
 		return nil
 	})
 	if err == nil && mapConf.PrivateKey == "" {
@@ -352,6 +370,7 @@ func loadConfFromDB() error {
 		saveNotifyConfToDB()
 		saveDiscoverConfToDB()
 		saveMainWindowInfoToDB()
+		saveInfluxdbConfToDB()
 	}
 	return err
 }
@@ -411,6 +430,24 @@ func saveNotifyConfToDB() error {
 			return fmt.Errorf("Bucket config is nil")
 		}
 		b.Put([]byte("notifyConf"), s)
+		return nil
+	})
+}
+
+func saveInfluxdbConfToDB() error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	s, err := json.Marshal(influxdbConf)
+	if err != nil {
+		return err
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("config"))
+		if b == nil {
+			return fmt.Errorf("Bucket config is nil")
+		}
+		b.Put([]byte("influxdbConf"), s)
 		return nil
 	})
 }
