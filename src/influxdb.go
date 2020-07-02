@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	_ "github.com/influxdata/influxdb1-client" // this is important because of the bug in go mod
@@ -9,15 +10,20 @@ import (
 )
 
 var influxc client.Client
+var muInfluxc sync.Mutex
 
 func setupInfluxdb() error {
 	closeInfluxdb()
+	muInfluxc.Lock()
+	defer muInfluxc.Unlock()
 	if influxdbConf.URL == "" {
 		return nil
 	}
 	var err error
 	conf := client.HTTPConfig{
-		Addr: influxdbConf.URL,
+		Addr:               influxdbConf.URL,
+		Timeout:            time.Second * 5,
+		InsecureSkipVerify: true,
 	}
 	if influxdbConf.User != "" && influxdbConf.Password != "" {
 		conf.Username = influxdbConf.User
@@ -62,6 +68,8 @@ func checkInfluxdb() error {
 }
 
 func dropInfluxdb() error {
+	muInfluxc.Lock()
+	defer muInfluxc.Unlock()
 	if influxc == nil {
 		return nil
 	}
@@ -74,6 +82,8 @@ func dropInfluxdb() error {
 }
 
 func sendPollingLogToInfluxdb(p *pollingEnt) error {
+	muInfluxc.Lock()
+	defer muInfluxc.Unlock()
 	if influxc == nil {
 		return nil
 	}
@@ -115,6 +125,8 @@ func sendPollingLogToInfluxdb(p *pollingEnt) error {
 }
 
 func sendAIScoreToInfluxdb(p *pollingEnt, res *aiResult) error {
+	muInfluxc.Lock()
+	defer muInfluxc.Unlock()
 	if influxc == nil {
 		return nil
 	}
@@ -166,6 +178,8 @@ func sendAIScoreToInfluxdb(p *pollingEnt, res *aiResult) error {
 }
 
 func closeInfluxdb() {
+	muInfluxc.Lock()
+	defer muInfluxc.Unlock()
 	if influxc == nil {
 		return
 	}
