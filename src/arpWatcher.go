@@ -63,16 +63,23 @@ func makeLoacalCheckAddrs() {
 		}
 		for _, a := range addrs {
 			cidr := a.String()
-			ip, ipnet, err := net.ParseCIDR(cidr)
+			ipTmp, ipnet, err := net.ParseCIDR(cidr)
 			if err != nil {
 				continue
 			}
-			if ip.To4() == nil {
+			ip := ipTmp.To4()
+			if ip == nil {
 				continue
 			}
-			astiLogger.Infof("arpWatch Check IP %s", cidr)
+			mask := ipnet.Mask
+			broadcast := net.IP(make([]byte, 4))
+			for i := range ip {
+				broadcast[i] = ip[i] | ^mask[i]
+			}
+			astiLogger.Infof("arpWatch Check IP %s %s", cidr, broadcast)
 			for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); incIP(ip) {
-				if !ip.IsGlobalUnicast() || ip.IsMulticast() || ip.Equal(ip.Mask(ipnet.Mask)) {
+				if !ip.IsGlobalUnicast() || ip.IsMulticast() ||
+					ip.Equal(ip.Mask(ipnet.Mask)) || ip.Equal(broadcast) {
 					continue
 				}
 				localIPCount++
