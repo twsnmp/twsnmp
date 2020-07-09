@@ -47,6 +47,8 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		return updateNotifyConf(&m)
 	case "influxdbConf":
 		return updateInfluxdbConf(&m)
+	case "restAPIConf":
+		return updateRestAPIConf(&m)
 	case "resetInfluxdb":
 		if err := dropInfluxdb(); err != nil {
 			astiLogger.Errorf("dropInfluxdb error=%v", err)
@@ -177,6 +179,28 @@ func updateInfluxdbConf(m *bootstrap.MessageIn) (interface{}, error) {
 			NodeID:   "",
 			NodeName: "",
 			Event:    "Influxdb設定を更新",
+		})
+	}
+	return "ok", nil
+}
+
+func updateRestAPIConf(m *bootstrap.MessageIn) (interface{}, error) {
+	if len(m.Payload) > 0 {
+		if err := json.Unmarshal(m.Payload, &restAPIConf); err != nil {
+			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
+			return "ng", err
+		}
+		if err := saveRestAPIConfToDB(); err != nil {
+			astiLogger.Errorf("saveRestAPIConfToDB  error=%v", err)
+			return "ng", err
+		}
+		setupRestAPI()
+		addEventLog(eventLogEnt{
+			Type:     "user",
+			Level:    "info",
+			NodeID:   "",
+			NodeName: "",
+			Event:    "TWSNMP連携を更新",
 		})
 	}
 	return "ok", nil
@@ -601,6 +625,10 @@ func applyMapConf() {
 	}
 	if err := bootstrap.SendMessage(mainWindow, "influxdbConf", influxdbConf); err != nil {
 		astiLogger.Errorf("sendSendMessage influxdbConf error=%v", err)
+		return
+	}
+	if err := bootstrap.SendMessage(mainWindow, "restAPIConf", restAPIConf); err != nil {
+		astiLogger.Errorf("sendSendMessage restAPIConf error=%v", err)
 		return
 	}
 }

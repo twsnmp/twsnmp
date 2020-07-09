@@ -513,6 +513,7 @@ func startBackend(ctx context.Context) {
 			astiLogger.Fatal(fmt.Sprintf("running bootstrap failed err=%v", err))
 		}
 		setupInfluxdb()
+		setupRestAPI()
 		loadMIBDB()
 		go mainWindowBackend(ctx)
 		go eventLogger(ctx)

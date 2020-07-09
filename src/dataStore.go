@@ -24,6 +24,7 @@ var (
 	mapConf           mapConfEnt
 	notifyConf        notifyConfEnt
 	influxdbConf      influxdbConfEnt
+	restAPIConf       restAPIConfEnt
 	discoverConf      discoverConfEnt
 	prevDBStats       bbolt.Stats
 	dbStats           dbStatsEnt
@@ -214,6 +215,12 @@ type influxdbConfEnt struct {
 	AIScore    string
 }
 
+type restAPIConfEnt struct {
+	Port     int
+	User     string
+	Password string
+}
+
 func checkDB(path string) error {
 	var err error
 	d, err := bbolt.Open(path, 0600, nil)
@@ -352,7 +359,13 @@ func loadConfFromDB() error {
 		v = b.Get([]byte("influxdbConf"))
 		if v != nil {
 			if err := json.Unmarshal(v, &influxdbConf); err != nil {
-				astiLogger.Error(fmt.Sprintf("Unmarshal notifyConf from DB error=%v", err))
+				astiLogger.Error(fmt.Sprintf("Unmarshal influxdbConf from DB error=%v", err))
+			}
+		}
+		v = b.Get([]byte("restAPIConf"))
+		if v != nil {
+			if err := json.Unmarshal(v, &restAPIConf); err != nil {
+				astiLogger.Error(fmt.Sprintf("Unmarshal restAPIConf from DB error=%v", err))
 			}
 		}
 		return nil
@@ -448,6 +461,24 @@ func saveInfluxdbConfToDB() error {
 			return fmt.Errorf("Bucket config is nil")
 		}
 		b.Put([]byte("influxdbConf"), s)
+		return nil
+	})
+}
+
+func saveRestAPIConfToDB() error {
+	if db == nil {
+		return errDBNotOpen
+	}
+	s, err := json.Marshal(restAPIConf)
+	if err != nil {
+		return err
+	}
+	return db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("config"))
+		if b == nil {
+			return fmt.Errorf("Bucket config is nil")
+		}
+		b.Put([]byte("restAPIConf"), s)
 		return nil
 	})
 }

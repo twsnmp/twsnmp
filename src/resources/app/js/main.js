@@ -5,6 +5,7 @@ let selectNode = "";
 let mapConf;
 let notifyConf;
 let influxdbConf;
+let restAPIConf;
 let nodes = {};
 let lines = {};
 let backimg;
@@ -573,6 +574,10 @@ document.addEventListener('astilectron-ready', function () {
       case "influxdbConf": {
         influxdbConf = message.payload;
         return { name: "influxdbConf", payload: "ok" };
+      }
+      case "restAPIConf": {
+        restAPIConf = message.payload;
+        return { name: "restAPIConf", payload: "ok" };
       }
       case "nodes": {
         nodes = message.payload;

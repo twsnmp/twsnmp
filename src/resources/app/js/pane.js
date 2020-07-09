@@ -68,24 +68,6 @@ function createMapConfPane() {
   f2.addInput(mapConfTmp, 'Community', { label: "Community" });
   f2.addInput(mapConfTmp, 'User', { label: "ユーザー" });
   f2.addInput(mapConfTmp, 'Password', { label: "パスワード" });
-  if( mapConfTmp.PublicKey){
-    f2.addButton({
-      title: '公開鍵コピー',
-    }).on('click', (value) => {
-      let $textarea = $('<textarea></textarea>');
-      // テキストエリアに文章を挿入
-      $textarea.text(mapConfTmp.PublicKey);
-      // テキストエリアを挿入
-      $('#copy-text').append($textarea);
-      // テキストエリアを選択
-      $textarea.select();
-      // コピー
-      document.execCommand('copy');
-      // テキストエリアの削除
-      $textarea.remove();
-      dialog.showMessageBox({message: "コピーしました。", title: "公開鍵コピー"});
-    }); 
-  }
   f2.addInput(mapConfTmp, 'AILevel', { 
     label: "AIレベル",
     options: {
@@ -796,6 +778,24 @@ function createExtConfPane() {
       return
     });
   });
+  if( mapConf.PublicKey){
+    f1.addButton({
+      title: '公開鍵コピー',
+    }).on('click', (value) => {
+      let $textarea = $('<textarea></textarea>');
+      // テキストエリアに文章を挿入
+      $textarea.text(mapConf.PublicKey);
+      // テキストエリアを挿入
+      $('#copy-text').append($textarea);
+      // テキストエリアを選択
+      $textarea.select();
+      // コピー
+      document.execCommand('copy');
+      // テキストエリアの削除
+      $textarea.remove();
+      dialog.showMessageBox({message: "コピーしました。", title: "公開鍵コピー"});
+    }); 
+  }
   const f2 = pane.addFolder({
     title: 'Influxdb設定',
   });
@@ -846,6 +846,29 @@ function createExtConfPane() {
       return
     }
     astilectron.sendMessage({ name: "resetInfluxdb", payload: "" }, message => {
+      pane.dispose();
+      pane = undefined;
+      return
+    });
+  });
+  const f3 = pane.addFolder({
+    title: 'TWSNMP連携',
+  });
+  f3.addInput(restAPIConf, 'Port', { 
+    label: "ポート番号",
+    options: {
+      "使用しない": 0,
+      "8192": 8192,
+      "8193": 8193,
+      "8194": 8194,
+    },
+  });
+  f3.addInput(restAPIConf, 'User', { label: "ユーザーID" });
+  f3.addInput(restAPIConf, 'Password', { label: "パスワード" });
+  f3.addButton({
+    title: '適用',
+  }).on('click', (value) => {
+    astilectron.sendMessage({ name: "restAPIConf", payload: restAPIConf }, message => {
       pane.dispose();
       pane = undefined;
       return
