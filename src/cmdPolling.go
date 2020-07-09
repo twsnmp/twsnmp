@@ -108,9 +108,10 @@ func doPollingSSH(p *pollingEnt) {
 	}
 	client, session, err := sshConnectToHost(p, port)
 	if err != nil {
-		setPollingError("ssh", p, err)
-		setPollingState(p, p.Level)
+		astiLogger.Errorf("ssh error Polling=%s err=%v", p.Polling, err)
+		p.LastResult = fmt.Sprintf("err=%v", err)
 		p.LastVal = -1.0
+		setPollingState(p, p.Level)
 		return
 	}
 	defer func() {
