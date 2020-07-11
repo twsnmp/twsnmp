@@ -184,6 +184,7 @@ type aiResult struct {
 type dbStatsEnt struct {
 	Time             string
 	Size             string
+	NSize            int64
 	TotalWrite       string
 	LastWrite        string
 	PeakWrite        string
@@ -1288,6 +1289,7 @@ func updateDBStats() {
 		dbSize = tx.Size()
 		return nil
 	})
+	dbStats.NSize = dbSize
 	dbStats.Size = humanize.Bytes(uint64(dbSize))
 	dbStats.TotalWrite = humanize.Comma(int64(s.TxStats.Write))
 	dbStats.LastWrite = humanize.Comma(int64(d.TxStats.Write))

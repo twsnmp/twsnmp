@@ -209,6 +209,7 @@ const pollingTypeList = {
   "IPFIX":  "ipfix",
   "Command":  "cmd",
   "SSH":  "ssh",
+  "TWSNMP":  "twsnmp",
 };
 
 const levelList = {

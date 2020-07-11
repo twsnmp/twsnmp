@@ -160,6 +160,9 @@ func doPolling(p *pollingEnt) {
 	case "ssh":
 		doPollingSSH(p)
 		updatePolling(p)
+	case "twsnmp":
+		doPollingTWSNMP(p)
+		updatePolling(p)
 	}
 	if p.LogMode == logModeAlways || p.LogMode == logModeAI || (p.LogMode == logModeOnChange && oldState != p.State) {
 		if err := addPollingLog(p); err != nil {
