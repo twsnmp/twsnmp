@@ -852,7 +852,7 @@ function createExtConfPane() {
     });
   });
   const f3 = pane.addFolder({
-    title: 'TWSNMP連携',
+    title: 'Webサーバー',
   });
   f3.addInput(restAPIConf, 'Port', { 
     label: "ポート番号",

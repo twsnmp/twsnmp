@@ -13,6 +13,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
+var resAppPath string
 var restAPI *http.Server
 var muRestAPI sync.Mutex
 
@@ -38,6 +39,7 @@ func setupRestAPI() error {
 	})
 	router, err := rest.MakeRouter(
 		rest.Get("/mapstatus", restAPIGetMapStatus),
+		rest.Get("/mapdata", restAPIGetMapData),
 	)
 	if err != nil {
 		astiLogger.Errorf("restAPI err=%v", err)
@@ -61,12 +63,14 @@ func setupRestAPI() error {
 		InsecureSkipVerify:       true,
 	}
 	restAPI = &http.Server{
-		Addr:         fmt.Sprintf(":%d", restAPIConf.Port),
-		Handler:      api.MakeHandler(),
+		Addr: fmt.Sprintf(":%d", restAPIConf.Port),
+		//		Handler:      api.MakeHandler(),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		TLSConfig:    cfg,
 	}
+	http.Handle("/api/", http.StripPrefix("/api", api.MakeHandler()))
+	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(resAppPath))))
 	go func(r *http.Server) {
 		if err := r.ListenAndServeTLS("", ""); err != nil {
 			astiLogger.Errorf("restAPI err=%v", err)
@@ -93,13 +97,15 @@ func stopRestAPI() error {
 
 // API
 type restMapStatusEnt struct {
-	High   int
-	Low    int
-	Warn   int
-	Normal int
-	Unkown int
-	DBSize int64
-	State  string
+	High      int
+	Low       int
+	Warn      int
+	Normal    int
+	Repair    int
+	Unkown    int
+	DBSize    int64
+	DBSizeStr string
+	State     string
 }
 
 func restAPIGetMapStatus(w rest.ResponseWriter, req *rest.Request) {
@@ -112,8 +118,10 @@ func restAPIGetMapStatus(w rest.ResponseWriter, req *rest.Request) {
 			ms.Low++
 		case "warn":
 			ms.Warn++
-		case "normal", "repair":
+		case "normal":
 			ms.Normal++
+		case "repair":
+			ms.Repair++
 		default:
 			ms.Unkown++
 		}
@@ -128,7 +136,71 @@ func restAPIGetMapStatus(w rest.ResponseWriter, req *rest.Request) {
 		ms.State = "unknown"
 	}
 	ms.DBSize = dbStats.NSize
+	ms.DBSizeStr = dbStats.Size
 	w.WriteJson(ms)
+}
+
+type restAPIMapDataEnt struct {
+	LastTime int64
+	MapName  string
+	BackImg  bool
+	Nodes    map[string]*restAPINodeEnt
+	Lines    map[string]*lineEnt
+	Pollings []*pollingEnt
+	Logs     []eventLogEnt
+}
+
+type restAPINodeEnt struct {
+	ID    string
+	Name  string
+	Descr string
+	Icon  string
+	State string
+	X     int
+	Y     int
+	IP    string
+	MAC   string
+}
+
+var restAPIMapData = restAPIMapDataEnt{
+	Nodes: make(map[string]*restAPINodeEnt),
+	Lines: make(map[string]*lineEnt),
+}
+
+func makeRestAPIMapData() {
+	if restAPIMapData.LastTime > time.Now().Unix()-60 {
+		return
+	}
+	restAPIMapData.MapName = mapConf.MapName
+	restAPIMapData.LastTime = time.Now().Unix()
+	restAPIMapData.BackImg = mapConf.BackImg != ""
+	for id, n := range nodes {
+		restAPIMapData.Nodes[id] = &restAPINodeEnt{
+			ID:    id,
+			Name:  n.Name,
+			Descr: n.Descr,
+			Icon:  n.Icon,
+			State: n.State,
+			X:     n.X,
+			Y:     n.Y,
+			IP:    n.IP,
+			MAC:   n.MAC,
+		}
+	}
+	for id, l := range lines {
+		restAPIMapData.Lines[id] = l
+	}
+	pollings.Range(func(_, v interface{}) bool {
+		p := v.(*pollingEnt)
+		restAPIMapData.Pollings = append(restAPIMapData.Pollings, p)
+		return true
+	})
+	restAPIMapData.Logs = getEventLogList(fmt.Sprintf("%016x", time.Now().Unix()-3600*24), 1000)
+}
+
+func restAPIGetMapData(w rest.ResponseWriter, req *rest.Request) {
+	makeRestAPIMapData()
+	w.WriteJson(&restAPIMapData)
 }
 
 // TWSNMPへのポーリング
@@ -170,9 +242,9 @@ func doPollingTWSNMP(p *pollingEnt) {
 func doTWSNMPGet(n *nodeEnt, p *pollingEnt) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.Timeout)*time.Second)
 	defer cancel()
-	url := fmt.Sprintf("https://%s:8192/mapstatus", n.IP)
+	url := fmt.Sprintf("https://%s:8192/api/mapstatus", n.IP)
 	if n.URL != "" {
-		url = n.URL + "/mapstatus"
+		url = n.URL + "/api/mapstatus"
 	}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {

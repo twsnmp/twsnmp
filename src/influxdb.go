@@ -136,7 +136,13 @@ func sendAIScoreToInfluxdb(p *pollingEnt, res *aiResult) error {
 	}
 	qs := fmt.Sprintf(`DROP SERIES FROM "AIScore" WHERE "pollingID" = "%s" `, p.ID)
 	q := client.NewQuery(qs, influxdbConf.DB, "")
-	if response, err := influxc.Query(q); err != nil || response.Error() != nil {
+	if response, err := influxc.Query(q); err != nil {
+		astiLogger.Errorf("sendAIScoreToInfluxdb err=%v", err)
+		return err
+	} else if response == nil {
+		astiLogger.Errorf("sendAIScoreToInfluxdb err=%v resp=nil", err)
+		return err
+	} else if response.Error() != nil {
 		astiLogger.Errorf("sendAIScoreToInfluxdb err=%v respError=%v", err, response.Error())
 		return err
 	}

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TWSNMP</title>
+  <link rel="stylesheet" href="/css/photon.css">
+  <link rel="stylesheet" href="/css/all.css">
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/datatables.css" />
+  <link rel="stylesheet" href="/css/extMap.css" />
+  <script src="/js/jquery-3.4.1.js"></script>
+  <script src="/js/p5.js"></script>
+  <script src="/js/p5.dom.js"></script>
+  <script src="/js/moment.js"></script>
+  <script src="/js/datatables.js"></script>
+</head>
+
+<body>
+  <div class="window">
+    <header class="toolbar toolbar-header">
+      <h1 class="title"><span id="title">TWSNMPログイン</span>
+        <span class="pull-right hidden" id="btn-group">
+          <button class="btn btn-default" id="reload_btn">
+            <i class="fas fa-sync"></i>
+          </button>
+          <button class="btn btn-default" id="logout_btn">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </span>
+      </h1>
+    </header>
+    <div class="tab-group hidden">
+      <div class="tab-item active" id="map_tab">
+        <i class="fas fa-tachometer-alt"></i>
+        マップ
+      </div>
+      <div class="tab-item" id="polling_tab">
+        <i class="fas fa-clipboard-list"></i>
+        ポーリング
+      </div>
+    </div>
+    <div id="login_page" class="window-content">
+      <div id="login_form">
+        <p id="login_err"></p>
+        <form>
+          <div class="form-group">
+            <label>ユーザーID</label>
+            <input type="text" class="form-control" placeholder="User Name" name="username">
+          </div>
+          <div class="form-group">
+            <label>パスワード</label>
+            <input type="password" class="form-control" placeholder="Password" name="password">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-form btn-primary" id="login_btn">ログイン</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="map_page" class="window-content hidden">
+      <div class="pane-group">
+        <div class="pane-sm sidebar">
+          <ul class="list-group" id="nodeList">
+            <li class="list-group-header">
+              <input id="nodeFilter" class="form-control" type="text" placeholder="フィルター">
+            </li>
+          </ul>
+        </div>
+        <div class="pane" id="mapLogPane">
+          <div id="mapDiv" width="100%"></div>
+          <div id="logDiv">
+            <table id="log_table" class="display compact">
+              <thead>
+                <tr>
+                  <th>状態</th>
+                  <th>発生日時</th>
+                  <th>種別</th>
+                  <th>関連ノード</th>
+                  <th>イベント</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="window-content hidden" id="polling_page">
+      <div class="table_base">
+        <table id="polling_table" class="display compact">
+          <thead>
+            <tr>
+              <th>状態</th>
+              <th>ノード</th>
+              <th>名前</th>
+              <th>レベル</th>
+              <th>種別</th>
+              <th>ログ</th>
+              <th>ポーリング</th>
+              <th>最終実施</th>
+              <th>数値</th>
+              <th>情報</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <footer class="toolbar toolbar-footer">
+      <div class="pull-right" id="status"></div>
+    </footer>
+  </div>
+  <script src="/js/extMap.js"></script>
+</body>
+
+</html>
