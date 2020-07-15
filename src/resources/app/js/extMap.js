@@ -68,6 +68,7 @@ function updateMapData() {
   if(!username){
     return;
   }
+  $('#wait').removeClass("hidden");
   $.ajax({
     url: '/api/mapdata',
     type: 'GET',
@@ -79,9 +80,12 @@ function updateMapData() {
   })
   .done((r) => {
     setMapData(r)
+    $('#wait').addClass("hidden");
   })
   // Ajaxリクエストが失敗した時発動
   .fail((r) => {
+    $('#wait').addClass("hidden");
+    alert("TWSNMPにアクセスできません。");
     console.log(r)
   });
   $.ajax({
@@ -207,7 +211,7 @@ function setWindowTitle(name) {
 function showStatus(mapStatus) {
   let s = "重度=" + mapStatus.High + " 軽度=" + mapStatus.Low + " 注意=" + mapStatus.Warn +
   " 正常=" + mapStatus.Normal + " 復帰=" + mapStatus.Repair + " 不明="+ mapStatus.Unkown;
-  if( mapStatus.DBStatsStr ){
+  if( mapStatus.DBSizeStr ){
     s += " DBサイズ=" + mapStatus.DBSizeStr;
   }
   $("#status").html(s);
