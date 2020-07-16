@@ -225,3 +225,29 @@ function confirmDialog(title,msg) {
    {type:"question",title:title,cancelId:1,message:msg,buttons:["OK","Cancel"]} 
   ) == 0;
 }
+
+function setPasswordInput(pos) {
+  $('input.tp-txtiv_i').eq(pos).attr('type', 'password');
+}
+
+function setInputError(pos,msg) {
+  $('input.tp-txtiv_i').eq(pos).addClass('error');
+  $('input.tp-txtiv_i').eq(pos).after(`<p class="error">${msg}</p>`);
+}
+
+function clearInputError() {
+  $('div.tp-dfwv p.error').remove();
+  $('input.tp-txtiv_i').removeClass('error');
+}
+
+function setupPanePosAndSize() {
+  $('.tp-dfwv').css({
+    "position": "absolute",
+    "top": "35px",
+    "right": "15px",
+    "width": "320px",
+  });
+  $('.tp-lblv_v').css({
+    "width": "180px",
+  })
+}

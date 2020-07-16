@@ -534,6 +534,7 @@ function createEditNodePane(x,y,nodeID) {
   pane.addInput(node, 'Community', { label: "Community" });
   pane.addInput(node, 'User', { label: "ユーザー" });
   pane.addInput(node, 'Password', { label: "パスワード" });
+  setPasswordInput(5);
   pane.addInput(node, 'PublicKey', { label: "公開鍵" });
   pane.addInput(node, 'URL', { label: "URL" });
   pane.addInput(node, 'Descr', { label: "説明" });
@@ -546,9 +547,7 @@ function createEditNodePane(x,y,nodeID) {
   pane.addButton({
     title: 'Save',
   }).on('click', (value) => {
-    // Check Values
-    if( node.Name == "" ){
-      dialog.showErrorBox("ノード編集", "名前を指定してください。");
+    if(!checkNodeParams(node)){
       return;
     }
     astilectron.sendMessage({ name: "saveNode", payload: node }, message => {
@@ -562,6 +561,24 @@ function createEditNodePane(x,y,nodeID) {
   });
   setupPanePosAndSize();
   return;
+}
+
+function checkNodeParams(node) {
+  let ret = true;
+  clearInputError();
+  if( node.Name == "" ){
+    setInputError(0,"名前を入力してください。");
+    ret = false;
+  }
+  if (!validator.isIP(node.IP)){
+    setInputError(2,"IPアドレスが正しくありません。");
+    ret = false;
+  }
+  if(node.URL && !validator.isURL(node.URL)){
+    setInputError(7,"URLが正しくありません。");
+    ret = false;
+  }
+  return ret;
 }
 
 function createEditLinePane(nodeID1,nodeID2) {
@@ -1003,16 +1020,4 @@ function createDBStatsPane(){
   });
   setupPanePosAndSize();
   return;
-}
-
-function setupPanePosAndSize() {
-  $('.tp-dfwv').css({
-    "position": "absolute",
-    "top": "35px",
-    "right": "15px",
-    "width": "320px",
-  });
-  $('.tp-lblv_v').css({
-    "width": "180px",
-  })
 }

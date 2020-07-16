@@ -98,3 +98,13 @@ table.dataTable tbody td {
   font-size: 12px;
   line-height: 1.4;
 }
+
+.tp-txtiv input.error{
+  background-color: #e31a1c;
+}
+
+.tp-txtiv p.error{
+  color: #fb9a99;
+  font-size: 10px;
+  margin: 2px;
+}
