@@ -68,6 +68,7 @@ function createMapConfPane() {
   f2.addInput(mapConfTmp, 'Community', { label: "Community" });
   f2.addInput(mapConfTmp, 'User', { label: "ユーザー" });
   f2.addInput(mapConfTmp, 'Password', { label: "パスワード" });
+  setPasswordInput(7);
   f2.addInput(mapConfTmp, 'AILevel', { 
     label: "AIレベル",
     options: {
@@ -189,9 +190,7 @@ function createMapConfPane() {
   pane.addButton({
     title: 'Save',
   }).on('click', (value) => {
-    // Check Values
-    if( mapConfTmp.MapName == "" ){
-      dialog.showErrorBox("マップ設定", "マップ名を指定してください。");
+    if(!checkMapConf(mapConfTmp)) {
       return;
     }
     astilectron.sendMessage({ name: "mapConf", payload: mapConfTmp }, message => {
@@ -218,6 +217,16 @@ function createMapConfPane() {
   return;
 }
 
+function checkMapConf(p) {
+  let r = true;
+  clearInputError();
+  if (p.MapName == "") {
+    setInputError(0,"マップ名を入力してください。")
+    r = false;
+  }
+  return r;
+}
+
 function createNotifyConfPane() {
   if (pane) {
     return;
@@ -229,6 +238,7 @@ function createNotifyConfPane() {
   pane.addInput(notifyConfTmp, 'MailServer', { label: "サーバー" });
   pane.addInput(notifyConfTmp, 'User', { label: "ユーザー" });
   pane.addInput(notifyConfTmp, 'Password', { label: "パスワード" });
+  setPasswordInput(2);
   pane.addInput(notifyConfTmp, 'InsecureSkipVerify', { 
     label: "証明書検証",
     options: {
@@ -276,8 +286,7 @@ function createNotifyConfPane() {
   pane.addButton({
     title: 'Save',
   }).on('click', (value) => {
-    if( notifyConfTmp.Subject == "" ){
-      dialog.showErrorBox("通知設定", "件名を指定してください。");
+    if(!checkNotifyConf(notifyConfTmp)){
       return;
     }
     astilectron.sendMessage({ name: "notifyConf", payload: notifyConfTmp }, message => {
@@ -292,6 +301,39 @@ function createNotifyConfPane() {
   });
   setupPanePosAndSize();
   return;
+}
+
+function checkNotifyConf(p) {
+  let r = true;
+  clearInputError();
+  if(p.MailServer == "") {
+    return r;
+  }
+  if(!isIPPort(p.MailServer)){
+    setInputError(0,"IP:Portの形式です。")
+    r = false;
+  }
+  if(!validator.isEmail(p.MailFrom)){
+    setInputError(3,"メールアドレス形式です。")
+    r = false;
+  }
+  if(!validator.isEmail(p.MailTo)){
+    setInputError(4,"メールアドレス形式です。")
+    r = false;
+  }
+  if( p.Subject == "") {
+    setInputError(5,"件名を指定してください。")
+    r = false;
+  }
+  return r;
+}
+
+function isIPPort(s) {
+  const a = s.split(":");
+  if(a.length !=2 ){
+    return false;
+  }
+  return (!validator.isIP(a[0],4) && !validator.isFQDN(a[0])) || validator.isPort(a[1]);
 }
 
 function createStartDiscoverPane(x,y) {
@@ -345,9 +387,7 @@ function createStartDiscoverPane(x,y) {
     pane.addButton({
       title: 'Start',
     }).on('click', (value) => {
-      // Check Values
-      if (discoverConf.StartIP === "" || discoverConf.EndIP === ""  ) {
-        dialog.showErrorBox("範囲指定エラー", "開始、終了IPアドレスが正しくありません。")
+      if(!checkDiscoverParam(discoverConf)){
         return;
       }
       astilectron.sendMessage({ name: "startDiscover", payload: discoverConf }, message => {
@@ -362,6 +402,39 @@ function createStartDiscoverPane(x,y) {
   });
   setupPanePosAndSize();
   return;
+}
+
+function checkDiscoverParam(p) {
+  let r = true;
+  clearInputError();
+  if (!validator.isIP(p.StartIP,4)) {
+    setInputError(0,"IPアドレスを指定してください。")
+    r = false;
+  }
+  if (!validator.isIP(p.EndIP,4)) {
+    setInputError(1,"IPアドレスを指定してください。")
+    r = false;
+  }
+  if ( r && cmpIP(p.StartIP,p.EndIP) < 0 ){
+    setInputError(1,"終了アドレスが開始より前です。")
+    r = false;
+  }
+  return r;
+}
+
+// IPアドレスの大小を比較する
+function cmpIP(s,e) {
+  const sa = s.split(".");
+  const ea = e.split(".");
+  for (let i=0;i < 4;i++) {
+    if (sa[i]*1 < ea[i]*1){
+      return 1;
+    }
+    if (sa[i]*1 > ea[i]*1){
+      return -1;
+    }
+  }
+  return 0;
 }
 
 function createDiscoverStatPane(ds){
@@ -640,7 +713,6 @@ function createEditLinePane(nodeID1,nodeID2) {
     pane.addButton({
       title: 'Save',
     }).on('click', (value) => {
-      // Check Values
       if( line.PollingID1 === "" || line.PollingID1 === ""  ){
         dialog.showErrorBox("ライン編集", "ポーリングを指定してください。");
         return;
@@ -819,6 +891,7 @@ function createExtConfPane() {
   f2.addInput(influxdbConf, 'URL', { label: "URL" });
   f2.addInput(influxdbConf, 'User', { label: "ユーザーID" });
   f2.addInput(influxdbConf, 'Password', { label: "パスワード" });
+  setPasswordInput(2);
   f2.addInput(influxdbConf, 'DB', { label: "データベース" });
   f2.addInput(influxdbConf, 'Duration', { 
     label: "保存期間",
@@ -850,6 +923,11 @@ function createExtConfPane() {
   f2.addButton({
     title: '適用',
   }).on('click', (value) => {
+    clearInputError();
+    if(influxdbConf.URL && !validator.isURL(influxdbConf.URL)) {
+      setInputError(0,"URLを指定してください。")
+      return;
+    }
     astilectron.sendMessage({ name: "influxdbConf", payload: influxdbConf }, message => {
       pane.dispose();
       pane = undefined;
@@ -882,6 +960,7 @@ function createExtConfPane() {
   });
   f3.addInput(restAPIConf, 'User', { label: "ユーザーID" });
   f3.addInput(restAPIConf, 'Password', { label: "パスワード" });
+  setPasswordInput(5);
   f3.addButton({
     title: '適用',
   }).on('click', (value) => {

@@ -557,9 +557,9 @@ function createEditPollingPane(id,tid){
   pane.addButton({
     title: 'Save',
   }).on('click', (value) => {
-    // Check Values
+    clearInputError();
     if( p.Name == "" ){
-      dialog.showErrorBox("ポーリング編集", "名前を指定してください。");
+      setInputError(0,"名前を指定してください。");
       return;
     }
     astilectron.sendMessage({ name: "savePolling", payload: p }, message => {
@@ -623,9 +623,9 @@ function createEditTemplatePane(id,pid){
   pane.addButton({
     title: 'Save',
   }).on('click', (value) => {
-    // Check Values
+    clearInputError();
     if( pt.Name == "" ){
-      dialog.showErrorBox("テンプレート編集", "名前を指定してください。");
+      setInputError(0,"名前を指定してください。");
       return;
     }
     astilectron.sendMessage({ name: "saveTemplate", payload: pt }, message => {
