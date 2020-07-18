@@ -399,15 +399,15 @@ function deleteNode() {
     if (message.payload != "ok") {
       return;
     }
-    for (let k in lines) {
-      if (lines[k].Node1 == selectNode || lines[k].Node2 == selectNode) {
-        delete lines[k];
-      }
-    }
-    delete nodes[selectNode];
-    selectNode = "";
-    updateNodeList();
   });
+  for (let k in lines) {
+    if (lines[k].Node1 == selectNode || lines[k].Node2 == selectNode) {
+      delete lines[k];
+    }
+  }
+  delete nodes[selectNode];
+  selectNode = "";
+  updateNodeList();
 }
 
 function dupNode() {
