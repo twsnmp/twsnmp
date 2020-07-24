@@ -403,8 +403,8 @@ func main() {
 					Fullscreenable: astikit.BoolPtr(false),
 					Maximizable:    astikit.BoolPtr(false),
 					Minimizable:    astikit.BoolPtr(true),
-					Width:          astikit.IntPtr(800),
-					Height:         astikit.IntPtr(500),
+					Width:          astikit.IntPtr(1200),
+					Height:         astikit.IntPtr(800),
 					Custom: &astilectron.WindowCustomOptions{
 						HideOnClose: astikit.BoolPtr(true),
 					},

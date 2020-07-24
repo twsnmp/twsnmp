@@ -17,6 +17,7 @@
   <script src="./js/typeahead.bundle.js"></script>
   <script src="./js/datatables.js"></script>
   <script src="./js/tweakpane-1.0.5.js"></script>
+  <script src="./js/echarts.min.js"></script>
 </head>
 
 <body>
@@ -24,7 +25,7 @@
     <header class="toolbar toolbar-header">
       <h1 class="title">MIBブラウザ</h1>
     </header>
-    <div class="window-content">
+    <div id="mib_page" class="window-content">
       <div class="table_base">
         <table id="mib_table" class="display compact">
           <thead>
@@ -34,12 +35,23 @@
         </table>
       </div>
     </div>
+    <div id="mibtree_page" class="window-content hidden">
+      <div id="mibtree" style="width: 1600px;height:800px;overflow: auto;"></div>
+    </div>
     <footer class="toolbar toolbar-footer">
       <div class="toolbar-actions mib_btns">
         <input name="mib" type="text" value="" size="60" placeholder="MIB">
         <button class="btn btn-primary get">
           <i class="fas fa-search"></i>
           取得
+        </button>
+        <button class="btn btn-default mibtree">
+          <i class="fas fa-tree"></i>
+          MIBツリー
+        </button>
+        <button class="btn btn-default reload hidden">
+          <i class="fas fa-sync"></i>
+          更新
         </button>
         <button class="btn btn-default pull-right close">
           <i class="fas fa-times"></i>

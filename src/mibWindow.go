@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,12 +16,26 @@ import (
 	"github.com/sleepinggenius2/gosmi/parser"
 )
 
+// mibTreeEnt is
+type mibTreeEnt struct {
+	name     string
+	oid      string
+	children []*mibTreeEnt
+}
+
+var (
+	mibTree     = map[string]*mibTreeEnt{}
+	mibTreeRoot *mibTreeEnt
+)
+
 // mibMessageHandler handles messages
 func mibMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "close":
 		mibWindow.Hide()
 		return "ok", nil
+	case "mibtree":
+		return makeMibTreeJSON(), nil
 	case "get":
 		return getMIB(&m)
 	}
@@ -230,4 +246,83 @@ func loadMIBDB() error {
 		}
 	}
 	return nil
+}
+
+func addToMibTree(oid, name, poid string) {
+	n := &mibTreeEnt{name: name, oid: oid, children: []*mibTreeEnt{}}
+	if poid == "" {
+		mibTreeRoot = n
+	} else {
+		p, ok := mibTree[poid]
+		if !ok {
+			astiLogger.Errorf("addToMibTree parentId=%v: not found", poid)
+			return
+		}
+		p.children = append(p.children, n)
+	}
+	mibTree[oid] = n
+}
+
+func mibTreeJSONEnt(n *mibTreeEnt, prefix string) []string {
+	r := []string{}
+	r = append(r, fmt.Sprintf("%s\"name\":\"%v\",\"value\":\"%s\"", prefix, n.name, n.oid))
+	if len(n.children) < 1 {
+		return r
+	}
+	r = append(r, fmt.Sprintf("%s,\"children\": [", prefix))
+	for i, c := range n.children {
+		if i > 0 {
+			r = append(r, fmt.Sprintf("%s,", prefix))
+		}
+		r = append(r, fmt.Sprintf("%s{", prefix))
+		r = append(r, mibTreeJSONEnt(c, prefix+" ")...)
+		r = append(r, fmt.Sprintf("%s}", prefix))
+	}
+	r = append(r, fmt.Sprintf("%s]", prefix))
+	return r
+}
+
+func makeMibTreeJSON() string {
+	oids := []string{}
+	for _, n := range mib.GetNameList() {
+		oid := mib.NameToOID(n)
+		if oid == ".0.0" {
+			continue
+		}
+		oids = append(oids, oid)
+	}
+	sort.Slice(oids, func(i, j int) bool {
+		a := strings.Split(oids[i], ".")
+		b := strings.Split(oids[j], ".")
+		for k := 0; k < len(a) && k < len(b); k++ {
+			l, _ := strconv.Atoi(a[k])
+			m, _ := strconv.Atoi(b[k])
+			if l == m {
+				continue
+			}
+			if l < m {
+				return true
+			}
+			return false
+		}
+		return len(a) < len(b)
+	})
+	addToMibTree(".1.3.6.1", "iso.org.dod.internet", "")
+	for _, oid := range oids {
+		name := mib.OIDToName(oid)
+		if name == "" {
+			continue
+		}
+		lastDot := strings.LastIndex(oid, ".")
+		if lastDot < 0 {
+			continue
+		}
+		poid := oid[:lastDot]
+		addToMibTree(oid, name, poid)
+	}
+	if mibTreeRoot == nil {
+		fmt.Printf("show: mibTreeRoot node not found\n")
+		return ""
+	}
+	return "{\n" + strings.Join(mibTreeJSONEnt(mibTreeRoot, ""), "\n") + "}\n"
 }

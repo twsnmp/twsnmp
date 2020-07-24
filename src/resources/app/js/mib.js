@@ -111,7 +111,6 @@ document.addEventListener('astilectron-ready', function () {
         if (message.payload && message.payload.NodeID) {
           nodeID = message.payload.NodeID;
           mibNames = message.payload.MibNames;
-          console.log(mibNames);
           setWindowTitle(message.payload.NodeName);
           makeMibTable([
             {title:"Index" },
@@ -131,7 +130,14 @@ document.addEventListener('astilectron-ready', function () {
     astilectron.sendMessage({ name: "close", payload: "" }, message => {
     });
   });
+  $('.toolbar-actions button.mibtree').click(() => {
+    showMibTree();
+  });
+  $('.toolbar-actions button.reload').click(() => {
+    updateMibTree();
+  });
   $('.toolbar-actions button.get').click(() => {
+    hideMibTree();
     const params = {
       NodeID: nodeID,
       Name: $(".mib_btns input[name=mib]").val()
@@ -202,4 +208,94 @@ function setWindowTitle(n){
   const t = "MIBブラウザー - " + n;
   $("title").html(t);
   $("h1.title").html(t);
+}
+
+let mibTree;
+
+function showMibTree() {
+  if(!mibTree) {
+    makeMibTree();
+    updateMibTree();
+  }
+  $("#mibtree_page").toggleClass("hidden");
+  $(".toolbar-footer button.reload").toggleClass("hidden");
+  $("#mib_page").toggleClass("hidden");
+}
+
+function hideMibTree() {
+  $("#mibtree_page").addClass("hidden");
+  $(".toolbar-footer button.reload").addClass("hidden");
+  $("#mib_page").removeClass("hidden");
+}
+
+function makeMibTree() {
+  const option = {
+    tooltip: {
+      trigger: 'item',
+      triggerOn: 'mousemove',
+      formatter: '{c}'
+    },
+    series: [
+      {
+        type: 'tree',
+        id: 0,
+        name: 'mibtree',
+        data: [],
+        top: '1%',
+        left: '10%',
+        bottom: '1%',
+        right: '10%',
+
+        symbolSize: 6,
+
+        edgeShape: 'polyline',
+        edgeForkPosition: '50%',
+        initialTreeDepth: 3,
+
+        lineStyle: {
+          width: 2
+        },
+
+        label: {
+          backgroundColor: '#fff',
+          position: 'left',
+          verticalAlign: 'middle',
+          align: 'right'
+        },
+
+        leaves: {
+          label: {
+            position: 'right',
+            verticalAlign: 'middle',
+            align: 'left'
+          }
+        },
+        expandAndCollapse: true,
+        animationDuration: 550,
+        animationDurationUpdate: 750
+      }
+    ]
+  };
+  mibTree = echarts.init(document.getElementById('mibtree'));
+  mibTree.setOption(option);
+  mibTree.on('click', params => {
+    $(".mib_btns input[name=mib]").val(params.data.name);
+  }); 
+}
+
+function updateMibTree() {
+  astilectron.sendMessage({ name: "mibtree", payload: "" }, message => {
+    const js = message.payload;
+    if(typeof js != "string" ){
+      setTimeout(() => {
+        dialog.showErrorBox("エラー","MIBツリー取得エラー" );
+      }, 100);
+      return;
+    }
+    const data  = JSON.parse(js);
+    const option = {
+      series: [{data: [data],}]
+    };
+    mibTree.setOption(option);
+  });
 }

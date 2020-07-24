@@ -647,10 +647,6 @@ function checkNodeParams(node) {
     setInputError(2,"IPアドレスが正しくありません。");
     ret = false;
   }
-  if(node.URL && !validator.isURL(node.URL)){
-    setInputError(7,"URLが正しくありません。");
-    ret = false;
-  }
   return ret;
 }
 
