@@ -39,7 +39,7 @@ var (
 	oui               = &OUIMap{}
 	app               *astilectron.Astilectron
 	aboutText         = `TWSNMP Manager
-Version 5.0.0-beta.3
+Version 5.0.0-beta.4
 Copyright (c) 2019,2020 Masayuki Yamai`
 	astiLogger *astilog.Logger
 )
