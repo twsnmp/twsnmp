@@ -1227,7 +1227,7 @@ func closeDB() {
 	if db == nil {
 		return
 	}
-	saveLogList([]eventLogEnt{eventLogEnt{
+	saveLogList([]eventLogEnt{{
 		Type:  "system",
 		Level: "info",
 		Time:  time.Now().UnixNano(),

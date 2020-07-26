@@ -23,11 +23,11 @@ type grokEnt struct {
 
 var (
 	grokMap = map[string]*grokEnt{
-		"EPSLOGIN":  &grokEnt{Pat: `Login %{GREEDYDATA:stat}: \[%{USER:user}\].+cli %{MAC:client}`, Ok: "OK"},
-		"FZLOGIN":   &grokEnt{Pat: `FileZen: %{IP:client} %{USER:user} "Authentication %{GREEDYDATA:stat}`, Ok: "succeeded."},
-		"NAOSLOGIN": &grokEnt{Pat: `Login %{GREEDYDATA:stat}: \[.+\] %{USER:user}`, Ok: "Success"},
-		"LAPDEVICE": &grokEnt{Pat: `mac=%{MAC:mac} ip=%{IP:ip}`},
-		"WELFFLOW":  &grokEnt{Pat: `src=%{IP:src}:%{:sport}:.+ dst=%{IP:dst}:%{BASE10NUM:dport}:.+proto=%{WORD:prot}/.+ sent=%{BASE10NUM:sent} .+rcvd=%{BASE10NUM:rcvd}`},
+		"EPSLOGIN":  {Pat: `Login %{GREEDYDATA:stat}: \[%{USER:user}\].+cli %{MAC:client}`, Ok: "OK"},
+		"FZLOGIN":   {Pat: `FileZen: %{IP:client} %{USER:user} "Authentication %{GREEDYDATA:stat}`, Ok: "succeeded."},
+		"NAOSLOGIN": {Pat: `Login %{GREEDYDATA:stat}: \[.+\] %{USER:user}`, Ok: "Success"},
+		"LAPDEVICE": {Pat: `mac=%{MAC:mac} ip=%{IP:ip}`},
+		"WELFFLOW":  {Pat: `src=%{IP:src}:%{:sport}:.+ dst=%{IP:dst}:%{BASE10NUM:dport}:.+proto=%{WORD:prot}/.+ sent=%{BASE10NUM:sent} .+rcvd=%{BASE10NUM:rcvd}`},
 	}
 )
 

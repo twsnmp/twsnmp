@@ -160,6 +160,9 @@ func doPolling(p *pollingEnt) {
 	case "ssh":
 		doPollingSSH(p)
 		updatePolling(p)
+	case "vmware":
+		doPollingVmWare(p)
+		updatePolling(p)
 	case "twsnmp":
 		doPollingTWSNMP(p)
 		updatePolling(p)

@@ -210,6 +210,7 @@ const pollingTypeList = {
   "Command":  "cmd",
   "SSH":  "ssh",
   "TWSNMP":  "twsnmp",
+  "VMware":  "vmware",
 };
 
 const levelList = {
