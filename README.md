@@ -39,6 +39,10 @@ This project is to revive the TWSNMP Manager that was developed in 1999 and is s
 * TLS監視
 * AIによる異常診断
 * デバイス、ユーザー、サーバー、通信フローの信用スコアレポート
+* VMware仮想基盤の監視
+* TWSNMP間の連携、Webブラウザーでマップ表示
+* Influxdb経由でGrafana連携
+* ローカル、SSH経由のコマンド実行監視
 
 
 ![TWSNMP](https://assets.st-note.com/production/uploads/images/15118776/picture_pc_9d8f9c01141ab53f0c72ec1384cb36c4.png)
