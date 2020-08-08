@@ -9,11 +9,15 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/robertkrimen/otto"
+	"github.com/vjeantet/grok"
 )
 
 func doPollingTCP(p *pollingEnt) {
@@ -48,19 +52,30 @@ func doPollingTCP(p *pollingEnt) {
 }
 
 func doPollingHTTP(p *pollingEnt) {
-	_, ok := nodes[p.NodeID]
+	var ok bool
+	var err error
+	_, ok = nodes[p.NodeID]
 	if !ok {
 		astiLogger.Errorf("node not found nodeID=%s", p.NodeID)
 		return
 	}
+	cmd := splitCmd(p.Polling)
+	if len(cmd) < 1 {
+		astiLogger.Errorf("URL not found Polling=%s", p.Polling)
+		return
+	}
+	url := cmd[0]
 	ok = false
 	var rTime int64
+	body := ""
+	status := ""
+	code := 0
 	for i := 0; !ok && i <= p.Retry; i++ {
 		startTime := time.Now().UnixNano()
-		err := doHTTPGet(p)
+		status, body, code, err = doHTTPGet(p, url)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			astiLogger.Debugf("doPollingHTTP err=%v", err)
+			astiLogger.Errorf("doPollingHTTP err=%v", err)
 			p.LastResult = fmt.Sprintf("%v", err)
 			continue
 		}
@@ -68,6 +83,11 @@ func doPollingHTTP(p *pollingEnt) {
 		ok = true
 	}
 	p.LastVal = float64(rTime)
+	if len(cmd) > 2 {
+		ok = checkHTTPResp(p, cmd[1], cmd[2], status, body, code)
+	} else {
+		p.LastResult = status
+	}
 	if ok {
 		setPollingState(p, "normal")
 	} else {
@@ -76,35 +96,101 @@ func doPollingHTTP(p *pollingEnt) {
 	updatePolling(p)
 }
 
+func checkHTTPResp(p *pollingEnt, extractor, script, status, body string, code int) bool {
+	lr := make(map[string]string)
+	vm := otto.New()
+	lr["status"] = status
+	lr["code"] = fmt.Sprintf("%d", code)
+	lr["rtt"] = fmt.Sprintf("%f", p.LastVal)
+	vm.Set("status", status)
+	vm.Set("code", code)
+	vm.Set("rtt", p.LastVal)
+	if extractor == "" {
+		value, err := vm.Run(script)
+		if err != nil {
+			astiLogger.Errorf("Invalid http get format Polling=%s err=%v", p.Polling, err)
+			p.LastResult = fmt.Sprintf("vm.Run() err=%v", err)
+			return false
+		}
+		p.LastResult = makeLastResult(lr)
+		if ok, _ := value.ToBoolean(); ok {
+			return true
+		}
+		return false
+	}
+	grokEnt, ok := grokMap[extractor]
+	if !ok {
+		p.LastResult = fmt.Sprintf("No grok pattern")
+		astiLogger.Errorf("No grok pattern Polling=%s", p.Polling)
+		return false
+	}
+	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
+	g.AddPattern(extractor, grokEnt.Pat)
+	cap := fmt.Sprintf("%%{%s}", extractor)
+	values, err := g.Parse(cap, body)
+	if err != nil {
+		astiLogger.Errorf("Invalid http get format Polling=%s err=%v", p.Polling, err)
+		p.LastResult = fmt.Sprintf("g.Parse() err=%v", err)
+		return false
+	}
+	for k, v := range values {
+		vm.Set(k, v)
+		lr[k] = v
+	}
+	value, err := vm.Run(script)
+	if err != nil {
+		astiLogger.Errorf("Invalid http get format Polling=%s err=%v", p.Polling, err)
+		p.LastResult = fmt.Sprintf("vm.Run() err=%v", err)
+		return false
+	}
+	p.LastResult = makeLastResult(lr)
+	if lv, err := vm.Get("LastVal"); err == nil {
+		if lvf, err := lv.ToFloat(); err == nil {
+			p.LastVal = lvf
+		}
+	}
+	if ok, _ := value.ToBoolean(); ok {
+		return true
+	}
+	return false
+}
+
 var insecureTransport = &http.Transport{
 	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 }
 
 var insecureClient = &http.Client{Transport: insecureTransport}
 
-func doHTTPGet(p *pollingEnt) error {
+func doHTTPGet(p *pollingEnt, url string) (string, string, int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.Timeout)*time.Second)
 	defer cancel()
-	req, err := http.NewRequest(http.MethodGet, p.Polling, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return err
+		return "", "", 0, err
 	}
+	body := make([]byte, 64*1024)
 	if p.Type == "https" {
 		resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 		if err != nil {
-			return err
+			return "", "", 0, err
 		}
 		defer resp.Body.Close()
-		p.LastResult = resp.Status
-		return nil
+		_, err = resp.Body.Read(body)
+		if err == io.EOF {
+			err = nil
+		}
+		return resp.Status, string(body), resp.StatusCode, err
 	}
 	resp, err := insecureClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return err
+		return "", "", 0, err
 	}
 	defer resp.Body.Close()
-	p.LastResult = resp.Status
-	return nil
+	_, err = resp.Body.Read(body)
+	if err == io.EOF {
+		err = nil
+	}
+	return resp.Status, string(body), resp.StatusCode, err
 }
 
 func doPollingTLS(p *pollingEnt) {

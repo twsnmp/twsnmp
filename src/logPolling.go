@@ -23,11 +23,12 @@ type grokEnt struct {
 
 var (
 	grokMap = map[string]*grokEnt{
-		"EPSLOGIN":  {Pat: `Login %{GREEDYDATA:stat}: \[%{USER:user}\].+cli %{MAC:client}`, Ok: "OK"},
-		"FZLOGIN":   {Pat: `FileZen: %{IP:client} %{USER:user} "Authentication %{GREEDYDATA:stat}`, Ok: "succeeded."},
-		"NAOSLOGIN": {Pat: `Login %{GREEDYDATA:stat}: \[.+\] %{USER:user}`, Ok: "Success"},
-		"LAPDEVICE": {Pat: `mac=%{MAC:mac} ip=%{IP:ip}`},
-		"WELFFLOW":  {Pat: `src=%{IP:src}:%{:sport}:.+ dst=%{IP:dst}:%{BASE10NUM:dport}:.+proto=%{WORD:prot}/.+ sent=%{BASE10NUM:sent} .+rcvd=%{BASE10NUM:rcvd}`},
+		"EPSLOGIN":    {Pat: `Login %{GREEDYDATA:stat}: \[%{USER:user}\].+cli %{MAC:client}`, Ok: "OK"},
+		"FZLOGIN":     {Pat: `FileZen: %{IP:client} %{USER:user} "Authentication %{GREEDYDATA:stat}`, Ok: "succeeded."},
+		"NAOSLOGIN":   {Pat: `Login %{GREEDYDATA:stat}: \[.+\] %{USER:user}`, Ok: "Success"},
+		"LAPDEVICE":   {Pat: `mac=%{MAC:mac} ip=%{IP:ip}`},
+		"WELFFLOW":    {Pat: `src=%{IP:src}:%{:sport}:.+ dst=%{IP:dst}:%{BASE10NUM:dport}:.+proto=%{WORD:prot}/.+ sent=%{BASE10NUM:sent} .+rcvd=%{BASE10NUM:rcvd}`},
+		"OPENWEATHER": {Pat: `"weather":.+"main":\s*"%{WORD:weather}".+"main":.+"temp":\s*%{BASE10NUM:temp}.+"feels_like":\s*%{BASE10NUM:feels_like}.+"temp_min":\s*%{BASE10NUM:temp_min}.+"temp_max":\s*%{BASE10NUM:temp_max}.+"pressure":\s*%{BASE10NUM:pressure}.+"humidity":\s*%{BASE10NUM:humidity}.+"wind":\s*{"speed":\s*%{BASE10NUM:wind}`},
 	}
 )
 
@@ -155,7 +156,7 @@ func doPollingLog(p *pollingEnt) {
 		value, err := vm.Run(script)
 		if err == nil {
 			p.LastResult = makeLastResult(lr)
-			if lv, err := vm.Get("LastVal"); err == nil && lv.IsNumber() {
+			if lv, err := vm.Get("LastVal"); err == nil {
 				if lvf, err := lv.ToFloat(); err == nil {
 					p.LastVal = lvf
 				}

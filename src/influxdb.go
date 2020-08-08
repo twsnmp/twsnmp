@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -110,7 +112,16 @@ func sendPollingLogToInfluxdb(p *pollingEnt) error {
 	fields := map[string]interface{}{
 		"numVal": p.LastVal,
 	}
-
+	lr := make(map[string]string)
+	if err := json.Unmarshal([]byte(p.LastResult), &lr); err == nil {
+		for k, v := range lr {
+			if fv, err := strconv.ParseFloat(v, 64); err == nil {
+				fields[k] = fv
+			} else {
+				fields[k] = v
+			}
+		}
+	}
 	pt, err := client.NewPoint(p.Name, tags, fields, time.Unix(0, p.LastTime))
 	if err != nil {
 		return err
