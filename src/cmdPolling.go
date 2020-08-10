@@ -4,8 +4,10 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,12 +16,6 @@ import (
 	"github.com/vjeantet/grok"
 	"golang.org/x/crypto/ssh"
 )
-
-func setPollingError(s string, p *pollingEnt, err error) {
-	astiLogger.Errorf("%s error Polling=%s err=%v", s, p.Polling, err)
-	p.LastResult = fmt.Sprintf("err=%v", err)
-	setPollingState(p, "unkown")
-}
 
 func doPollingCmd(p *pollingEnt) {
 	cmds := splitCmd(p.Polling)
@@ -49,15 +45,22 @@ func doPollingCmd(p *pollingEnt) {
 		return
 	}
 	lr["lastTime"] = time.Now().Format("2006-01-02T15:04")
-	// lr["stdout"] = stdout
 	lr["stderr"] = stderr
 	lr["exitCode"] = fmt.Sprintf("%d", exitStatus.Code)
 	vm.Set("exitCode", exitStatus.Code)
 	vm.Set("interval", p.PollInt)
 	p.LastVal = float64(exitStatus.Code)
 	if extractor != "" {
+		grokEnt, ok := grokMap[extractor]
+		if !ok {
+			astiLogger.Errorf("No grok pattern Polling=%s", p.Polling)
+			setPollingError("cmd", p, fmt.Errorf("No grok pattern"))
+			return
+		}
 		g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-		values, err := g.Parse(extractor, string(stdout))
+		g.AddPattern(extractor, grokEnt.Pat)
+		cap := fmt.Sprintf("%%{%s}", extractor)
+		values, err := g.Parse(cap, string(stdout))
 		if err != nil {
 			setPollingError("cmd", p, err)
 			return
@@ -72,9 +75,13 @@ func doPollingCmd(p *pollingEnt) {
 		setPollingError("cmd", p, err)
 		return
 	}
-	if lv, err := vm.Get("LastVal"); err == nil && lv.IsNumber() {
-		if lvf, err := lv.ToFloat(); err == nil {
-			p.LastVal = lvf
+	p.LastVal = 0.0
+	for k, v := range lr {
+		if strings.Index(script, k) >= 0 {
+			if fv, err := strconv.ParseFloat(v, 64); err != nil || !math.IsNaN(fv) {
+				p.LastVal = fv
+			}
+			break
 		}
 	}
 	p.LastResult = makeLastResult(lr)
@@ -109,8 +116,9 @@ func doPollingSSH(p *pollingEnt) {
 	client, session, err := sshConnectToHost(p, port)
 	if err != nil {
 		astiLogger.Errorf("ssh error Polling=%s err=%v", p.Polling, err)
-		p.LastResult = fmt.Sprintf("err=%v", err)
-		p.LastVal = -1.0
+		lr["error"] = fmt.Sprintf("%v", err)
+		p.LastResult = makeLastResult(lr)
+		p.LastVal = 0.0
 		setPollingState(p, p.Level)
 		return
 	}
@@ -124,8 +132,9 @@ func doPollingSSH(p *pollingEnt) {
 			p.LastVal = float64(e.Waitmsg.ExitStatus())
 		} else {
 			astiLogger.Errorf("ssh error Polling=%s err=%v", p.Polling, err)
-			p.LastResult = fmt.Sprintf("err=%v", err)
-			p.LastVal = -2.0
+			lr["error"] = fmt.Sprintf("%v", err)
+			p.LastResult = makeLastResult(lr)
+			p.LastVal = 0.0
 			setPollingState(p, p.Level)
 			return
 		}
@@ -137,8 +146,16 @@ func doPollingSSH(p *pollingEnt) {
 	vm.Set("interval", p.PollInt)
 	vm.Set("exitCode", int(p.LastVal))
 	if extractor != "" {
+		grokEnt, ok := grokMap[extractor]
+		if !ok {
+			astiLogger.Errorf("No grok pattern Polling=%s", p.Polling)
+			setPollingError("ssh", p, fmt.Errorf("No grok pattern"))
+			return
+		}
 		g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-		values, err := g.Parse(extractor, string(out))
+		g.AddPattern(extractor, grokEnt.Pat)
+		cap := fmt.Sprintf("%%{%s}", extractor)
+		values, err := g.Parse(cap, string(out))
 		if err != nil {
 			setPollingError("ssh", p, err)
 			return
@@ -153,9 +170,13 @@ func doPollingSSH(p *pollingEnt) {
 		setPollingError("ssh", p, err)
 		return
 	}
-	if lv, err := vm.Get("LastVal"); err == nil && lv.IsNumber() {
-		if lvf, err := lv.ToFloat(); err == nil {
-			p.LastVal = lvf
+	p.LastVal = 0.0
+	for k, v := range lr {
+		if strings.Index(script, k) >= 0 {
+			if fv, err := strconv.ParseFloat(v, 64); err != nil || !math.IsNaN(fv) {
+				p.LastVal = fv
+			}
+			break
 		}
 	}
 	p.LastResult = makeLastResult(lr)

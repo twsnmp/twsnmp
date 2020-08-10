@@ -207,9 +207,7 @@ func restAPIGetMapData(w rest.ResponseWriter, req *rest.Request) {
 func doPollingTWSNMP(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
-		astiLogger.Errorf("node not found nodeID=%s", p.NodeID)
-		p.LastResult = "node not found"
-		setPollingState(p, "unknown")
+		setPollingError("twsnmp", p, fmt.Errorf("Node not found"))
 		return
 	}
 	ok = false
@@ -219,17 +217,16 @@ func doPollingTWSNMP(p *pollingEnt) {
 		err := doTWSNMPGet(n, p)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			astiLogger.Debugf("doPollingTWSNMP err=%v", err)
-			p.LastResult = fmt.Sprintf("%v", err)
+			setPollingError("twsnmp", p, err)
 			continue
 		}
 		rTime = endTime - startTime
 		ok = true
 	}
+	p.LastVal = float64(rTime)
 	if ok {
 		var ms restMapStatusEnt
 		if err := json.Unmarshal([]byte(p.LastResult), &ms); err == nil {
-			p.LastVal = float64(rTime)
 			setPollingState(p, ms.State)
 		} else {
 			setPollingState(p, "unknown")

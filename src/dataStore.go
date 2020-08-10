@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"regexp"
 	"strings"
@@ -1062,6 +1063,9 @@ func getPollingLog(startTime, endTime, pollingID string) []pollingLogEnt {
 				break
 			}
 			if l.PollingID != pollingID {
+				continue
+			}
+			if math.IsNaN(l.NumVal) {
 				continue
 			}
 			ret = append(ret, l)

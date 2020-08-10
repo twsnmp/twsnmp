@@ -24,9 +24,7 @@ func doPollingVmWare(p *pollingEnt) {
 	}
 	cmds := splitCmd(p.Polling)
 	if len(cmds) != 3 {
-		astiLogger.Errorf("Invalid vmware polling format Polling=%s", p.Polling)
-		p.LastResult = "Invalid vmware polling format"
-		setPollingState(p, "unkown")
+		setPollingError("vmware", p, fmt.Errorf("Invalid format"))
 		return
 	}
 	mode := cmds[0]
@@ -41,9 +39,7 @@ func doPollingVmWare(p *pollingEnt) {
 	}
 	u, err := soap.ParseURL(us)
 	if err != nil {
-		astiLogger.Errorf("Invalid vmware polling url '%s'", us)
-		p.LastResult = "Invalid vmware polling url"
-		setPollingState(p, "unkown")
+		setPollingError("vmware", p, fmt.Errorf("Invalid url"))
 		return
 	}
 	if u.User == nil || u.User.String() == ":" {
@@ -53,9 +49,7 @@ func doPollingVmWare(p *pollingEnt) {
 	defer cancel()
 	client, err := govmomi.NewClient(ctx, u, true)
 	if err != nil {
-		astiLogger.Errorf("vmware polling NewClient err=%v", err)
-		p.LastResult = fmt.Sprintf("%v", err)
-		setPollingState(p, "unkown")
+		setPollingError("vmware", p, err)
 		return
 	}
 	var rMap = make(map[string]float64)
@@ -68,39 +62,26 @@ func doPollingVmWare(p *pollingEnt) {
 		rMap, err = vmwareVirtualMachine(ctx, client.Client, target)
 	}
 	if err != nil {
-		astiLogger.Errorf("vmware polling NewClient err=%v", err)
-		p.LastResult = fmt.Sprintf("%v", err)
-		setPollingState(p, "unkown")
+		setPollingError("vmware", p, err)
 		return
 	}
 	vm := otto.New()
-	lr := ""
+	lr := make(map[string]string)
 	for k, v := range rMap {
 		vm.Set(k, v)
-		if lr != "" {
-			lr += ","
-		}
-		lr += fmt.Sprintf("%s=%f", k, v)
+		lr[k] = fmt.Sprintf("%f", v)
 	}
 	value, err := vm.Run(script)
 	if err != nil {
-		astiLogger.Errorf("Invalid polling vmware format Polling=%s err=%v", p.Polling, err)
-		p.LastResult = "Invalid polling format"
-		setPollingState(p, "unkown")
+		setPollingError("vmware", p, err)
 		return
 	}
-	p.LastResult = lr
-	if lv, err := vm.Get("LastVal"); err == nil && lv.IsNumber() {
-		if lvf, err := lv.ToFloat(); err == nil {
-			p.LastVal = lvf
-		}
-	} else {
-		p.LastVal = 0.0
-		for k, v := range rMap {
-			if strings.Index(script, k) >= 0 {
-				p.LastVal = v
-				break
-			}
+	p.LastResult = makeLastResult(lr)
+	p.LastVal = 0.0
+	for k, v := range rMap {
+		if strings.Index(script, k) >= 0 {
+			p.LastVal = v
+			break
 		}
 	}
 	if ok, _ := value.ToBoolean(); !ok {
