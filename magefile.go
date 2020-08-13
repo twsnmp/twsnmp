@@ -22,7 +22,7 @@ func BuildMac() error {
 	return buildInternal(false)
 }
 
-func buildInternal(bWindows bool) error {
+func buildInternal(bAll bool) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -32,10 +32,10 @@ func buildInternal(bWindows bool) error {
 	if err != nil {
 		return err
 	}
-	if bWindows {
-		err = sh.RunV("astilectron-bundler", "-w")
-	} else {
+	if bAll {
 		err = sh.RunV("astilectron-bundler")
+	} else {
+		err = sh.RunV("astilectron-bundler", "-c", "bundlerMac.json")
 	}
 	if err != nil {
 		return err
@@ -55,23 +55,30 @@ func MakeZip() error {
 	if _, err := os.Stat("./rel"); os.IsNotExist(err) {
 		os.Mkdir("./rel", 0777)
 	}
-	err = os.Chdir("./src")
+	for s, d := range map[string]string{
+		"windows-amd64": "TwsnmpWin.zip",
+		"darwin-amd64":  "TwsnmpMacOS.zip",
+		"linux-amd64":   "TwsnmpLinuxAMD64.zip",
+		"linux-arm":     "TwsnmpLinuxArm.zip",
+	} {
+		if err := makeOneZip(s, d); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func makeOneZip(src, dst string) error {
+	cwd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	err = os.Chdir("./output/windows-amd64")
+	defer os.Chdir(cwd)
+	err = os.Chdir("./src/output/" + src)
 	if err != nil {
 		return err
 	}
-	err = sh.RunV("zip", "-r", "../../../rel/TwsnmpWin.zip", ".")
-	if err != nil {
-		return err
-	}
-	err = os.Chdir("../darwin-amd64")
-	if err != nil {
-		return err
-	}
-	err = sh.RunV("zip", "-r", "../../../rel/TwsnmpMacOS.zip", ".")
+	err = sh.RunV("zip", "-r", "../../../rel/"+dst, ".")
 	if err != nil {
 		return err
 	}

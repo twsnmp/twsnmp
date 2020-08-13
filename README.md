@@ -75,7 +75,7 @@ Targets:
 ```
 $mage build
 ```
-を実行すれば、MacOS,Windows用の実行ファイルが、`src/output`のディレクトリに作成されます。
+を実行すれば、MacOS,Windows,Linux(amd64),Linux(arm)用の実行ファイルが、`src/output`のディレクトリに作成されます。
 
 配布用のZIPファイルを作成するためには、
 ```
