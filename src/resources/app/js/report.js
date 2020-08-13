@@ -1369,7 +1369,7 @@ function getScoreColor(s) {
     return "#dfdf22";
   } else if (s.indexOf("low") != -1) {
     return "#fb9a99";
-  } else if (s.indexOf("unkown") != -1) {
+  } else if (s.indexOf("unknown") != -1) {
     return "#aaa"
   }
   return "#e31a1c";

@@ -102,7 +102,7 @@ type restMapStatusEnt struct {
 	Warn      int
 	Normal    int
 	Repair    int
-	Unkown    int
+	Unknown   int
 	DBSize    int64
 	DBSizeStr string
 	State     string
@@ -123,7 +123,7 @@ func restAPIGetMapStatus(w rest.ResponseWriter, req *rest.Request) {
 		case "repair":
 			ms.Repair++
 		default:
-			ms.Unkown++
+			ms.Unknown++
 		}
 	}
 	if ms.High > 0 {

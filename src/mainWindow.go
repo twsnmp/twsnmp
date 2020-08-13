@@ -706,7 +706,7 @@ func updateNodeState(nodeID string) {
 	if !ok {
 		return
 	}
-	n.State = "unkown"
+	n.State = "unknown"
 	pollings.Range(func(_, p interface{}) bool {
 		if p.(*pollingEnt).NodeID != nodeID {
 			return true
@@ -726,7 +726,7 @@ func updateNodeState(nodeID string) {
 		if s == "repair" {
 			n.State = "repair"
 		}
-		if n.State == "repair" || n.State != "unkown" {
+		if n.State == "repair" || n.State != "unknown" {
 			return true
 		}
 		n.State = s
@@ -754,7 +754,7 @@ func pollNowNode(nodeID string) {
 	pollings.Range(func(_, v interface{}) bool {
 		p := v.(*pollingEnt)
 		if p.NodeID == nodeID && p.State != "normal" {
-			p.State = "unkown"
+			p.State = "unknown"
 			p.NextTime = 0
 			pollingStateChangeCh <- p
 			addEventLog(eventLogEnt{
@@ -779,9 +779,9 @@ func checkAllPoll() {
 	pollings.Range(func(_, v interface{}) bool {
 		p := v.(*pollingEnt)
 		if p.State != "normal" {
-			p.State = "unkown"
+			p.State = "unknown"
 			p.NextTime = 0
-			nodeName := "Unknown"
+			nodeName := "unknown"
 			if n, ok := nodes[p.NodeID]; ok {
 				nodeName = n.Name
 			}

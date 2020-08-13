@@ -36,7 +36,7 @@ function setupPolling() {
     pollingList = {};
     for (let i = message.payload.Pollings.length - 1; i >= 0; i--) {
       const p = message.payload.Pollings[i];
-      let nodeName = "unkown";
+      let nodeName = "unknown";
       if (p.NodeID && nodes[p.NodeID] ) {
         nodeName = nodes[p.NodeID].Name;
       }
@@ -491,7 +491,7 @@ function createEditPollingPane(id,tid){
       LogMode: 0,
       LastTime: 0,
       LastResult: "",
-      State: "unkown",
+      State: "unknown",
     };
     if(tid && templateList[tid]) {
       p.Type = templateList[tid].Type;

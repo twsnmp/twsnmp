@@ -717,7 +717,7 @@ document.addEventListener('astilectron-ready', function () {
         low: 0,
         warn: 0,
         normal:0,
-        unkown:0,
+        unknown:0,
       }
       let intCount = 5;
       let intState = 1;
@@ -770,13 +770,13 @@ document.addEventListener('astilectron-ready', function () {
           optState.series[1].data.push(stateCount.low);
           optState.series[2].data.push(stateCount.warn);
           optState.series[3].data.push(stateCount.normal);
-          optState.series[4].data.push(stateCount.unkown);
+          optState.series[4].data.push(stateCount.unknown);
           cts = newCts
           stateCount.high=0;
           stateCount.low=0;
           stateCount.warn=0;
           stateCount.normal=0;
-          stateCount.unkown=0;
+          stateCount.unknown=0;
         }
         switch (l.State){
           case "high":
@@ -793,7 +793,7 @@ document.addEventListener('astilectron-ready', function () {
             stateCount.normal++;
             break;
           default:
-            stateCount.unkown++;
+            stateCount.unknown++;
             break;
         }
       });
@@ -809,7 +809,7 @@ document.addEventListener('astilectron-ready', function () {
         optState.series[1].data.push(stateCount.low);
         optState.series[2].data.push(stateCount.warn);
         optState.series[3].data.push(stateCount.normal);
-        optState.series[4].data.push(stateCount.unkown);
+        optState.series[4].data.push(stateCount.unknown);
       }
       logTable.draw();
       logChart.setOption({

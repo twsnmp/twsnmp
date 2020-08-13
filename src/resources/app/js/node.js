@@ -371,7 +371,7 @@ function createEditPollingPane(id,tid){
       LogMode: 0,
       LastTime: 0,
       LastResult: "",
-      State: "unkown",
+      State: "unknown",
     };
     if(tid) {
       p.Name = templateList[tid].Name;

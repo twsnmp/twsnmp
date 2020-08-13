@@ -1319,7 +1319,7 @@ func updateDBStats() {
 			dbStats.Peak = dbStats.Speed
 		}
 	} else {
-		dbStats.Speed = "Unkown"
+		dbStats.Speed = "unknown"
 	}
 	dbStats.Time = time.Now().Format("15:04:05")
 	prevDBStats = s

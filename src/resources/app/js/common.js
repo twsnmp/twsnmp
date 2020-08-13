@@ -89,7 +89,7 @@ function getStateColor(state) {
 
 function getStateHtml(state) {
   const ret = stateHtmlMap.get(state);
-  return  ret ? ret : '<i class="fas fa-check-circle state state_unkown"></i>不明';
+  return  ret ? ret : '<i class="fas fa-check-circle state state_unknown"></i>不明';
 }
 
 function getServiceName(s) {
@@ -149,7 +149,7 @@ function getFacilityName(f) {
   if( f >=0 && f < facilityNames.length){
     return facilityNames[f];
   }
-  return  "unkown";
+  return  "unknown";
 }
 
 const trapGenericNames = [
@@ -166,7 +166,7 @@ function getTrapGenericName(g) {
   if( g >=0 && g < trapGenericNames.length){
     return trapGenericNames[g];
   }
-  return  `unkown(${g})`;
+  return  `unknown(${g})`;
 }
 
 const logModeHtml = [

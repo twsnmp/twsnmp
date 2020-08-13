@@ -89,16 +89,16 @@ func setPollingState(p *pollingEnt, newState string) {
 	sendEvent := false
 	if newState == "normal" {
 		if p.State != "normal" && p.State != "repair" {
-			if p.State == "unkown" {
+			if p.State == "unknown" {
 				p.State = "normal"
 			} else {
 				p.State = "repair"
 			}
 			sendEvent = true
 		}
-	} else if newState == "unkown" {
-		if p.State != "unkown" {
-			p.State = "unkown"
+	} else if newState == "unknown" {
+		if p.State != "unknown" {
+			p.State = "unknown"
 			sendEvent = true
 		}
 	} else {
@@ -108,7 +108,7 @@ func setPollingState(p *pollingEnt, newState string) {
 		}
 	}
 	if sendEvent {
-		nodeName := "Unknown"
+		nodeName := "unknown"
 		if n, ok := nodes[p.NodeID]; ok {
 			nodeName = n.Name
 		}
@@ -382,5 +382,5 @@ func setPollingError(s string, p *pollingEnt, err error) {
 	lr := make(map[string]string)
 	lr["error"] = fmt.Sprintf("%v", err)
 	p.LastResult = makeLastResult(lr)
-	setPollingState(p, "unkown")
+	setPollingState(p, "unknown")
 }

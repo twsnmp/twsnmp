@@ -162,7 +162,7 @@ func doPollingSnmpIF(p *pollingEnt, ps string, agent *gosnmp.GoSNMP) {
 		setPollingState(p, p.Level)
 		return
 	}
-	setPollingState(p, "unkown")
+	setPollingState(p, "unknown")
 	return
 }
 
@@ -230,7 +230,7 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 		oldlr := make(map[string]string)
 		if err := json.Unmarshal([]byte(p.LastResult), &oldlr); err != nil || oldlr["error"] != "" {
 			p.LastResult = makeLastResult(lr)
-			setPollingState(p, "unkown")
+			setPollingState(p, "unknown")
 			return
 		}
 		nvmap := make(map[string]int64)

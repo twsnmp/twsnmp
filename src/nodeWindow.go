@@ -91,7 +91,7 @@ func savePolling(m *bootstrap.MessageIn) (interface{}, error) {
 		} else {
 			p.LastResult = ""
 			p.NextTime = 0
-			p.State = "unkown"
+			p.State = "unknown"
 			doPollingCh <- true
 			if err := updatePolling(&p); err != nil {
 				astiLogger.Errorf("updatePolling %s error=%v", m.Name, err)
@@ -130,7 +130,7 @@ func pollNow(m *bootstrap.MessageIn) (interface{}, error) {
 		}
 		if p, ok := pollings.Load(id); ok {
 			p.(*pollingEnt).NextTime = 0
-			p.(*pollingEnt).State = "unkown"
+			p.(*pollingEnt).State = "unknown"
 		} else {
 			astiLogger.Errorf("No Polling")
 			return "ng", nil
@@ -206,7 +206,7 @@ func autoAddPolling(m *bootstrap.MessageIn) (interface{}, error) {
 				Type:    pt.Type,
 				Level:   pt.Level,
 				Polling: pt.Polling,
-				State:   "unkown",
+				State:   "unknown",
 				PollInt: mapConf.PollInt,
 				Timeout: mapConf.Timeout,
 				Retry:   mapConf.Retry,

@@ -189,7 +189,7 @@ function updatePollingTable(pollings) {
   polling.clear();
   for (let i = pollings.length - 1; i >= 0; i--) {
     const p = pollings[i];
-    let nodeName = "unkown";
+    let nodeName = "unknown";
     if (p.NodeID && nodes[p.NodeID] ) {
       nodeName = nodes[p.NodeID].Name;
     }
@@ -210,7 +210,7 @@ function setWindowTitle(name) {
 
 function showStatus(mapStatus) {
   let s = "重度=" + mapStatus.High + " 軽度=" + mapStatus.Low + " 注意=" + mapStatus.Warn +
-  " 正常=" + mapStatus.Normal + " 復帰=" + mapStatus.Repair + " 不明="+ mapStatus.Unkown;
+  " 正常=" + mapStatus.Normal + " 復帰=" + mapStatus.Repair + " 不明="+ mapStatus.Unknown;
   if( mapStatus.DBSizeStr ){
     s += " DBサイズ=" + mapStatus.DBSizeStr;
   }
@@ -428,7 +428,7 @@ function getStateColor(state) {
 
 function getStateHtml(state) {
   const ret = stateHtmlMap.get(state);
-  return  ret ? ret : '<i class="fas fa-check-circle state state_unkown"></i>不明';
+  return  ret ? ret : '<i class="fas fa-check-circle state state_unknown"></i>不明';
 }
 
 const logModeHtml = [

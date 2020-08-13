@@ -17,7 +17,7 @@ const status = {
   Warn: 0,
   Normal: 0,
   Repair: 0,
-  Unkown: 0
+  Unknown: 0
 };
 
 function preload() {
@@ -277,7 +277,7 @@ function mousePressed() {
     $("#ctxMenu span.pollNow").on("click", () => {
       if (selectNode != "") {
         astilectron.sendMessage({ name: "pollNow", payload: selectNode }, function (message) {
-          nodes[selectNode].State = "unkown";
+          nodes[selectNode].State = "unknown";
           redraw();
         });
       }
@@ -682,7 +682,7 @@ function clearStatus() {
   status.Low = 0;
   status.Warn = 0;
   status.Normal = 0;
-  status.Unkown = 0;
+  status.Unknown = 0;
   status.Repair = 0;
 }
 
@@ -704,13 +704,13 @@ function updateStatus(n) {
       status.Repair++;
       break;
     default:
-      status.Unkown++;
+      status.Unknown++;
   }
 }
 
 function showStatus() {
   let s = "重度=" + status.High + " 軽度=" + status.Low + " 注意=" + status.Warn +
-  " 正常=" + status.Normal + " 復帰=" + status.Repair + " 不明="+ status.Unkown;
+  " 正常=" + status.Normal + " 復帰=" + status.Repair + " 不明="+ status.Unknown;
   if( dbStats ){
     s += " DBサイズ=" + dbStats.Size;
   }
