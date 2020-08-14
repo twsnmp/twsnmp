@@ -248,12 +248,12 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 		}
 		sut := float64(1.0)
 		if mode == "ps" {
-			if v, ok := nvmap["sysUpTime.0"]; !ok || v == 0 {
+			v, ok := nvmap["sysUpTime.0"]
+			if !ok || v == 0 {
 				setPollingError("snmp", p, fmt.Errorf("Invalid format %v", nvmap))
 				return
-			} else {
-				sut = float64(v)
 			}
+			sut = float64(v)
 		}
 		for k, v := range nvmap {
 			lr[k] = fmt.Sprintf("%f", float64(v)/sut)
