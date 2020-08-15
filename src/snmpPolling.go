@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -66,6 +67,8 @@ func doPollingSnmp(p *pollingEnt) {
 		doPollingSnmpSysUpTime(p, agent)
 	} else if strings.HasPrefix(mode, "ifOperStatus.") {
 		doPollingSnmpIF(p, mode, agent)
+	} else if mode == "count" {
+		doPollingSnmpCount(p, mode, params, agent)
 	} else {
 		doPollingSnmpGet(p, mode, params, agent)
 	}
@@ -285,4 +288,66 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 func getValueName(n string) string {
 	a := strings.SplitN(n, ".", 2)
 	return (a[0])
+}
+
+func doPollingSnmpCount(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) {
+	cmds := splitCmd(params)
+	if len(cmds) < 3 {
+		setPollingError("snmp", p, fmt.Errorf("Invalid format"))
+		return
+	}
+	oid := mib.NameToOID(cmds[0])
+	filter := parseFilter(cmds[1])
+	script := cmds[2]
+	count := 0
+	var regexFilter *regexp.Regexp
+	var err error
+	if filter != "" {
+		if regexFilter, err = regexp.Compile(filter); err != nil {
+			astiLogger.Errorf("doPollingSnmpCount err=%v", err)
+			regexFilter = nil
+		}
+	}
+	if err := agent.Walk(oid, func(variable gosnmp.SnmpPDU) error {
+		s := ""
+		if variable.Type == gosnmp.OctetString {
+			if strings.Contains(mib.OIDToName(variable.Name), "ifPhysAd") {
+				a := variable.Value.([]byte)
+				if len(a) > 5 {
+					s = fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X", a[0], a[1], a[2], a[3], a[4], a[5])
+				}
+			} else {
+				s = string(variable.Value.([]byte))
+			}
+		} else if variable.Type == gosnmp.ObjectIdentifier {
+			s = mib.OIDToName(variable.Value.(string))
+		} else {
+			s = fmt.Sprintf("%d", gosnmp.ToBigInt(variable.Value).Int64())
+		}
+		if regexFilter != nil && !regexFilter.Match([]byte(s)) {
+			return nil
+		}
+		count++
+		return nil
+	}); err != nil {
+		setPollingError("snmp", p, err)
+		return
+	}
+	vm := otto.New()
+	lr := make(map[string]string)
+	vm.Set("count", count)
+	lr["count"] = fmt.Sprintf("%d", count)
+	value, err := vm.Run(script)
+	if err == nil {
+		p.LastVal = float64(count)
+		p.LastResult = makeLastResult(lr)
+		if ok, _ := value.ToBoolean(); !ok {
+			setPollingState(p, p.Level)
+			return
+		}
+		setPollingState(p, "normal")
+		return
+	}
+	setPollingError("snmp", p, err)
+	return
 }
