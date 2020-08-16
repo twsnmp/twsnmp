@@ -48,7 +48,6 @@ func pollingBackend(ctx context.Context) {
 	loadGrokMap()
 	go pingBackend(ctx)
 	time.Sleep(time.Millisecond * 100)
-	var nextPoll int64
 	for {
 		select {
 		case <-ctx.Done():
@@ -56,14 +55,10 @@ func pollingBackend(ctx context.Context) {
 		case <-doPollingCh:
 			{
 				now := time.Now().UnixNano()
-				if nextPoll > now {
-					continue
-				}
-				nextPoll = now + (1000*1000*1000)*2
 				list := []*pollingEnt{}
 				pollings.Range(func(_, v interface{}) bool {
 					p := v.(*pollingEnt)
-					if p.NextTime < now {
+					if p.NextTime < (now + (10 * 1000 * 1000 * 1000)) {
 						list = append(list, p)
 					}
 					return true
@@ -76,9 +71,13 @@ func pollingBackend(ctx context.Context) {
 					return list[i].NextTime < list[j].NextTime
 				})
 				for i := 0; i < len(list); i++ {
-					list[i].NextTime = time.Now().UnixNano() + (int64(list[i].PollInt) * 1000 * 1000 * 1000)
-					go doPolling(list[i])
-					time.Sleep(time.Millisecond * 1)
+					startTime := list[i].NextTime
+					if startTime < now {
+						startTime = now
+					}
+					list[i].NextTime = startTime + (int64(list[i].PollInt) * 1000 * 1000 * 1000)
+					go doPolling(list[i], startTime)
+					time.Sleep(time.Millisecond * 2)
 				}
 			}
 		}
@@ -123,7 +122,10 @@ func setPollingState(p *pollingEnt, newState string) {
 	}
 }
 
-func doPolling(p *pollingEnt) {
+func doPolling(p *pollingEnt, startTime int64) {
+	for startTime > time.Now().UnixNano() {
+		time.Sleep(time.Millisecond * 100)
+	}
 	oldState := p.State
 	switch p.Type {
 	case "ping":

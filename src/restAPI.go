@@ -130,7 +130,9 @@ func restAPIGetMapStatus(w rest.ResponseWriter, req *rest.Request) {
 		ms.State = "high"
 	} else if ms.Low > 0 {
 		ms.State = "low"
-	} else if ms.Normal > 0 {
+	} else if ms.Warn > 0 {
+		ms.State = "warn"
+	} else if ms.Normal+ms.Repair > 0 {
 		ms.State = "normal"
 	} else {
 		ms.State = "unknown"
@@ -212,12 +214,13 @@ func doPollingTWSNMP(p *pollingEnt) {
 	}
 	ok = false
 	var rTime int64
+	var body string
+	var err error
 	for i := 0; !ok && i <= p.Retry; i++ {
 		startTime := time.Now().UnixNano()
-		err := doTWSNMPGet(n, p)
+		body, err = doTWSNMPGet(n, p)
 		endTime := time.Now().UnixNano()
 		if err != nil {
-			setPollingError("twsnmp", p, err)
 			continue
 		}
 		rTime = endTime - startTime
@@ -226,17 +229,27 @@ func doPollingTWSNMP(p *pollingEnt) {
 	p.LastVal = float64(rTime)
 	if ok {
 		var ms restMapStatusEnt
-		if err := json.Unmarshal([]byte(p.LastResult), &ms); err == nil {
-			setPollingState(p, ms.State)
-		} else {
-			setPollingState(p, "unknown")
+		if err := json.Unmarshal([]byte(body), &ms); err != nil {
+			setPollingError("twsnmp", p, err)
+			return
 		}
-	} else {
-		setPollingState(p, "unknown")
+		lr := make(map[string]string)
+		lr["rtt"] = fmt.Sprintf("%f", p.LastVal)
+		lr["state"] = ms.State
+		lr["high"] = fmt.Sprintf("%d", ms.High)
+		lr["low"] = fmt.Sprintf("%d", ms.Low)
+		lr["warn"] = fmt.Sprintf("%d", ms.Warn)
+		lr["normal"] = fmt.Sprintf("%d", ms.Normal)
+		lr["repair"] = fmt.Sprintf("%d", ms.Repair)
+		lr["dbsize"] = fmt.Sprintf("%d", ms.DBSize)
+		p.LastResult = makeLastResult(lr)
+		setPollingState(p, ms.State)
+		return
 	}
+	setPollingError("twsnmp", p, err)
 }
 
-func doTWSNMPGet(n *nodeEnt, p *pollingEnt) error {
+func doTWSNMPGet(n *nodeEnt, p *pollingEnt) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.Timeout)*time.Second)
 	defer cancel()
 	url := fmt.Sprintf("https://%s:8192/api/mapstatus", n.IP)
@@ -245,18 +258,17 @@ func doTWSNMPGet(n *nodeEnt, p *pollingEnt) error {
 	}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return err
+		return "", err
 	}
 	req.SetBasicAuth(n.User, n.Password)
 	resp, err := insecureClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer resp.Body.Close()
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return "", err
 	}
-	p.LastResult = string(b)
-	return nil
+	return string(b), nil
 }
