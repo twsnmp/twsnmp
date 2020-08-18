@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -145,6 +147,11 @@ func checkAI() bool {
 	return doAI(selPolling)
 }
 
+func resetAIResult(id string) {
+	deleteAIReesult(id)
+	checkAIMap[id] = 0
+}
+
 func checkLastAIResultTime(id string) bool {
 	last, err := loadAIReesult(id)
 	if err != nil {
@@ -282,15 +289,21 @@ func makeAIDataFromPolling(req *aiReq) {
 			ent[4] += float64(l.NumVal)
 		}
 		ent[5] += getStateNum(l.State)
-		if strings.Contains(l.StrVal, "AIDATA") {
-			for i, e := range strings.Split(l.StrVal, ";") {
-				if i > len(ent)-6 {
-					break
+		lr := make(map[string]string)
+		if err := json.Unmarshal([]byte(l.StrVal), &lr); err == nil {
+			i := 6
+			keys := make([]string, 0, len(lr))
+			for k := range lr {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			for _, k := range keys {
+				if fv, err := strconv.ParseFloat(lr[k], 64); err == nil {
+					ent[i] += fv
+					i++
 				}
-				var n string
-				var v float64
-				if _, err := fmt.Sscanf(e, "%s=%f", &n, &v); err == nil && n == "AIDATA" {
-					ent[i+6] += v
+				if i >= len(ent) {
+					break
 				}
 			}
 		}

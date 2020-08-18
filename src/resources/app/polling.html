@@ -37,7 +37,7 @@
       </div>
       <div class="tab-item" id="chart">
         <i class="fas fa-poll-h"></i>
-        数値分析
+        グラフ表示
       </div>
       <div class="tab-item hidden" id="ai">
         <i class="fas fa-brain"></i>
@@ -74,15 +74,23 @@
     <footer class="toolbar toolbar-footer">
       <div class="toolbar-actions">
         <input name="start" type="datetime-local" value="">
-        -
+        <span>-</span>
         <input name="end" type="datetime-local" value="">
         <button class="btn btn-primary get">
           <i class="fas fa-search"></i>
           表示
         </button>
+        <button class="btn btn-defalut setting hidden">
+          <i class="fas fa-cog"></i>
+          グラフ設定
+        </button>
         <button class="btn btn-negative clear">
           <i class="fas fa-trash-alt"></i>
           クリア...
+        </button>
+        <button class="btn btn-defalut ai hidden">
+          <i class="fas fa-brain"></i>
+          AI再分析
         </button>
         <button class="btn btn-default pull-right close">
           <i class="fas fa-times"></i>
