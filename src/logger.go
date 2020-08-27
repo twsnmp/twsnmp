@@ -75,7 +75,7 @@ func logger(ctx context.Context) {
 			{
 				if len(logBuffer) > 0 {
 					saveLogBuffer(logBuffer)
-					astiLogger.Infof("SaveLogs=%d logSize=%d compSize=%d",len(logBuffer), logSize, compLogSize)
+					astiLogger.Infof("SaveLogs=%d logSize=%d compSize=%d", len(logBuffer), logSize, compLogSize)
 					logBuffer = []*logEnt{}
 				}
 				if mapConf.EnableSyslogd && !syslogdRunning {
@@ -305,14 +305,35 @@ func logIPFIX(p *ipfix.Message) {
 				Log:  string(s),
 			}
 			if _, ok := record["sourceIPv4Address"]; ok {
-				flowReportCh <- &flowReportEnt{
-					Time:    time.Now().UnixNano(),
-					SrcIP:   record["sourceIPv4Address"].(net.IP).String(),
-					SrcPort: int(record["sourceTransportPort"].(uint16)),
-					DstIP:   record["destinationIPv4Address"].(net.IP).String(),
-					DstPort: int(record["destinationTransportPort"].(uint16)),
-					Prot:    int(record["protocolIdentifier"].(uint8)),
-					Bytes:   int64(record["octetDeltaCount"].(uint64)),
+				defer func() {
+					if r := recover(); r != nil {
+						astiLogger.Errorf("logIPFIX err=%v", r)
+						for k, v := range record {
+							astiLogger.Errorf("%v=%v", k, v)
+						}
+					}
+				}()
+				if _, ok := record["sourceTransportPort"]; ok {
+					flowReportCh <- &flowReportEnt{
+						Time:    time.Now().UnixNano(),
+						SrcIP:   record["sourceIPv4Address"].(net.IP).String(),
+						SrcPort: int(record["sourceTransportPort"].(uint16)),
+						DstIP:   record["destinationIPv4Address"].(net.IP).String(),
+						DstPort: int(record["destinationTransportPort"].(uint16)),
+						Prot:    int(record["protocolIdentifier"].(uint8)),
+						Bytes:   int64(record["octetDeltaCount"].(uint64)),
+					}
+				} else if _, ok := record["icmpTypeCodeIPv4"]; ok {
+					tc := record["icmpTypeCodeIPv4"].(uint16)
+					flowReportCh <- &flowReportEnt{
+						Time:    time.Now().UnixNano(),
+						SrcIP:   record["sourceIPv4Address"].(net.IP).String(),
+						SrcPort: int(tc / 256),
+						DstIP:   record["destinationIPv4Address"].(net.IP).String(),
+						DstPort: int(tc % 265),
+						Prot:    1,
+						Bytes:   int64(record["octetDeltaCount"].(uint64)),
+					}
 				}
 			}
 		}
@@ -349,16 +370,25 @@ func logNetflow(p *netflow5.Packet) {
 			Type: "netflow",
 			Log:  string(s),
 		}
-		flowReportCh <- &flowReportEnt{
-			Time:    time.Now().UnixNano(),
-			SrcIP:   record["srcAddr"].(net.IP).String(),
-			SrcPort: int(record["srcPort"].(uint16)),
-			DstIP:   record["dstAddr"].(net.IP).String(),
-			DstPort: int(record["dstPort"].(uint16)),
-			Prot:    int(record["protocol"].(uint8)),
-			Bytes:   int64(r.Bytes),
+		if v, ok := record["srcAddr"]; ok && v != nil {
+			defer func() {
+				if r := recover(); r != nil {
+					astiLogger.Errorf("logNetflow err=%v", r)
+				}
+				for k, v := range record {
+					astiLogger.Errorf("%v=%v", k, v)
+				}
+			}()
+			flowReportCh <- &flowReportEnt{
+				Time:    time.Now().UnixNano(),
+				SrcIP:   record["srcAddr"].(net.IP).String(),
+				SrcPort: int(record["srcPort"].(uint16)),
+				DstIP:   record["dstAddr"].(net.IP).String(),
+				DstPort: int(record["dstPort"].(uint16)),
+				Prot:    int(record["protocol"].(uint8)),
+				Bytes:   int64(r.Bytes),
+			}
 		}
-
 	}
 }
 

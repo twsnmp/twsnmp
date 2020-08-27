@@ -314,14 +314,30 @@ function showIpfix(logList) {
       continue;
     }
     let srcAddr = ll.sourceIPv4Address || ll.sourceIPv6Address;
-    let dstAddr = ll.destinationIPv6Address || ll.destinationIPv4Address;
+    let dstAddr = ll.destinationIPv4Address || ll.destinationIPv6Address;
+    let prot ="unknown";
+    let srcPort = 0;
+    let dstPort = 0;
+    if (ll.icmpTypeCodeIPv6) {
+      prot= "icmpv6";
+      srcPort = ll.icmpTypeCodeIPv6/256
+      srcPort = ll.icmpTypeCodeIPv6%256
+    } else if (ll.icmpTypeCodeIPv4){
+      prot= "icmpv4";
+      srcPort = ll.icmpTypeCodeIPv4/256
+      srcPort = ll.icmpTypeCodeIPv4%256
+    } else if (ll.protocolIdentifier) {
+      srcPort = ll.sourceTransportPort || 0;
+      dstPort =  ll.destinationTransportPort || 0;
+      prot = ll.protocolIdentifier == 6 ? "tcp" : ll.protocolIdentifier == 17 ? "udp" : ll.protocolIdentifier;
+    }
     const ts = moment(l.Time / (1000 * 1000)).format("Y/MM/DD HH:mm:ss.SSS");
     ipfixTable.row.add([
       ts,
-      srcAddr, ll.sourceTransportPort,
-      dstAddr, ll.destinationTransportPort,
-      ll.protocolIdentifier == 6 ? "tcp" : ll.protocolIdentifier == 17 ? "udp" : ll.protocolIdentifier == 1 ? "icmp" : ll.protocolIdentifier,
-      ll.tcpControlBits,
+      srcAddr, srcPort,
+      dstAddr, dstPort,
+      prot,
+      ll.tcpControlBits || 0,
       ll.packetDeltaCount, ll.octetDeltaCount,
       (ll.flowEndSysUpTime - ll.flowStartSysUpTime) / 100.0
     ]);
