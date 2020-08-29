@@ -374,9 +374,9 @@ func logNetflow(p *netflow5.Packet) {
 			defer func() {
 				if r := recover(); r != nil {
 					astiLogger.Errorf("logNetflow err=%v", r)
-				}
-				for k, v := range record {
-					astiLogger.Errorf("%v=%v", k, v)
+					for k, v := range record {
+						astiLogger.Errorf("%v=%v", k, v)
+					}
 				}
 			}()
 			flowReportCh <- &flowReportEnt{
