@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"net/smtp"
 	"os/exec"
@@ -170,11 +172,8 @@ func sendMail(subject, body string) error {
 		return err
 	}
 	defer w.Close()
-	message := ""
-	message += "From: " + notifyConf.MailFrom + "\r\n"
-	message += "To: " + notifyConf.MailTo + "\r\n"
-	message += "Subject: " + subject + "\r\n"
-	message += "\r\n" + convNewline(body, "\r\n")
+	body = convNewline(body, "\r\n")
+	message := makeMailMessage(notifyConf.MailFrom, notifyConf.MailTo, subject, body)
 	w.Write([]byte(message))
 	c.Quit()
 	astiLogger.Infof("Send Mail to %s", notifyConf.MailTo)
@@ -226,12 +225,67 @@ func sendTestMail(testConf *notifyConfEnt) error {
 		return err
 	}
 	defer w.Close()
-	message := ""
-	message += "From: " + testConf.MailFrom + "\r\n"
-	message += "To: " + testConf.MailTo + "\r\n"
-	message += "Subject: " + testConf.Subject + "\r\n"
-	message += "\r\n Test Mail.\r\n"
+	body := "Test Mail.\r\n試験メール.\r\n"
+	message := makeMailMessage(testConf.MailFrom, testConf.MailTo, testConf.Subject, body)
 	w.Write([]byte(message))
 	c.Quit()
 	return nil
+}
+
+func makeMailMessage(from, to, subject, body string) string {
+	var header bytes.Buffer
+	header.WriteString("From: " + from + "\r\n")
+	header.WriteString("To: " + to + "\r\n")
+	header.WriteString(encodeSubject(subject))
+	header.WriteString("MIME-Version: 1.0\r\n")
+	header.WriteString("Content-Type: text/plain; charset=\"utf-8\"\r\n")
+	header.WriteString("Content-Transfer-Encoding: base64\r\n")
+
+	var message bytes.Buffer
+	message = header
+	message.WriteString("\r\n")
+	message.WriteString(add76crlf(base64.StdEncoding.EncodeToString([]byte(body))))
+
+	return message.String()
+}
+
+// 76バイト毎にCRLFを挿入する
+func add76crlf(msg string) string {
+	var buffer bytes.Buffer
+	for k, c := range strings.Split(msg, "") {
+		buffer.WriteString(c)
+		if k%76 == 75 {
+			buffer.WriteString("\r\n")
+		}
+	}
+	return buffer.String()
+}
+
+// UTF8文字列を指定文字数で分割
+func utf8Split(utf8string string, length int) []string {
+	resultString := []string{}
+	var buffer bytes.Buffer
+	for k, c := range strings.Split(utf8string, "") {
+		buffer.WriteString(c)
+		if k%length == length-1 {
+			resultString = append(resultString, buffer.String())
+			buffer.Reset()
+		}
+	}
+	if buffer.Len() > 0 {
+		resultString = append(resultString, buffer.String())
+	}
+	return resultString
+}
+
+// サブジェクトをMIMEエンコードする
+func encodeSubject(subject string) string {
+	var buffer bytes.Buffer
+	buffer.WriteString("Subject:")
+	for _, line := range utf8Split(subject, 13) {
+		buffer.WriteString(" =?utf-8?B?")
+		buffer.WriteString(base64.StdEncoding.EncodeToString([]byte(line)))
+		buffer.WriteString("?=\r\n")
+	}
+	return buffer.String()
 }
