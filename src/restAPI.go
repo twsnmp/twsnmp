@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,7 +28,14 @@ func setupRestAPI() error {
 		return nil
 	}
 	api := rest.NewApi()
-	api.Use(rest.DefaultDevStack...)
+	api.Use(&rest.AccessLogApacheMiddleware{
+		Format: rest.CombinedLogFormat,
+	})
+	api.Use(&rest.TimerMiddleware{})
+	api.Use(&rest.RecorderMiddleware{})
+	api.Use(&rest.RecoverMiddleware{})
+	api.Use(&rest.GzipMiddleware{})
+	api.Use(&rest.ContentTypeCheckerMiddleware{})
 	api.Use(&rest.AuthBasicMiddleware{
 		Realm: "TWSNMP API",
 		Authenticator: func(userId string, password string) bool {
@@ -58,7 +66,7 @@ func setupRestAPI() error {
 		// 	tls.TLS_AES_128_GCM_SHA256,
 		// 	tls.TLS_AES_256_GCM_SHA384,
 		// },
-		// MinVersion:               tls.VersionTLS13,
+		MinVersion:               tls.VersionTLS12,
 		PreferServerCipherSuites: true,
 		InsecureSkipVerify:       true,
 	}
@@ -69,8 +77,8 @@ func setupRestAPI() error {
 		WriteTimeout: 10 * time.Second,
 		TLSConfig:    cfg,
 	}
-	http.Handle("/api/", http.StripPrefix("/api", api.MakeHandler()))
-	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(resAppPath))))
+	http.Handle("/api/", twsnmpWebHandler(http.StripPrefix("/api", api.MakeHandler())))
+	http.Handle("/", twsnmpWebHandler(http.StripPrefix("/", http.FileServer(http.Dir(resAppPath)))))
 	go func(r *http.Server) {
 		if err := r.ListenAndServeTLS("", ""); err != nil {
 			astiLogger.Errorf("restAPI err=%v", err)
@@ -79,6 +87,33 @@ func setupRestAPI() error {
 	}(restAPI)
 	astiLogger.Infof("start restAPI")
 	return nil
+}
+
+func twsnmpWebHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("X-Frame-Options", "SAMEORIGIN")
+		w.Header().Add("X-Content-Type-Options", "nosniff")
+		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		w.Header().Add("Pragma", "no-cache")
+		w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+		if strings.HasSuffix(r.URL.Path, ".js") ||
+			strings.HasSuffix(r.URL.Path, ".css") ||
+			strings.HasSuffix(r.URL.Path, ".ico") ||
+			strings.HasSuffix(r.URL.Path, ".woff") ||
+			strings.HasSuffix(r.URL.Path, ".woff2") ||
+			strings.HasSuffix(r.URL.Path, ".ttf") ||
+			strings.HasSuffix(r.URL.Path, ".png") ||
+			strings.HasSuffix(r.URL.Path, ".svg") ||
+			r.URL.Path == "/" ||
+			strings.HasSuffix(r.URL.Path, "mapstatus") ||
+			strings.HasSuffix(r.URL.Path, "mapdata") ||
+			strings.HasSuffix(r.URL.Path, "index.html") {
+			h.ServeHTTP(w, r)
+			return
+		}
+		astiLogger.Infof("Not Found %v", r.URL.Path)
+		http.NotFound(w, r)
+	})
 }
 
 func stopRestAPI() error {

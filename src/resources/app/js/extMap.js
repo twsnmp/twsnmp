@@ -18,11 +18,16 @@ $(document).ready(function () {
     }
   });
   $('#login_btn').on('click', () => {
+    const un = $('#login_form [name=username]').val();
+    const pwd = $('#login_form [name=password]').val();
     $.ajax({
       url: '/api/mapstatus',
       type: 'GET',
-      username: $('#signin_form [name=username]').val(),
-      password: $('#signin_form [name=password]').val()
+      headers: {
+        "Authorization": "Basic " + btoa(un + ":" + pwd)
+      },
+      username: un,
+      password: pwd
     })
     .done((r) => {
       loginOK(r)
