@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	gosnmp "github.com/soniah/gosnmp"
+	gosnmp "github.com/twsnmp/gosnmp"
 
 	astilectron "github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
@@ -111,12 +111,12 @@ func snmpWalk(nodeID, mibName string) ([]string, error) {
 		s := mib.OIDToName(variable.Name) + "="
 		if variable.Type == gosnmp.OctetString {
 			if strings.Contains(mib.OIDToName(variable.Name), "ifPhysAd") {
-				a := variable.Value.([]byte)
+				a := variable.Value.(string)
 				if len(a) > 5 {
 					s += fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X", a[0], a[1], a[2], a[3], a[4], a[5])
 				}
 			} else {
-				s += string(variable.Value.([]byte))
+				s += variable.Value.(string)
 			}
 		} else if variable.Type == gosnmp.ObjectIdentifier {
 			s += mib.OIDToName(variable.Value.(string))

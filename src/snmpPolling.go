@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/robertkrimen/otto"
-	gosnmp "github.com/soniah/gosnmp"
+	gosnmp "github.com/twsnmp/gosnmp"
 )
 
 func doPollingSnmp(p *pollingEnt) {
@@ -213,7 +213,7 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 		n := mib.OIDToName(variable.Name)
 		vn := getValueName(n)
 		if variable.Type == gosnmp.OctetString {
-			v := string(variable.Value.([]byte))
+			v := variable.Value.(string)
 			vm.Set(vn, v)
 			lr[n] = v
 		} else if variable.Type == gosnmp.ObjectIdentifier {
@@ -312,12 +312,12 @@ func doPollingSnmpCount(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP
 		s := ""
 		if variable.Type == gosnmp.OctetString {
 			if strings.Contains(mib.OIDToName(variable.Name), "ifPhysAd") {
-				a := variable.Value.([]byte)
+				a := variable.Value.(string)
 				if len(a) > 5 {
 					s = fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X", a[0], a[1], a[2], a[3], a[4], a[5])
 				}
 			} else {
-				s = string(variable.Value.([]byte))
+				s = variable.Value.(string)
 			}
 		} else if variable.Type == gosnmp.ObjectIdentifier {
 			s = mib.OIDToName(variable.Value.(string))

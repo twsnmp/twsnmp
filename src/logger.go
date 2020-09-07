@@ -22,7 +22,7 @@ import (
 	"github.com/tehmaze/netflow/read"
 	"github.com/tehmaze/netflow/session"
 
-	gosnmp "github.com/soniah/gosnmp"
+	gosnmp "github.com/twsnmp/gosnmp"
 
 	"go.etcd.io/bbolt"
 	"gopkg.in/mcuadros/go-syslog.v2"

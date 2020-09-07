@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/signalsciences/ipv4"
-	"github.com/soniah/gosnmp"
+	"github.com/twsnmp/gosnmp"
 )
 
 type discoverStatEnt struct {
@@ -185,7 +185,7 @@ func discoverGetSnmpInfo(t string, dent *discoverInfoEnt) {
 	}
 	for _, variable := range result.Variables {
 		if mib.OIDToName(variable.Name) == "sysName.0" {
-			dent.SysName = string(variable.Value.([]byte))
+			dent.SysName = variable.Value.(string)
 		} else if mib.OIDToName(variable.Name) == "sysObjectID.0" {
 			dent.SysObjectID = variable.Value.(string)
 		}
