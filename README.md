@@ -44,6 +44,12 @@ This project is to revive the TWSNMP Manager that was developed in 1999 and is s
 * Influxdb経由でGrafana連携
 * ローカル、SSH経由のコマンド実行監視
 
+以下の動作環境に対応しました。
+
+* Windows
+* Mac OS
+* Linux AMD64
+* Linux ARM (Raspberry Pi 4)
 
 ![TWSNMP](https://assets.st-note.com/production/uploads/images/15118776/picture_pc_9d8f9c01141ab53f0c72ec1384cb36c4.png)
 
