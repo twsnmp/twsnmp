@@ -54,7 +54,9 @@ func makeLoacalCheckAddrs() {
 	localHitCount := 0
 	for _, i := range ifs {
 		if (i.Flags&net.FlagLoopback) == net.FlagLoopback ||
-			(i.Flags&net.FlagUp) != net.FlagUp {
+			(i.Flags&net.FlagUp) != net.FlagUp ||
+			(i.Flags&net.FlagPointToPoint) == net.FlagPointToPoint ||
+			len(i.HardwareAddr) != 6 {
 			continue
 		}
 		addrs, err := i.Addrs()
