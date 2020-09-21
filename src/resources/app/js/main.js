@@ -195,7 +195,7 @@ function mousePressed() {
         </span>
         <span class="nav-group-item showMIB">
           <i class="fas fa-info-circle"></i>    
-         MIBブラウザ
+         MIBブラウザー
         </span>
         <span class="nav-group-item editNode">
           <i class="fas fa-cog"></i>
