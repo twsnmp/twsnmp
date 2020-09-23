@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	astilectron "github.com/asticode/go-astilectron"
@@ -654,7 +657,9 @@ func mainWindowBackend(ctx context.Context) {
 	updateBackImg()
 	applyMapConf()
 	applyMapData()
+	go checkNewVersion()
 	timer := time.NewTicker(time.Second * 10)
+	newVersionTimer := time.NewTicker(time.Hour * 24)
 	i := 6
 	for {
 		select {
@@ -664,6 +669,8 @@ func mainWindowBackend(ctx context.Context) {
 			return
 		case p := <-pollingStateChangeCh:
 			stateCheckNodes[p.NodeID] = true
+		case <-newVersionTimer.C:
+			go checkNewVersion()
 		case <-timer.C:
 			doPollingCh <- true
 			lastLog = sendLogs(lastLog)
@@ -872,4 +879,44 @@ func doDBBackup(m *bootstrap.MessageIn) (interface{}, error) {
 		}
 	}
 	return "ok", nil
+}
+
+var logNewVersion = 0
+
+func checkNewVersion() {
+	if logNewVersion > 1 {
+		return
+	}
+	url := "https://lhx98.linkclub.jp/twise.co.jp/cgi-bin/twsnmp/twsnmp.cgi?twsver=" + versionNum
+	resp, err := http.Get(url)
+	if err != nil {
+		astiLogger.Errorf("checkNewVersion err=%v", err)
+		return
+	}
+	defer resp.Body.Close()
+	ba, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		astiLogger.Errorf("checkNewVersion err=%v", err)
+		return
+	}
+	if strings.Contains(string(ba), "#TWSNMPVEROK#") {
+		if logNewVersion == 0 {
+			astiLogger.Infof("checkNewVersion OK")
+			addEventLog(eventLogEnt{
+				Type:  "system",
+				Level: "info",
+				Event: "TWSNMPのバージョンは最新です。",
+			})
+			logNewVersion = 1
+		}
+		return
+	}
+	addEventLog(eventLogEnt{
+		Type:  "system",
+		Level: "warn",
+		Event: "TWSNMPの新しいバージョンがあります。",
+	})
+	aboutText += `
+新しいバージョンがあります。`
+	logNewVersion = 2
 }

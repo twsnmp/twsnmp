@@ -41,6 +41,7 @@ var (
 	aboutText         = `TWSNMP Manager
 Version 5.0.1
 Copyright (c) 2019,2020 Masayuki Yamai`
+	versionNum = "050001"
 	astiLogger *astilog.Logger
 )
 
