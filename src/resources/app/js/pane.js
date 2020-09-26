@@ -265,6 +265,13 @@ function createNotifyConfPane() {
     },
   });
   pane.addInput(notifyConfTmp, 'ExecCmd', { label: "外部コマンド" });
+  pane.addInput(notifyConfTmp, 'CheckUpdate', { 
+    label: "更新版の確認",
+    options: {
+      "しない": false,
+      "する": true,
+    },
+  });
   pane.addButton({
     title: 'Cancel',
   }).on('click', (value) => {

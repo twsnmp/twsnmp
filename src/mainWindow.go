@@ -884,7 +884,7 @@ func doDBBackup(m *bootstrap.MessageIn) (interface{}, error) {
 var logNewVersion = 0
 
 func checkNewVersion() {
-	if logNewVersion > 1 {
+	if !notifyConf.CheckUpdate || logNewVersion > 1 {
 		return
 	}
 	url := "https://lhx98.linkclub.jp/twise.co.jp/cgi-bin/twsnmp/twsnmp.cgi?twsver=" + versionNum

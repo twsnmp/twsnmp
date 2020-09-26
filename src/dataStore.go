@@ -163,6 +163,7 @@ type notifyConfEnt struct {
 	Interval           int
 	Level              string
 	ExecCmd            string
+	CheckUpdate        bool
 }
 
 type discoverConfEnt struct {

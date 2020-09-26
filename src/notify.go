@@ -3,11 +3,16 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/smtp"
+	"net/url"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -288,4 +293,47 @@ func encodeSubject(subject string) string {
 		buffer.WriteString("?=\r\n")
 	}
 	return buffer.String()
+}
+
+func sendFeedback(msg string) {
+	msg += fmt.Sprintf("\n-----\n%s:%s\n", runtime.GOOS, runtime.GOARCH)
+	values := url.Values{}
+	values.Set("msg", msg)
+	values.Add("hash", calcHash(msg))
+
+	req, err := http.NewRequest(
+		"POST",
+		"https://lhx98.linkclub.jp/twise.co.jp/cgi-bin/twsnmpfb.cgi",
+		strings.NewReader(values.Encode()),
+	)
+	if err != nil {
+		astiLogger.Errorf("sendFeedback  err=%v", err)
+		return
+	}
+
+	// Content-Type 設定
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		astiLogger.Errorf("sendFeedback  err=%v", err)
+		return
+	}
+	defer resp.Body.Close()
+	r, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		astiLogger.Errorf("sendFeedback  err=%v", err)
+		return
+	}
+	astiLogger.Infof("sendFeedback  %s", string(r))
+}
+
+func calcHash(msg string) string {
+	h := sha256.New()
+	if _, err := h.Write([]byte(msg + time.Now().Format("2006/01/02T15"))); err != nil {
+		astiLogger.Errorf("calcHash  err=%v", err)
+		return ""
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

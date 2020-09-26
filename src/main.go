@@ -35,6 +35,7 @@ var (
 	mibWindow         *astilectron.Window
 	reportWindow      *astilectron.Window
 	aiWindow          *astilectron.Window
+	feedbackWindow    *astilectron.Window
 	mib               *mibdb.MIBDB
 	oui               = &OUIMap{}
 	app               *astilectron.Astilectron
@@ -234,6 +235,34 @@ func main() {
 					openStrURL("https://note.com/twsnmp/m/m15c9aeae6e6d")
 					return false
 				},
+			}, {
+				Label: astikit.StrPtr("メールで質問"),
+				Type:  astilectron.MenuItemTypeNormal,
+				OnClick: func(e astilectron.Event) bool {
+					openStrURL("mailto:twsnmp@gmail.com?subject=TWSNMP%20Bug%20Report")
+					return false
+				},
+			}, {
+				Label: astikit.StrPtr("フィードバック"),
+				Type:  astilectron.MenuItemTypeNormal,
+				OnClick: func(e astilectron.Event) bool {
+					feedbackWindow.Show()
+					return false
+				},
+			}, {
+				Label: astikit.StrPtr("公式ページ"),
+				Type:  astilectron.MenuItemTypeNormal,
+				OnClick: func(e astilectron.Event) bool {
+					openStrURL("https://lhx98.linkclub.jp/twise.co.jp/")
+					return false
+				},
+			}, {
+				Label: astikit.StrPtr("最新版ダウンロード"),
+				Type:  astilectron.MenuItemTypeNormal,
+				OnClick: func(e astilectron.Event) bool {
+					openStrURL("https://github.com/twsnmp/twsnmp/releases")
+					return false
+				},
 			},
 			}}},
 		OnWait: func(a *astilectron.Astilectron, w []*astilectron.Window, m *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
@@ -246,6 +275,7 @@ func main() {
 			mibWindow = w[6]
 			reportWindow = w[7]
 			aiWindow = w[8]
+			feedbackWindow = w[9]
 			app = a
 			path := filepath.Join(app.Paths().DataDirectory(), "resources", "mib.txt")
 			var err error
@@ -447,6 +477,25 @@ func main() {
 					},
 				},
 			},
+			{
+				Homepage:       "feedback.html",
+				MessageHandler: feedbackMessageHandler,
+				Options: &astilectron.WindowOptions{
+					Center:         astikit.BoolPtr(true),
+					Modal:          astikit.BoolPtr(true),
+					Show:           astikit.BoolPtr(false),
+					Frame:          astikit.BoolPtr(false),
+					Closable:       astikit.BoolPtr(false),
+					Fullscreenable: astikit.BoolPtr(false),
+					Maximizable:    astikit.BoolPtr(false),
+					Minimizable:    astikit.BoolPtr(false),
+					Width:          astikit.IntPtr(450),
+					Height:         astikit.IntPtr(300),
+					Custom: &astilectron.WindowCustomOptions{
+						HideOnClose: astikit.BoolPtr(true),
+					},
+				},
+			},
 		},
 	}); err != nil {
 		astiLogger.Fatal(fmt.Sprintf("running bootstrap failed err=%v", err))
@@ -485,6 +534,26 @@ func startMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interfac
 				return err.Error(), err
 			}
 			dbPath = fileName
+		}
+	}
+	return "", nil
+}
+
+// feedbackMessageHandler handles messages
+func feedbackMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
+	switch m.Name {
+	case "exit":
+		feedbackWindow.Hide()
+		return "ok", nil
+	case "send":
+		if len(m.Payload) > 0 {
+			var msg string
+			if err := json.Unmarshal(m.Payload, &msg); err != nil {
+				astiLogger.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
+				return err.Error(), err
+			}
+			sendFeedback(msg)
+			feedbackWindow.Hide()
 		}
 	}
 	return "", nil
