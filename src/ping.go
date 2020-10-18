@@ -10,6 +10,7 @@ import (
 	"net"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -59,10 +60,24 @@ type packet struct {
 var pingSendCh = make(chan *pingEnt, 100)
 
 var randGen = rand.New(rand.NewSource(time.Now().UnixNano()))
+var pingMutex sync.Mutex
 
 func doPing(ip string, timeout, retry, size int) *pingEnt {
 	var err error
-	var p = &pingEnt{
+	var p = newPingEnt(ip, timeout, retry, size)
+	if p.ipaddr, err = net.ResolveIPAddr("ip", ip); err != nil {
+		p.Stat = pingOtherError
+		return p
+	}
+	pingSendCh <- p
+	<-p.done
+	return p
+}
+
+func newPingEnt(ip string, timeout, retry, size int) *pingEnt {
+	pingMutex.Lock()
+	defer pingMutex.Unlock()
+	return &pingEnt{
 		Target:   ip,
 		Timeout:  timeout,
 		Retry:    retry,
@@ -72,13 +87,6 @@ func doPing(ip string, timeout, retry, size int) *pingEnt {
 		Tracker:  randGen.Int63n(math.MaxInt64),
 		done:     make(chan bool),
 	}
-	if p.ipaddr, err = net.ResolveIPAddr("ip", ip); err != nil {
-		p.Stat = pingOtherError
-		return p
-	}
-	pingSendCh <- p
-	<-p.done
-	return p
 }
 
 func (p *pingEnt) sendICMP(conn *icmp.PacketConn) error {
