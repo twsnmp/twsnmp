@@ -225,19 +225,6 @@ func genSelfSignCert(key string) (string, error) {
 	return cert, nil
 }
 
-// getKeyFingerPrint : 鍵のフィンガープリントを取得する
-func getKeyFingerPrint(k string) string {
-	key, err := getRSAKeyFromPEM(k)
-	if err != nil {
-		return ""
-	}
-	pub, err := ssh.NewPublicKey(&key.PublicKey)
-	if err != nil {
-		return ""
-	}
-	return ssh.FingerprintSHA256(pub)
-}
-
 // getSSHPublicKey : SSHの公開鍵をOpenSSH形式で取得する
 func getSSHPublicKey(key string) (string, error) {
 	host, err := os.Hostname()

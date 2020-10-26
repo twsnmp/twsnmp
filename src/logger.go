@@ -50,18 +50,14 @@ func logger(ctx context.Context) {
 				timer.Stop()
 				if len(logBuffer) > 0 {
 					saveLogBuffer(logBuffer)
-					logBuffer = []*logEnt{}
 				}
 				if syslogdRunning {
-					syslogdRunning = false
 					close(stopSyslogd)
 				}
 				if netflowdRunning {
-					netflowdRunning = false
 					close(stopNetflowd)
 				}
 				if trapdRunning {
-					trapdRunning = false
 					close(stopTrapd)
 				}
 				astiLogger.Debug("Stop logger")
@@ -145,7 +141,7 @@ func saveLogBuffer(logBuffer []*logEnt) {
 		astiLogger.Errorf("saveLogBuffer DB Not open")
 		return
 	}
-	db.Batch(func(tx *bbolt.Tx) error {
+	_ = db.Batch(func(tx *bbolt.Tx) error {
 		syslog := tx.Bucket([]byte("syslog"))
 		netflow := tx.Bucket([]byte("netflow"))
 		ipfix := tx.Bucket([]byte("ipfix"))
@@ -164,15 +160,15 @@ func saveLogBuffer(logBuffer []*logEnt) {
 			compLogSize += len(s)
 			switch l.Type {
 			case "syslog":
-				syslog.Put([]byte(k), []byte(s))
+				_ = syslog.Put([]byte(k), []byte(s))
 			case "netflow":
-				netflow.Put([]byte(k), []byte(s))
+				_ = netflow.Put([]byte(k), []byte(s))
 			case "ipfix":
-				ipfix.Put([]byte(k), []byte(s))
+				_ = ipfix.Put([]byte(k), []byte(s))
 			case "trap":
-				trap.Put([]byte(k), []byte(s))
+				_ = trap.Put([]byte(k), []byte(s))
 			case "arplog":
-				arplog.Put([]byte(k), []byte(s))
+				_ = arplog.Put([]byte(k), []byte(s))
 			}
 		}
 		return nil
@@ -184,16 +180,16 @@ func syslogd(stopCh chan bool) {
 	server := syslogv2.NewServer()
 	server.SetFormat(syslog.Automatic)
 	server.SetHandler(syslog.NewChannelHandler(syslogCh))
-	server.ListenUDP("0.0.0.0:514")
-	server.ListenTCP("0.0.0.0:514")
-	server.Boot()
+	_ = server.ListenUDP("0.0.0.0:514")
+	_ = server.ListenTCP("0.0.0.0:514")
+	_ = server.Boot()
 	astiLogger.Debug("syslogd start")
 	for {
 		select {
 		case <-stopCh:
 			{
 				astiLogger.Debug("syslogd stop")
-				server.Kill()
+				_ = server.Kill()
 				return
 			}
 		case l := <-syslogCh:
@@ -241,7 +237,7 @@ func netflowd(stopCh chan bool) {
 			}
 		default:
 			{
-				server.SetReadDeadline(time.Now().Add(time.Second * 2))
+				_ = server.SetReadDeadline(time.Now().Add(time.Second * 2))
 				var remote *net.UDPAddr
 				var octets int
 				if octets, remote, err = server.ReadFromUDP(buf); err != nil {
@@ -451,16 +447,11 @@ func trapd(stopCh chan bool) {
 	}
 	defer tl.Close()
 	go func() {
-		tl.Listen("0.0.0.0:162")
+		if err := tl.Listen("0.0.0.0:162"); err != nil {
+			astiLogger.Errorf("Trap Listen err=%v", err)
+		}
 		astiLogger.Debug("Trap Listen End")
 	}()
-	for {
-		select {
-		case <-stopCh:
-			{
-				astiLogger.Debug("Trap Listen Done")
-				return
-			}
-		}
-	}
+	<-stopCh
+	astiLogger.Debug("Trap Listen Done")
 }

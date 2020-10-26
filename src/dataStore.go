@@ -22,21 +22,20 @@ import (
 var (
 	db *bbolt.DB
 	// Data on Memory
-	mapConf           mapConfEnt
-	notifyConf        notifyConfEnt
-	influxdbConf      influxdbConfEnt
-	restAPIConf       restAPIConfEnt
-	discoverConf      discoverConfEnt
-	prevDBStats       bbolt.Stats
-	dbStats           dbStatsEnt
-	dbOpenTime        time.Time
-	nodes             = make(map[string]*nodeEnt)
-	lines             = make(map[string]*lineEnt)
-	pollings          = sync.Map{}
-	eventLogCh        = make(chan eventLogEnt, 100)
-	stopEventLoggerCh = make(chan bool)
-	mainWindowInfo    windowInfoEnt
-	pollingTemplates  = make(map[string]*pollingTemplateEnt)
+	mapConf          mapConfEnt
+	notifyConf       notifyConfEnt
+	influxdbConf     influxdbConfEnt
+	restAPIConf      restAPIConfEnt
+	discoverConf     discoverConfEnt
+	prevDBStats      bbolt.Stats
+	dbStats          dbStatsEnt
+	dbOpenTime       time.Time
+	nodes            = make(map[string]*nodeEnt)
+	lines            = make(map[string]*lineEnt)
+	pollings         = sync.Map{}
+	eventLogCh       = make(chan eventLogEnt, 100)
+	mainWindowInfo   windowInfoEnt
+	pollingTemplates = make(map[string]*pollingTemplateEnt)
 )
 
 const (
@@ -257,7 +256,7 @@ func openDB(path string) error {
 		db.Close()
 		return err
 	}
-	loadPollingTemplateFromDB()
+	_ = loadPollingTemplateFromDB()
 	return nil
 }
 
@@ -382,11 +381,21 @@ func loadConfFromDB() error {
 		mainWindowInfo.Top = -1
 	}
 	if err == nil && bSaveConf {
-		saveMapConfToDB()
-		saveNotifyConfToDB()
-		saveDiscoverConfToDB()
-		saveMainWindowInfoToDB()
-		saveInfluxdbConfToDB()
+		if err := saveMapConfToDB(); err != nil {
+			astiLogger.Errorf("loadConfFromDB err=%v", err)
+		}
+		if err := saveNotifyConfToDB(); err != nil {
+			astiLogger.Errorf("loadConfFromDB err=%v", err)
+		}
+		if err := saveDiscoverConfToDB(); err != nil {
+			astiLogger.Errorf("loadConfFromDB err=%v", err)
+		}
+		if err := saveMainWindowInfoToDB(); err != nil {
+			astiLogger.Errorf("loadConfFromDB err=%v", err)
+		}
+		if err := saveInfluxdbConfToDB(); err != nil {
+			astiLogger.Errorf("loadConfFromDB err=%v", err)
+		}
 	}
 	return err
 }
@@ -411,7 +420,7 @@ func initSecurityKey() {
 	mapConf.PublicKey = pubkey
 	mapConf.TLSCert = cert
 	astiLogger.Infof("initSecurityKey Public Key=%v", pubkey)
-	saveMapConfToDB()
+	_ = saveMapConfToDB()
 }
 
 func saveMapConfToDB() error {
@@ -427,8 +436,7 @@ func saveMapConfToDB() error {
 		if b == nil {
 			return fmt.Errorf("Bucket config is nil")
 		}
-		b.Put([]byte("mapConf"), s)
-		return nil
+		return b.Put([]byte("mapConf"), s)
 	})
 }
 
@@ -445,8 +453,7 @@ func saveNotifyConfToDB() error {
 		if b == nil {
 			return fmt.Errorf("Bucket config is nil")
 		}
-		b.Put([]byte("notifyConf"), s)
-		return nil
+		return b.Put([]byte("notifyConf"), s)
 	})
 }
 
@@ -463,8 +470,7 @@ func saveInfluxdbConfToDB() error {
 		if b == nil {
 			return fmt.Errorf("Bucket config is nil")
 		}
-		b.Put([]byte("influxdbConf"), s)
-		return nil
+		return b.Put([]byte("influxdbConf"), s)
 	})
 }
 
@@ -481,8 +487,7 @@ func saveRestAPIConfToDB() error {
 		if b == nil {
 			return fmt.Errorf("Bucket config is nil")
 		}
-		b.Put([]byte("restAPIConf"), s)
-		return nil
+		return b.Put([]byte("restAPIConf"), s)
 	})
 }
 
@@ -499,8 +504,7 @@ func saveBackupParamToDB(p *dbBackupParamEnt) error {
 		if b == nil {
 			return fmt.Errorf("Bucket config is nil")
 		}
-		b.Put([]byte("backup"), s)
-		return nil
+		return b.Put([]byte("backup"), s)
 	})
 }
 
@@ -517,8 +521,7 @@ func saveMainWindowInfoToDB() error {
 		if b == nil {
 			return fmt.Errorf("Bucket config is nil")
 		}
-		b.Put([]byte("mainWindowInfo"), s)
-		return nil
+		return b.Put([]byte("mainWindowInfo"), s)
 	})
 }
 
@@ -535,8 +538,7 @@ func saveDiscoverConfToDB() error {
 		if b == nil {
 			return fmt.Errorf("Bucket config is nil")
 		}
-		b.Put([]byte("discoverConf"), s)
-		return nil
+		return b.Put([]byte("discoverConf"), s)
 	})
 }
 
@@ -549,7 +551,7 @@ func loadMapDataFromDB() error {
 		if b == nil {
 			return nil
 		}
-		b.ForEach(func(k, v []byte) error {
+		_ = b.ForEach(func(k, v []byte) error {
 			var n nodeEnt
 			if err := json.Unmarshal(v, &n); err == nil {
 				nodes[n.ID] = &n
@@ -558,7 +560,7 @@ func loadMapDataFromDB() error {
 		})
 		b = tx.Bucket([]byte("lines"))
 		if b != nil {
-			b.ForEach(func(k, v []byte) error {
+			_ = b.ForEach(func(k, v []byte) error {
 				var l lineEnt
 				if err := json.Unmarshal(v, &l); err == nil {
 					lines[l.ID] = &l
@@ -568,7 +570,7 @@ func loadMapDataFromDB() error {
 		}
 		b = tx.Bucket([]byte("pollings"))
 		if b != nil {
-			b.ForEach(func(k, v []byte) error {
+			_ = b.ForEach(func(k, v []byte) error {
 				var p pollingEnt
 				if err := json.Unmarshal(v, &p); err == nil {
 					pollings.Store(p.ID, &p)
@@ -595,10 +597,9 @@ func addNode(n *nodeEnt) error {
 	if err != nil {
 		return err
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("nodes"))
-		b.Put([]byte(n.ID), s)
-		return nil
+		return b.Put([]byte(n.ID), s)
 	})
 	nodes[n.ID] = n
 	return nil
@@ -615,10 +616,9 @@ func updateNode(n *nodeEnt) error {
 	if err != nil {
 		return err
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("nodes"))
-		b.Put([]byte(n.ID), s)
-		return nil
+		return b.Put([]byte(n.ID), s)
 	})
 	return nil
 }
@@ -630,10 +630,9 @@ func deleteNode(nodeID string) error {
 	if _, ok := nodes[nodeID]; !ok {
 		return errInvalidID
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("nodes"))
-		b.Delete([]byte(nodeID))
-		return nil
+		return b.Delete([]byte(nodeID))
 	})
 	delete(nodes, nodeID)
 	delList := []string{}
@@ -644,7 +643,7 @@ func deleteNode(nodeID string) error {
 		return true
 	})
 	for _, k := range delList {
-		deletePolling(k)
+		_ = deletePolling(k)
 	}
 	return nil
 }
@@ -672,10 +671,9 @@ func addLine(l *lineEnt) error {
 	if err != nil {
 		return err
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("lines"))
-		b.Put([]byte(l.ID), s)
-		return nil
+		return b.Put([]byte(l.ID), s)
 	})
 	lines[l.ID] = l
 	return nil
@@ -692,10 +690,9 @@ func updateLine(l *lineEnt) error {
 	if err != nil {
 		return err
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("lines"))
-		b.Put([]byte(l.ID), s)
-		return nil
+		return b.Put([]byte(l.ID), s)
 	})
 	return nil
 }
@@ -707,10 +704,9 @@ func deleteLine(lineID string) error {
 	if _, ok := lines[lineID]; !ok {
 		return errInvalidID
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("lines"))
-		b.Delete([]byte(lineID))
-		return nil
+		return b.Delete([]byte(lineID))
 	})
 	delete(lines, lineID)
 	return nil
@@ -731,10 +727,9 @@ func addPolling(p *pollingEnt) error {
 	if err != nil {
 		return err
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollings"))
-		b.Put([]byte(p.ID), s)
-		return nil
+		return b.Put([]byte(p.ID), s)
 	})
 	pollings.Store(p.ID, p)
 	return nil
@@ -752,10 +747,9 @@ func updatePolling(p *pollingEnt) error {
 	if err != nil {
 		return err
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollings"))
-		b.Put([]byte(p.ID), s)
-		return nil
+		return b.Put([]byte(p.ID), s)
 	})
 	pollings.Store(p.ID, p)
 	return nil
@@ -768,20 +762,19 @@ func deletePolling(pollingID string) error {
 	if _, ok := pollings.Load(pollingID); !ok {
 		return errInvalidID
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollings"))
-		b.Delete([]byte(pollingID))
-		return nil
+		return b.Delete([]byte(pollingID))
 	})
 	pollings.Delete(pollingID)
 	// Delete lines
 	for k, v := range lines {
 		if v.PollingID1 == pollingID || v.PollingID2 == pollingID {
-			deleteLine(k)
+			_ = deleteLine(k)
 		}
 	}
-	clearPollingLog(pollingID)
-	deleteAIReesult(pollingID)
+	_ = clearPollingLog(pollingID)
+	_ = deleteAIReesult(pollingID)
 	return nil
 }
 
@@ -817,7 +810,7 @@ func getEventLogList(startID string, n int) []eventLogEnt {
 	if db == nil {
 		return ret
 	}
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("logs"))
 		if b == nil {
 			return nil
@@ -844,7 +837,7 @@ func getNodeEventLogs(nodeID string) []eventLogEnt {
 	if db == nil {
 		return ret
 	}
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("logs"))
 		if b == nil {
 			return nil
@@ -927,7 +920,7 @@ func getEventLogs(filter *filterEnt) []eventLogEnt {
 		return ret
 	}
 	f := getFilterParams(filter)
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("logs"))
 		if b == nil {
 			return nil
@@ -964,7 +957,7 @@ func getLogs(filter *filterEnt) []logEnt {
 		return ret
 	}
 	f := getFilterParams(filter)
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(filter.LogType))
 		if b == nil {
 			astiLogger.Errorf("getLogs no Bucket=%s", filter.LogType)
@@ -1014,10 +1007,9 @@ func addPollingLog(p *pollingEnt) error {
 	if err != nil {
 		return err
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollingLogs"))
-		b.Put([]byte(makeKey()), s)
-		return nil
+		return b.Put([]byte(makeKey()), s)
 	})
 	return nil
 }
@@ -1039,7 +1031,7 @@ func getPollingLog(startTime, endTime, pollingID string) []pollingLogEnt {
 		et = time.Now().UnixNano()
 	}
 	startKey := fmt.Sprintf("%016x", st)
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollingLogs"))
 		if b == nil {
 			astiLogger.Errorf("getPollingLog no Bucket getPollingLog")
@@ -1079,7 +1071,7 @@ func getPollingLog(startTime, endTime, pollingID string) []pollingLogEnt {
 
 func getAllPollingLog(pollingID string) []pollingLogEnt {
 	ret := []pollingLogEnt{}
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollingLogs"))
 		if b == nil {
 			astiLogger.Errorf("getPollingLog no Bucket getPollingLog")
@@ -1119,11 +1111,11 @@ func clearPollingLog(pollingID string) error {
 			if !bytes.Contains(v, []byte(pollingID)) {
 				continue
 			}
-			c.Delete()
+			_ = c.Delete()
 		}
 		b = tx.Bucket([]byte("ai"))
 		if b != nil {
-			b.Delete([]byte(pollingID))
+			_ = b.Delete([]byte(pollingID))
 		}
 		return nil
 	})
@@ -1143,7 +1135,7 @@ func deleteOldLog(bucket string, days int) error {
 			if st < string(k) || delCount > MaxDelLog {
 				break
 			}
-			c.Delete()
+			_ = c.Delete()
 			delCount++
 		}
 		return nil
@@ -1172,12 +1164,12 @@ func getMIBModuleList() []string {
 	if db == nil {
 		return ret
 	}
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("mibdb"))
 		if b == nil {
 			return nil
 		}
-		b.ForEach(func(k, v []byte) error {
+		_ = b.ForEach(func(k, v []byte) error {
 			ret = append(ret, string(k))
 			return nil
 		})
@@ -1191,7 +1183,7 @@ func getMIBModule(m string) []byte {
 	if db == nil {
 		return ret
 	}
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("mibdb"))
 		if b == nil {
 			return nil
@@ -1212,8 +1204,7 @@ func putMIBFileToDB(m, path string) error {
 	}
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("mibdb"))
-		b.Put([]byte(m), d)
-		return nil
+		return b.Put([]byte(m), d)
 	})
 }
 
@@ -1223,8 +1214,7 @@ func delMIBModuleFromDB(m string) error {
 	}
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("mibdb"))
-		b.Delete([]byte(m))
-		return nil
+		return b.Delete([]byte(m))
 	})
 }
 
@@ -1290,7 +1280,7 @@ func updateDBStats() {
 	s := db.Stats()
 	d := s.Sub(&prevDBStats)
 	var dbSize int64
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		dbSize = tx.Size()
 		return nil
 	})
@@ -1306,7 +1296,7 @@ func updateDBStats() {
 	if peakWrite > 0 && dbStats.Time != "" {
 		dbStats.Rate = 100 * float64(d.TxStats.Write) / float64(peakWrite)
 		dbStats.StartTime = humanize.Time(dbOpenTime)
-		dbot := time.Now().Sub(dbOpenTime).Seconds()
+		dbot := time.Since(dbOpenTime).Seconds()
 		if dbot > 0 {
 			dbStats.AvgWrite = humanize.SI(float64(s.TxStats.Write)/dbot, "Write/Sec")
 		}
@@ -1352,7 +1342,7 @@ func saveLogList(list []eventLogEnt) {
 	if db == nil {
 		return
 	}
-	db.Batch(func(tx *bbolt.Tx) error {
+	_ = db.Batch(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("logs"))
 		for _, e := range list {
 			s, err := json.Marshal(e)
@@ -1382,7 +1372,7 @@ func loadArpTableFromDB() error {
 		if b == nil {
 			return nil
 		}
-		b.ForEach(func(k, v []byte) error {
+		_ = b.ForEach(func(k, v []byte) error {
 			arpTable[string(k)] = string(v)
 			return nil
 		})
@@ -1397,8 +1387,7 @@ func updateArpEnt(ip, mac string) error {
 	}
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("arp"))
-		b.Put([]byte(ip), []byte(mac))
-		return nil
+		return b.Put([]byte(ip), []byte(mac))
 	})
 }
 
@@ -1411,7 +1400,7 @@ func resetArpTable() error {
 		}
 		c := b.Cursor()
 		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			c.Delete()
+			_ = c.Delete()
 		}
 		return nil
 	})
@@ -1430,8 +1419,7 @@ func saveAIResultToDB(res *aiResult) error {
 		if b == nil {
 			return fmt.Errorf("Bucket ai is nil")
 		}
-		b.Put([]byte(res.PollingID), s)
-		return nil
+		return b.Put([]byte(res.PollingID), s)
 	})
 }
 
@@ -1441,7 +1429,7 @@ func loadAIReesult(id string) (*aiResult, error) {
 	if db == nil {
 		return &ret, errDBNotOpen
 	}
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("ai"))
 		if b == nil {
 			return nil
@@ -1467,7 +1455,7 @@ func deleteAIReesult(id string) error {
 	}
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("ai"))
-		b.Delete([]byte(id))
+		_ = b.Delete([]byte(id))
 		return nil
 	})
 }
@@ -1499,13 +1487,13 @@ func backupDB() error {
 	if err != nil {
 		return err
 	}
-	defer dstTx.Rollback()
 	err = db.View(func(srcTx *bbolt.Tx) error {
 		return srcTx.ForEach(func(name []byte, b *bbolt.Bucket) error {
 			return walkBucket(b, nil, name, nil, b.Sequence())
 		})
 	})
 	if err != nil {
+		_ = dstTx.Rollback()
 		return err
 	}
 	if !dbStats.BackupConfigOnly {
@@ -1516,12 +1504,11 @@ func backupDB() error {
 		mapConfTmp.LogDays = 0
 		if s, err := json.Marshal(mapConfTmp); err == nil {
 			if b := dstTx.Bucket([]byte("config")); b != nil {
-				b.Put([]byte("mapConf"), s)
+				return b.Put([]byte("mapConf"), s)
 			}
 		}
 	}
-	dstTx.Commit()
-	return nil
+	return dstTx.Commit()
 }
 
 var configBuckets = []string{"config", "nodes", "lines", "pollings", "mibdb"}
@@ -1543,7 +1530,7 @@ func walkBucket(b *bbolt.Bucket, keypath [][]byte, k, v []byte, seq uint64) erro
 		}
 	}
 	if dbBackupSize > 64*1024 {
-		dstTx.Commit()
+		_ = dstTx.Commit()
 		var err error
 		dstTx, err = dstDB.Begin(true)
 		if err != nil {
@@ -1619,7 +1606,7 @@ func loadPollingTemplateFromDB() error {
 		if b == nil {
 			return nil
 		}
-		b.ForEach(func(k, v []byte) error {
+		_ = b.ForEach(func(k, v []byte) error {
 			var pt pollingTemplateEnt
 			if err := json.Unmarshal(v, &pt); err == nil {
 				pollingTemplates[pt.ID] = &pt
@@ -1633,7 +1620,9 @@ func loadPollingTemplateFromDB() error {
 
 func getSha1Key(s string) string {
 	h := sha1.New()
-	h.Write([]byte(s))
+	if _, err := h.Write([]byte(s)); err != nil {
+		astiLogger.Errorf("getSha1Key err=%v", err)
+	}
 	bs := h.Sum(nil)
 	return fmt.Sprintf("%x", bs)
 }
@@ -1650,10 +1639,9 @@ func addPollingTemplate(pt *pollingTemplateEnt) error {
 	if err != nil {
 		return err
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollingTemplates"))
-		b.Put([]byte(pt.ID), s)
-		return nil
+		return b.Put([]byte(pt.ID), s)
 	})
 	pollingTemplates[pt.ID] = pt
 	return nil
@@ -1672,7 +1660,7 @@ func updatePollingTemplate(pt *pollingTemplateEnt) error {
 		return fmt.Errorf("duplicate template")
 	}
 	// なければ、削除してから追加する
-	deletePollingTemplate(pt.ID)
+	_ = deletePollingTemplate(pt.ID)
 	pt.ID = newID
 	return addPollingTemplate(pt)
 }
@@ -1684,10 +1672,9 @@ func deletePollingTemplate(id string) error {
 	if _, ok := pollingTemplates[id]; !ok {
 		return errInvalidID
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollingTemplates"))
-		b.Delete([]byte(id))
-		return nil
+		return b.Delete([]byte(id))
 	})
 	delete(pollingTemplates, id)
 	return nil

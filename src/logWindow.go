@@ -15,15 +15,6 @@ type filterEnt struct {
 	LogType   string
 }
 
-type logCountEnt struct {
-	High   int32
-	Low    int32
-	Warn   int32
-	Normal int32
-	Other  int32
-	Time   int64
-}
-
 type arpEnt struct {
 	IP     string
 	MAC    string
@@ -39,8 +30,8 @@ type arpResEnt struct {
 func logMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "close":
-		logWindow.Hide()
-		logWindow.CloseDevTools()
+		_ = logWindow.Hide()
+		_ = logWindow.CloseDevTools()
 		return "ok", nil
 	case "searchLog":
 		return searchLog(&m)
@@ -90,13 +81,4 @@ func getArpRes(filter *filterEnt) (arpResEnt, error) {
 		Arps: arps,
 		Logs: logs,
 	}, nil
-}
-
-func getNodes() map[string]string {
-	ret := map[string]string{}
-	ret[""] = ""
-	for k, n := range nodes {
-		ret[n.Name] = k
-	}
-	return ret
 }

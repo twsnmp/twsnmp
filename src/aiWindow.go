@@ -148,7 +148,9 @@ func checkAI() bool {
 }
 
 func resetAIResult(id string) {
-	deleteAIReesult(id)
+	if err := deleteAIReesult(id); err != nil {
+		astiLogger.Errorf("loadAIReesult  id=%s err=%v", id, err)
+	}
 	checkAIMap[id] = 0
 }
 
@@ -156,14 +158,13 @@ func checkLastAIResultTime(id string) bool {
 	last, err := loadAIReesult(id)
 	if err != nil {
 		astiLogger.Errorf("loadAIReesult  id=%s err=%v", id, err)
-		deleteAIReesult(id)
+		if err = deleteAIReesult(id); err != nil {
+			astiLogger.Errorf("loadAIReesult  id=%s err=%v", id, err)
+		}
 		return true
 	}
 	astiLogger.Debugf("checkLastAIResultTime %s = %d diff=%d", id, last.LastTime, time.Now().Unix()-last.LastTime)
-	if last.LastTime < time.Now().Unix()-60*60 {
-		return true
-	}
-	return false
+	return last.LastTime < time.Now().Unix()-60*60
 }
 
 func doAI(p *pollingEnt) bool {
@@ -237,7 +238,6 @@ func makeAIDataFromSyslogPriPolling(req *aiReq) {
 			req.Data[i][j] /= maxVal
 		}
 	}
-	return
 }
 
 const entLen = 20
@@ -317,7 +317,6 @@ func makeAIDataFromPolling(req *aiReq) {
 			}
 		}
 	}
-	return
 }
 
 func getStateNum(s string) float64 {
@@ -376,5 +375,4 @@ func doneAI(m *bootstrap.MessageIn) {
 			}
 		}
 	}
-	return
 }

@@ -14,7 +14,7 @@ import (
 func reportMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "close":
-		reportWindow.Hide()
+		_=reportWindow.Hide()
 		return "ok", nil
 	case "getDevices":
 		return getDevices(), nil

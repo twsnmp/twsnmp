@@ -190,7 +190,7 @@ func discoverGetSnmpInfo(t string, dent *discoverInfoEnt) {
 			dent.SysObjectID = variable.Value.(string)
 		}
 	}
-	err = agent.Walk(mib.NameToOID("ifType"), func(variable gosnmp.SnmpPDU) error {
+	_ = agent.Walk(mib.NameToOID("ifType"), func(variable gosnmp.SnmpPDU) error {
 		a := strings.Split(mib.OIDToName(variable.Name), ".")
 		if len(a) == 2 &&
 			a[0] == "ifType" &&
@@ -199,7 +199,6 @@ func discoverGetSnmpInfo(t string, dent *discoverInfoEnt) {
 		}
 		return nil
 	})
-	return
 }
 
 func addFoundNode(dent discoverInfoEnt) {

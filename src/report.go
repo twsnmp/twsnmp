@@ -146,7 +146,7 @@ func initReport() {
 		}
 	}
 	openGeoIP()
-	loadReport()
+	_ = loadReport()
 }
 
 func openGeoIP() {
@@ -213,7 +213,7 @@ func loadReport() error {
 		r := tx.Bucket([]byte("report"))
 		b := r.Bucket([]byte("devices"))
 		if b != nil {
-			b.ForEach(func(k, v []byte) error {
+			_ = b.ForEach(func(k, v []byte) error {
 				var d deviceEnt
 				if err := json.Unmarshal(v, &d); err == nil {
 					devices[d.ID] = &d
@@ -223,7 +223,7 @@ func loadReport() error {
 		}
 		b = r.Bucket([]byte("users"))
 		if b != nil {
-			b.ForEach(func(k, v []byte) error {
+			_ = b.ForEach(func(k, v []byte) error {
 				var u userEnt
 				if err := json.Unmarshal(v, &u); err == nil {
 					users[u.ID] = &u
@@ -233,7 +233,7 @@ func loadReport() error {
 		}
 		b = r.Bucket([]byte("servers"))
 		if b != nil {
-			b.ForEach(func(k, v []byte) error {
+			_ = b.ForEach(func(k, v []byte) error {
 				var s serverEnt
 				if err := json.Unmarshal(v, &s); err == nil {
 					servers[s.ID] = &s
@@ -243,7 +243,7 @@ func loadReport() error {
 		}
 		b = r.Bucket([]byte("flows"))
 		if b != nil {
-			b.ForEach(func(k, v []byte) error {
+			_ = b.ForEach(func(k, v []byte) error {
 				var f flowEnt
 				if err := json.Unmarshal(v, &f); err == nil {
 					flows[f.ID] = &f
@@ -253,7 +253,7 @@ func loadReport() error {
 		}
 		b = r.Bucket([]byte("dennys"))
 		if b != nil {
-			b.ForEach(func(k, v []byte) error {
+			_ = b.ForEach(func(k, v []byte) error {
 				var en bool
 				if err := json.Unmarshal(v, &en); err == nil {
 					dennyRules[string(k)] = en
@@ -263,7 +263,7 @@ func loadReport() error {
 		}
 		b = r.Bucket([]byte("allows"))
 		if b != nil {
-			b.ForEach(func(k, v []byte) error {
+			_ = b.ForEach(func(k, v []byte) error {
 				var as allowRuleEnt
 				if err := json.Unmarshal(v, &as); err == nil {
 					allowRules[as.Service] = &as
@@ -356,7 +356,7 @@ func reportBackend(ctx context.Context) {
 		case <-ctx.Done():
 			{
 				timer.Stop()
-				saveReport(0)
+				_ = saveReport(0)
 				astiLogger.Info("Stop reportBackend")
 				return
 			}
@@ -364,7 +364,7 @@ func reportBackend(ctx context.Context) {
 			{
 				checkOldReport()
 				calcScore()
-				saveReport(last)
+				_ = saveReport(last)
 				last = time.Now().UnixNano()
 			}
 		case r := <-deviceReportCh:
@@ -737,13 +737,13 @@ func checkOldArpLog() {
 	if db == nil {
 		return
 	}
-	db.View(func(tx *bbolt.Tx) error {
+	_ = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("arplog"))
 		if b == nil {
 			astiLogger.Error("checkOldArpLog no arplog bucket")
 			return nil
 		}
-		b.ForEach(func(k, v []byte) error {
+		_ = b.ForEach(func(k, v []byte) error {
 			var l logEnt
 			if err := json.Unmarshal(v, &l); err == nil {
 				a := strings.Split(l.Log, ",")
@@ -812,7 +812,7 @@ func checkOldServers(old, tooOld int64) {
 		}
 	}
 	for _, id := range ids {
-		deleteReport("servers", id)
+		_ = deleteReport("servers", id)
 		count++
 	}
 	if count > 0 {
@@ -840,7 +840,7 @@ func checkOldFlows(old, tooOld int64) {
 		}
 	}
 	for _, id := range ids {
-		deleteReport("flows", id)
+		_ = deleteReport("flows", id)
 		count++
 	}
 	if count > 0 {
@@ -857,7 +857,7 @@ func checkOldDevices(tooOld int64) {
 		}
 	}
 	for _, id := range ids {
-		deleteReport("devices", id)
+		_ = deleteReport("devices", id)
 		count++
 	}
 	if count > 0 {
@@ -874,7 +874,7 @@ func checkOldUsers(tooOld int64) {
 		}
 	}
 	for _, id := range ids {
-		deleteReport("users", id)
+		_ = deleteReport("users", id)
 		count++
 	}
 	if count > 0 {
@@ -977,12 +977,12 @@ func deleteReport(report, id string) error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("report"))
 		if b != nil {
 			r := b.Bucket([]byte(report))
 			if r != nil {
-				r.Delete([]byte(id))
+				_ = r.Delete([]byte(id))
 			}
 		}
 		return nil
@@ -1035,19 +1035,18 @@ func resetPenalty(report string) {
 		}
 		calcFlowScore()
 	}
-	return
 }
 
 func clearAllReport() error {
 	if db == nil {
 		return errDBNotOpen
 	}
-	db.Update(func(tx *bbolt.Tx) error {
+	_ = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("report"))
 		if b != nil {
 			for _, r := range []string{"devices", "flows", "users", "servers"} {
-				b.DeleteBucket([]byte(r))
-				b.CreateBucketIfNotExists([]byte(r))
+				_ = b.DeleteBucket([]byte(r))
+				_, _ = b.CreateBucketIfNotExists([]byte(r))
 			}
 		}
 		return nil
@@ -1108,7 +1107,7 @@ func addAllowRule(service, server string) error {
 		if b != nil {
 			r := b.Bucket([]byte("allows"))
 			if r != nil {
-				r.Put([]byte(service), js)
+				_ = r.Put([]byte(service), js)
 			}
 		}
 		return nil
@@ -1140,9 +1139,9 @@ func deleteAllowRule(id string) error {
 			r := b.Bucket([]byte("allows"))
 			if r != nil {
 				if len(js) < 1 {
-					r.Delete([]byte(service))
+					_ = r.Delete([]byte(service))
 				} else {
-					r.Put([]byte(service), js)
+					_ = r.Put([]byte(service), js)
 				}
 			}
 		}
@@ -1164,7 +1163,7 @@ func addDennyRule(id string) error {
 		if b != nil {
 			r := b.Bucket([]byte("dennys"))
 			if r != nil {
-				r.Put([]byte(id), js)
+				_ = r.Put([]byte(id), js)
 			}
 		}
 		return nil
@@ -1185,7 +1184,7 @@ func deleteDennyRule(id string) error {
 		if b != nil {
 			r := b.Bucket([]byte("dennys"))
 			if r != nil {
-				r.Delete([]byte(id))
+				_ = r.Delete([]byte(id))
 			}
 		}
 		return nil

@@ -29,8 +29,7 @@ type pingStat int
 const (
 	pingStart = iota
 	pingOK
-	pingTimuout
-	pingNoRoute
+	pingTimeout
 	pingOtherError
 )
 
@@ -79,6 +78,7 @@ func newPingEnt(ip string, timeout, retry, size int) *pingEnt {
 	defer pingMutex.Unlock()
 	return &pingEnt{
 		Target:   ip,
+		Stat:     pingStart,
 		Timeout:  timeout,
 		Retry:    retry,
 		Size:     size,
@@ -174,6 +174,7 @@ func pingBackend(ctx context.Context) {
 						if p.Error == nil {
 							p.Error = fmt.Errorf("Timeout")
 						}
+						p.Stat = pingTimeout
 						p.done <- true
 						continue
 					}
@@ -185,7 +186,7 @@ func pingBackend(ctx context.Context) {
 			}
 		default:
 			bytes := make([]byte, 2048)
-			conn.SetReadDeadline(time.Now().Add(time.Millisecond * 100))
+			_ = conn.SetReadDeadline(time.Now().Add(time.Millisecond * 100))
 			var n, ttl int
 			var err error
 			var cm *ipv4.ControlMessage

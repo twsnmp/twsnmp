@@ -110,9 +110,9 @@ func checkHTTPResp(p *pollingEnt, extractor, script, status, body string, code i
 	lr["status"] = status
 	lr["code"] = fmt.Sprintf("%d", code)
 	lr["rtt"] = fmt.Sprintf("%f", p.LastVal)
-	vm.Set("status", status)
-	vm.Set("code", code)
-	vm.Set("rtt", p.LastVal)
+	_ = vm.Set("status", status)
+	_ = vm.Set("code", code)
+	_ = vm.Set("rtt", p.LastVal)
 	if extractor == "" {
 		value, err := vm.Run(script)
 		if err != nil {
@@ -129,14 +129,16 @@ func checkHTTPResp(p *pollingEnt, extractor, script, status, body string, code i
 		return false, lr, fmt.Errorf("No grok pattern")
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-	g.AddPattern(extractor, grokEnt.Pat)
+	if err := g.AddPattern(extractor, grokEnt.Pat); err != nil {
+		return false, lr, fmt.Errorf("No grok pattern err=%v", err)
+	}
 	cap := fmt.Sprintf("%%{%s}", extractor)
 	values, err := g.Parse(cap, body)
 	if err != nil {
 		return false, lr, err
 	}
 	for k, v := range values {
-		vm.Set(k, v)
+		_ = vm.Set(k, v)
 		lr[k] = v
 	}
 	value, err := vm.Run(script)

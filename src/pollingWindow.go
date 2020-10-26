@@ -11,7 +11,7 @@ import (
 func pollingMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "close":
-		pollingWindow.Hide()
+		_ = pollingWindow.Hide()
 		return "ok", nil
 	case "clear":
 		if len(m.Payload) > 0 {

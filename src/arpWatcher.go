@@ -15,7 +15,9 @@ var localCheckAddrs []string
 
 func arpWatcher(ctx context.Context) {
 	astiLogger.Debug("start arpWacher")
-	loadArpTableFromDB()
+	if err := loadArpTableFromDB(); err != nil {
+		astiLogger.Errorf("loadArpTableFromDB err=%v", err)
+	}
 	checkArpTable()
 	makeLoacalCheckAddrs()
 	timer := time.NewTicker(time.Second * 300)
@@ -173,7 +175,9 @@ func updateArpTable(ip, mac string) {
 	m, ok := arpTable[ip]
 	if !ok {
 		// New
-		updateArpEnt(ip, mac)
+		if err := updateArpEnt(ip, mac); err != nil {
+			astiLogger.Errorf("updateArpEnt err=%v", err)
+		}
 		logCh <- &logEnt{
 			Time: time.Now().UnixNano(),
 			Type: "arplog",
@@ -184,7 +188,9 @@ func updateArpTable(ip, mac string) {
 	}
 	if mac != m {
 		// Change
-		updateArpEnt(ip, mac)
+		if err := updateArpEnt(ip, mac); err != nil {
+			astiLogger.Errorf("updateArpEnt err=%v", err)
+		}
 		logCh <- &logEnt{
 			Time: time.Now().UnixNano(),
 			Type: "arplog",
@@ -230,7 +236,9 @@ func checkNodeMAC() {
 					Event:    fmt.Sprintf("MACアドレス変化 %s -> %s", n.MAC, new),
 				})
 				n.MAC = new
-				updateNode(n)
+				if err := updateNode(n); err != nil {
+					astiLogger.Errorf("updateNode err=%v", err)
+				}
 			}
 		}
 	}

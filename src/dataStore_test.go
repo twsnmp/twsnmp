@@ -12,7 +12,9 @@ func TestDataStore(t *testing.T) {
 	}
 	defer os.Remove("testdata/in.twdb")
 	mapConf.MapName = "Test123"
-	saveMapConfToDB()
+	if err := saveMapConfToDB(); err != nil {
+		t.Fatal(err)
+	}
 	dbStats.BackupFile = "testdata/out.twdb"
 	dbStats.BackupConfigOnly = true
 	err = backupDB()

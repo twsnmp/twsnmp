@@ -179,8 +179,8 @@ func sendMail(subject, body string) error {
 	defer w.Close()
 	body = convNewline(body, "\r\n")
 	message := makeMailMessage(notifyConf.MailFrom, notifyConf.MailTo, subject, body)
-	w.Write([]byte(message))
-	c.Quit()
+	_, _ = w.Write([]byte(message))
+	_ = c.Quit()
 	astiLogger.Infof("Send Mail to %s", notifyConf.MailTo)
 	return nil
 }
@@ -232,8 +232,8 @@ func sendTestMail(testConf *notifyConfEnt) error {
 	defer w.Close()
 	body := "Test Mail.\r\n試験メール.\r\n"
 	message := makeMailMessage(testConf.MailFrom, testConf.MailTo, testConf.Subject, body)
-	w.Write([]byte(message))
-	c.Quit()
+	_, _ = w.Write([]byte(message))
+	_ = c.Quit()
 	return nil
 }
 
@@ -246,8 +246,7 @@ func makeMailMessage(from, to, subject, body string) string {
 	header.WriteString("Content-Type: text/plain; charset=\"utf-8\"\r\n")
 	header.WriteString("Content-Transfer-Encoding: base64\r\n")
 
-	var message bytes.Buffer
-	message = header
+	var message bytes.Buffer = header
 	message.WriteString("\r\n")
 	message.WriteString(add76crlf(base64.StdEncoding.EncodeToString([]byte(body))))
 

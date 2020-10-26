@@ -25,6 +25,7 @@ import (
 	"net"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -130,53 +131,53 @@ func doPolling(p *pollingEnt, startTime int64) {
 	switch p.Type {
 	case "ping":
 		doPollingPing(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "snmp":
 		doPollingSnmp(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "tcp":
 		doPollingTCP(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "http", "https":
 		doPollingHTTP(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "tls":
 		doPollingTLS(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "dns":
 		doPollingDNS(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "ntp":
 		doPollingNTP(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "syslog", "trap", "netflow", "ipfix":
 		doPollingLog(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "syslogpri":
 		if !doPollingSyslogPri(p) {
 			return
 		}
 	case "syslogdevice":
 		doPollingSyslogDevice(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "sysloguser":
 		doPollingSyslogUser(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "syslogflow":
 		doPollingSyslogFlow(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "cmd":
 		doPollingCmd(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "ssh":
 		doPollingSSH(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "vmware":
 		doPollingVmWare(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	case "twsnmp":
 		doPollingTWSNMP(p)
-		updatePolling(p)
+		_ = updatePolling(p)
 	}
 	if p.LogMode == logModeAlways || p.LogMode == logModeAI || (p.LogMode == logModeOnChange && oldState != p.State) {
 		if err := addPollingLog(p); err != nil {
@@ -185,12 +186,41 @@ func doPolling(p *pollingEnt, startTime int64) {
 	}
 	if influxdbConf.PollingLog != "" {
 		if influxdbConf.PollingLog == "all" || p.LogMode != logModeNone {
-			sendPollingLogToInfluxdb(p)
+			_ = sendPollingLogToInfluxdb(p)
 		}
 	}
 }
 
 func doPollingPing(p *pollingEnt) {
+	if p.Polling == "speed" {
+		doPollingCheckNetSpeed(p)
+		return
+	}
+	n, ok := nodes[p.NodeID]
+	if !ok {
+		setPollingError("ping", p, fmt.Errorf("Node not found"))
+		return
+	}
+	size := 64
+	if p.Polling != "" {
+		if i, err := strconv.Atoi(p.Polling); err != nil {
+			size = i
+		}
+	}
+	lr := make(map[string]string)
+	r := doPing(n.IP, p.Timeout, p.Retry, size)
+	p.LastVal = float64(r.Time)
+	if r.Stat == pingOK {
+		lr["rtt"] = fmt.Sprintf("%f", p.LastVal)
+		setPollingState(p, "normal")
+	} else {
+		lr["error"] = fmt.Sprintf("%v", r.Error)
+		setPollingState(p, p.Level)
+	}
+	p.LastResult = makeLastResult(lr)
+}
+
+func doPollingCheckNetSpeed(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
 		setPollingError("ping", p, fmt.Errorf("Node not found"))
@@ -242,7 +272,7 @@ func doPollingDNS(p *pollingEnt) {
 		delete(lr, "error")
 	}
 	oldlr := make(map[string]string)
-	json.Unmarshal([]byte(p.LastResult), &oldlr)
+	_ = json.Unmarshal([]byte(p.LastResult), &oldlr)
 	if !ok {
 		for k, v := range oldlr {
 			if k != "error" {
@@ -256,8 +286,8 @@ func doPollingDNS(p *pollingEnt) {
 	}
 	p.LastVal = float64(rTime)
 	vm := otto.New()
-	vm.Set("rtt", p.LastVal)
-	vm.Set("count", len(out))
+	_ = vm.Set("rtt", p.LastVal)
+	_ = vm.Set("count", len(out))
 	lr["rtt"] = fmt.Sprintf("%f", p.LastVal)
 	lr["count"] = fmt.Sprintf("%d", len(out))
 	switch mode {
@@ -271,22 +301,22 @@ func doPollingDNS(p *pollingEnt) {
 		setPollingState(p, "normal")
 		return
 	case "addr":
-		vm.Set("addr", out)
+		_ = vm.Set("addr", out)
 		lr["addr"] = strings.Join(out, ",")
 	case "host":
-		vm.Set("host", out)
+		_ = vm.Set("host", out)
 		lr["host"] = strings.Join(out, ",")
 	case "mx":
-		vm.Set("mx", out)
+		_ = vm.Set("mx", out)
 		lr["mx"] = strings.Join(out, ",")
 	case "ns":
-		vm.Set("ns", out)
+		_ = vm.Set("ns", out)
 		lr["ns"] = strings.Join(out, ",")
 	case "txt":
-		vm.Set("txt", out)
+		_ = vm.Set("txt", out)
 		lr["txt"] = strings.Join(out, ",")
 	case "cname":
-		vm.Set("cname", out[0])
+		_ = vm.Set("cname", out[0])
 		lr["cname"] = out[0]
 	}
 	value, err := vm.Run(script)
@@ -300,7 +330,6 @@ func doPollingDNS(p *pollingEnt) {
 		return
 	}
 	setPollingState(p, p.Level)
-	return
 }
 
 func doLookup(mode, target string) ([]string, error) {
@@ -376,7 +405,6 @@ func doPollingNTP(p *pollingEnt) {
 		return
 	}
 	setPollingState(p, p.Level)
-	return
 }
 
 func setPollingError(s string, p *pollingEnt, err error) {

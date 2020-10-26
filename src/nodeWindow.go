@@ -12,7 +12,7 @@ import (
 func nodeMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "close":
-		nodeWindow.Hide()
+		_ = nodeWindow.Hide()
 		return "ok", nil
 	case "getNodeBasicInfo":
 		return getNodeBasicInfo(&m)
@@ -167,7 +167,7 @@ func showPolling(m *bootstrap.MessageIn) (interface{}, error) {
 			astiLogger.Errorf("sendSendMessage error=%v", err)
 			return "ng", err
 		}
-		pollingWindow.Show()
+		_ = pollingWindow.Show()
 		return "ok", nil
 	}
 	return "ng", errInvalidNode

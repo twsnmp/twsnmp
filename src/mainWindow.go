@@ -34,10 +34,10 @@ func mainWindowMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (int
 		}
 		return "ok", nil
 	case "resetArpTable":
-		resetArpTable()
+		_ = resetArpTable()
 		return "ok", nil
 	case "clearAllReport":
-		clearAllReport()
+		_ = clearAllReport()
 		return "ok", nil
 	case "clearAllAIMoldes":
 		if err := bootstrap.SendMessage(aiWindow, "clearAllAIMoldes", ""); err != nil {
@@ -175,7 +175,7 @@ func updateInfluxdbConf(m *bootstrap.MessageIn) (interface{}, error) {
 			astiLogger.Errorf("saveInfluxdbConfToDB  error=%v", err)
 			return "ng", err
 		}
-		setupInfluxdb()
+		_ = setupInfluxdb()
 		addEventLog(eventLogEnt{
 			Type:     "user",
 			Level:    "info",
@@ -197,7 +197,7 @@ func updateRestAPIConf(m *bootstrap.MessageIn) (interface{}, error) {
 			astiLogger.Errorf("saveRestAPIConfToDB  error=%v", err)
 			return "ng", err
 		}
-		setupRestAPI()
+		_ = setupRestAPI()
 		addEventLog(eventLogEnt{
 			Type:     "user",
 			Level:    "info",
@@ -237,7 +237,7 @@ func doStartDiscover(m *bootstrap.MessageIn) (interface{}, error) {
 			astiLogger.Errorf("Unmarshal %s error=%v", m.Name, err)
 			return "ng", err
 		}
-		startDiscover()
+		_ = startDiscover()
 	}
 	return "ok", nil
 }
@@ -522,7 +522,7 @@ func doShowNodeWindow(m *bootstrap.MessageIn) (interface{}, error) {
 		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
-	nodeWindow.Show()
+	_ = nodeWindow.Show()
 	return "ok", nil
 }
 
@@ -555,7 +555,7 @@ func setWindowInfo(m *bootstrap.MessageIn) (interface{}, error) {
 	mainWindowInfo.Left = wi.Left
 	mainWindowInfo.Width = wi.Width
 	mainWindowInfo.Height = wi.Height
-	saveMainWindowInfoToDB()
+	_ = saveMainWindowInfoToDB()
 	return "ok", nil
 }
 
@@ -586,7 +586,7 @@ func doShowMIB(m *bootstrap.MessageIn) (interface{}, error) {
 		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
-	mibWindow.Show()
+	_ = mibWindow.Show()
 	return "ok", nil
 }
 
@@ -595,7 +595,7 @@ func doShowLogWindow(m *bootstrap.MessageIn) (interface{}, error) {
 		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
-	logWindow.Show()
+	_ = logWindow.Show()
 	return "ok", nil
 }
 
@@ -604,7 +604,7 @@ func doShowReportWindow(m *bootstrap.MessageIn) (interface{}, error) {
 		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
-	reportWindow.Show()
+	_ = reportWindow.Show()
 	return "ok", nil
 }
 
@@ -613,7 +613,7 @@ func doShowPollingListWindow(m *bootstrap.MessageIn) (interface{}, error) {
 		astiLogger.Errorf("sendSendMessage %s error=%v", m.Name, err)
 		return "ng", err
 	}
-	pollingListWindow.Show()
+	_ = pollingListWindow.Show()
 	return "ok", nil
 }
 
@@ -776,7 +776,7 @@ func pollNowNode(nodeID string) {
 		return true
 	})
 	for _, p := range updateList {
-		updatePolling(p)
+		_ = updatePolling(p)
 	}
 	doPollingCh <- true
 }
@@ -805,7 +805,7 @@ func checkAllPoll() {
 		return true
 	})
 	for _, p := range updateList {
-		updatePolling(p)
+		_ = updatePolling(p)
 	}
 	doPollingCh <- true
 }
@@ -826,7 +826,9 @@ func updateBackImg() {
 			return
 		}
 		defer dst.Close()
-		io.Copy(dst, src)
+		if _, err := io.Copy(dst, src); err != nil {
+			astiLogger.Errorf("updateBackImg err=%v", err)
+		}
 	} else {
 		os.Remove(path)
 	}
@@ -852,7 +854,7 @@ func doDBBackup(m *bootstrap.MessageIn) (interface{}, error) {
 		dbStats.BackupConfigOnly = p.ConfigOnly
 		dbStats.BackupFile = p.BackupFile
 		dbStats.BackupDaily = p.Daily
-		saveBackupParamToDB(&p)
+		_ = saveBackupParamToDB(&p)
 		if p.Daily {
 			astiLogger.Infof("Backup daily = %s", p.BackupFile)
 			now := time.Now()

@@ -57,7 +57,6 @@ func loadGrokMap() {
 			Ok:  e[2],
 		}
 	}
-	return
 }
 
 func splitCmd(p string) []string {
@@ -105,8 +104,12 @@ func doPollingLog(p *pollingEnt) {
 	}
 	vm := otto.New()
 	lr := make(map[string]string)
-	json.Unmarshal([]byte(p.LastResult), &lr)
-	st := lr["lastTime"]
+	st := ""
+	if err := json.Unmarshal([]byte(p.LastResult), &lr); err != nil {
+		astiLogger.Errorf("doPollingLog err=%v", err)
+	} else {
+		st = lr["lastTime"]
+	}
 	if _, err := time.Parse("2006-01-02T15:04", st); err != nil {
 		st = time.Now().Add(-time.Second * time.Duration(p.PollInt)).Format("2006-01-02T15:04")
 	}
@@ -118,8 +121,8 @@ func doPollingLog(p *pollingEnt) {
 		LogType:   p.Type,
 	})
 	lr["lastTime"] = et
-	vm.Set("count", len(logs))
-	vm.Set("interval", p.PollInt)
+	_ = vm.Set("count", len(logs))
+	_ = vm.Set("interval", p.PollInt)
 	lr["count"] = fmt.Sprintf("%d", len(logs))
 	p.LastVal = float64(len(logs))
 	if extractor == "" {
@@ -142,7 +145,10 @@ func doPollingLog(p *pollingEnt) {
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-	g.AddPattern(extractor, grokEnt.Pat)
+	if err := g.AddPattern(extractor, grokEnt.Pat); err != nil {
+		setPollingError("log", p, fmt.Errorf("No grok pattern"))
+		return
+	}
 	cap := fmt.Sprintf("%%{%s}", extractor)
 	for _, l := range logs {
 		values, err := g.Parse(cap, string(l.Log))
@@ -150,7 +156,7 @@ func doPollingLog(p *pollingEnt) {
 			continue
 		}
 		for k, v := range values {
-			vm.Set(k, v)
+			_ = vm.Set(k, v)
 			lr[k] = v
 		}
 		value, err := vm.Run(script)
@@ -167,7 +173,6 @@ func doPollingLog(p *pollingEnt) {
 	}
 	p.LastResult = makeLastResult(lr)
 	setPollingState(p, "normal")
-	return
 }
 
 var syslogPriFilter = regexp.MustCompile(`"priority":(\d+),`)
@@ -176,7 +181,7 @@ func doPollingSyslogPri(p *pollingEnt) bool {
 	_, err := regexp.Compile(p.Polling)
 	if err != nil {
 		setPollingError("log", p, fmt.Errorf("Invalid syslogpri watch format"))
-		updatePolling(p)
+		_ = updatePolling(p)
 		return false
 	}
 	endTime := time.Unix((time.Now().Unix()/3600)*3600, 0)
@@ -212,7 +217,7 @@ func doPollingSyslogPri(p *pollingEnt) bool {
 	}
 	p.LastResult = makeLastResult(lr)
 	setPollingState(p, "normal")
-	updatePolling(p)
+	_ = updatePolling(p)
 	return true
 }
 
@@ -234,10 +239,17 @@ func doPollingSyslogDevice(p *pollingEnt) {
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-	g.AddPattern(mode, grokEnt.Pat)
+	if err := g.AddPattern(mode, grokEnt.Pat); err != nil {
+		setPollingError("log", p, fmt.Errorf("Invalid syslogDevice watch format err=%v", err))
+		return
+	}
 	lr := make(map[string]string)
-	json.Unmarshal([]byte(p.LastResult), &lr)
-	st := lr["lastTime"]
+	st := ""
+	if err := json.Unmarshal([]byte(p.LastResult), &lr); err != nil {
+		astiLogger.Errorf("doPollingSyslogDevice err=%v", err)
+	} else {
+		st = lr["lastTime"]
+	}
 	if _, err := time.Parse("2006-01-02T15:04", st); err != nil {
 		st = time.Now().Add(-time.Second * time.Duration(p.PollInt)).Format("2006-01-02T15:04")
 	}
@@ -277,7 +289,6 @@ func doPollingSyslogDevice(p *pollingEnt) {
 	p.LastVal = float64(count)
 	p.LastResult = makeLastResult(lr)
 	setPollingState(p, "normal")
-	return
 }
 
 func doPollingSyslogUser(p *pollingEnt) {
@@ -303,10 +314,16 @@ func doPollingSyslogUser(p *pollingEnt) {
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-	g.AddPattern(mode, grokEnt.Pat)
+	if err := g.AddPattern(mode, grokEnt.Pat); err != nil {
+		astiLogger.Errorf("doPollingSyslogUser err=%v", err)
+	}
 	lr := make(map[string]string)
-	json.Unmarshal([]byte(p.LastResult), &lr)
-	st := lr["lastTime"]
+	st := ""
+	if err := json.Unmarshal([]byte(p.LastResult), &lr); err != nil {
+		astiLogger.Errorf("doPollingSyslogUser err=%v", err)
+	} else {
+		st = lr["lastTime"]
+	}
 	if _, err := time.Parse("2006-01-02T15:04", st); err != nil {
 		st = time.Now().Add(-time.Second * time.Duration(p.PollInt)).Format("2006-01-02T15:04")
 	}
@@ -336,7 +353,7 @@ func doPollingSyslogUser(p *pollingEnt) {
 		if !ok {
 			continue
 		}
-		client, _ := values["client"]
+		client := values["client"]
 		ok = grokEnt.Ok == stat
 		totalCount++
 		if ok {
@@ -359,7 +376,6 @@ func doPollingSyslogUser(p *pollingEnt) {
 	lr["ok"] = fmt.Sprintf("%d", okCount)
 	p.LastResult = makeLastResult(lr)
 	setPollingState(p, "normal")
-	return
 }
 
 func doPollingSyslogFlow(p *pollingEnt) {
@@ -380,11 +396,17 @@ func doPollingSyslogFlow(p *pollingEnt) {
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-	g.AddPattern(mode, grokEnt.Pat)
-
+	if err := g.AddPattern(mode, grokEnt.Pat); err != nil {
+		setPollingError("syslogFlow", p, fmt.Errorf("Invalid grok"))
+		return
+	}
 	lr := make(map[string]string)
-	json.Unmarshal([]byte(p.LastResult), &lr)
-	st := lr["lastTime"]
+	st := ""
+	if err := json.Unmarshal([]byte(p.LastResult), &lr); err != nil {
+		astiLogger.Errorf("doPollingSyslogFlow err=%v", err)
+	} else {
+		st = lr["lastTime"]
+	}
 	if _, err := time.Parse("2006-01-02T15:04", st); err != nil {
 		st = time.Now().Add(-time.Second * time.Duration(p.PollInt)).Format("2006-01-02T15:04")
 	}
@@ -448,7 +470,6 @@ func doPollingSyslogFlow(p *pollingEnt) {
 	p.LastVal = float64(count)
 	p.LastResult = makeLastResult(lr)
 	setPollingState(p, "normal")
-	return
 }
 
 func getProt(p string) int {

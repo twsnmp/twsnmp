@@ -12,7 +12,7 @@ import (
 func pollingListMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "close":
-		pollingListWindow.Hide()
+		_=pollingListWindow.Hide()
 		return "ok", nil
 	case "getPollings":
 		ret := struct {

@@ -47,8 +47,12 @@ func doPollingCmd(p *pollingEnt) {
 	lr["lastTime"] = time.Now().Format("2006-01-02T15:04")
 	lr["stderr"] = stderr
 	lr["exitCode"] = fmt.Sprintf("%d", exitStatus.Code)
-	vm.Set("exitCode", exitStatus.Code)
-	vm.Set("interval", p.PollInt)
+	if err := vm.Set("exitCode", exitStatus.Code); err != nil {
+		astiLogger.Errorf("doPollingCmd err=%v", err)
+	}
+	if err := vm.Set("interval", p.PollInt); err != nil {
+		astiLogger.Errorf("doPollingCmd err=%v", err)
+	}
 	p.LastVal = float64(exitStatus.Code)
 	if extractor != "" {
 		grokEnt, ok := grokMap[extractor]
@@ -58,7 +62,9 @@ func doPollingCmd(p *pollingEnt) {
 			return
 		}
 		g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-		g.AddPattern(extractor, grokEnt.Pat)
+		if err := g.AddPattern(extractor, grokEnt.Pat); err != nil {
+			astiLogger.Errorf("doPollingCmd err=%v", err)
+		}
 		cap := fmt.Sprintf("%%{%s}", extractor)
 		values, err := g.Parse(cap, string(stdout))
 		if err != nil {
@@ -66,7 +72,9 @@ func doPollingCmd(p *pollingEnt) {
 			return
 		}
 		for k, v := range values {
-			vm.Set(k, v)
+			if err := vm.Set(k, v); err != nil {
+				astiLogger.Errorf("doPollingCmd err=%v", err)
+			}
 			lr[k] = v
 		}
 	}
@@ -77,7 +85,7 @@ func doPollingCmd(p *pollingEnt) {
 	}
 	p.LastVal = 0.0
 	for k, v := range lr {
-		if strings.Index(script, k) >= 0 {
+		if strings.Contains(script, k) {
 			if fv, err := strconv.ParseFloat(v, 64); err != nil || !math.IsNaN(fv) {
 				p.LastVal = fv
 			}
@@ -90,7 +98,6 @@ func doPollingCmd(p *pollingEnt) {
 		return
 	}
 	setPollingState(p, p.Level)
-	return
 }
 
 func doPollingSSH(p *pollingEnt) {
@@ -143,8 +150,8 @@ func doPollingSSH(p *pollingEnt) {
 	}
 	lr["lastTime"] = time.Now().Format("2006-01-02T15:04")
 	lr["exitCode"] = fmt.Sprintf("%d", int(p.LastVal))
-	vm.Set("interval", p.PollInt)
-	vm.Set("exitCode", int(p.LastVal))
+	_ = vm.Set("interval", p.PollInt)
+	_ = vm.Set("exitCode", int(p.LastVal))
 	if extractor != "" {
 		grokEnt, ok := grokMap[extractor]
 		if !ok {
@@ -153,7 +160,7 @@ func doPollingSSH(p *pollingEnt) {
 			return
 		}
 		g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-		g.AddPattern(extractor, grokEnt.Pat)
+		_ = g.AddPattern(extractor, grokEnt.Pat)
 		cap := fmt.Sprintf("%%{%s}", extractor)
 		values, err := g.Parse(cap, string(out))
 		if err != nil {
@@ -161,7 +168,7 @@ func doPollingSSH(p *pollingEnt) {
 			return
 		}
 		for k, v := range values {
-			vm.Set(k, v)
+			_ = vm.Set(k, v)
 			lr[k] = v
 		}
 	}
@@ -172,7 +179,7 @@ func doPollingSSH(p *pollingEnt) {
 	}
 	p.LastVal = 0.0
 	for k, v := range lr {
-		if strings.Index(script, k) >= 0 {
+		if strings.Contains(script, k) {
 			if fv, err := strconv.ParseFloat(v, 64); err != nil || !math.IsNaN(fv) {
 				p.LastVal = fv
 			}
@@ -185,7 +192,6 @@ func doPollingSSH(p *pollingEnt) {
 		return
 	}
 	setPollingState(p, p.Level)
-	return
 }
 
 func sshConnectToHost(p *pollingEnt, port string) (*ssh.Client, *ssh.Session, error) {
@@ -218,7 +224,9 @@ func sshConnectToHost(p *pollingEnt, port string) (*ssh.Client, *ssh.Session, er
 		sshConfig.HostKeyCallback =
 			func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 				n.PublicKey = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(key)))
-				updateNode(n)
+				if err := updateNode(n); err != nil {
+					astiLogger.Errorf("sshConnectToHost err=%v", err)
+				}
 				pollingStateChangeCh <- p
 				return nil
 			}
@@ -228,7 +236,9 @@ func sshConnectToHost(p *pollingEnt, port string) (*ssh.Client, *ssh.Session, er
 	if err != nil {
 		return nil, nil, err
 	}
-	conn.SetDeadline(time.Now().Add(time.Second * time.Duration(p.PollInt-5)))
+	if err := conn.SetDeadline(time.Now().Add(time.Second * time.Duration(p.PollInt-5))); err != nil {
+		astiLogger.Errorf("sshConnectToHost err=%v", err)
+	}
 	c, ch, req, err := ssh.NewClientConn(conn, n.IP+":"+port, sshConfig)
 	if err != nil {
 		return nil, nil, err

@@ -32,7 +32,7 @@ var (
 func mibMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "close":
-		mibWindow.Hide()
+		_ = mibWindow.Hide()
 		return "ok", nil
 	case "mibtree":
 		return makeMibTreeJSON(), nil
@@ -242,7 +242,7 @@ func loadMIBDB() error {
 			mapNameToOID[name] = noid + "." + a[1]
 		}
 		for _, name := range nameList {
-			mib.Add(name, mapNameToOID[name])
+			_ = mib.Add(name, mapNameToOID[name])
 		}
 	}
 	return nil

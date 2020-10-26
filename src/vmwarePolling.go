@@ -34,7 +34,7 @@ func doPollingVmWare(p *pollingEnt) {
 	if us == "" {
 		us = fmt.Sprintf("https://%s:%s@%s/sdk", n.User, n.Password, n.IP)
 	}
-	if strings.Index(us, "/sdk") < 0 {
+	if !strings.Contains(us, "/sdk") {
 		us += "/sdk"
 	}
 	u, err := soap.ParseURL(us)
@@ -68,7 +68,7 @@ func doPollingVmWare(p *pollingEnt) {
 	vm := otto.New()
 	lr := make(map[string]string)
 	for k, v := range rMap {
-		vm.Set(k, v)
+		_ = vm.Set(k, v)
 		lr[k] = fmt.Sprintf("%f", v)
 	}
 	value, err := vm.Run(script)
@@ -79,7 +79,7 @@ func doPollingVmWare(p *pollingEnt) {
 	p.LastResult = makeLastResult(lr)
 	p.LastVal = 0.0
 	for k, v := range rMap {
-		if strings.Index(script, k) >= 0 {
+		if strings.Contains(script, k) {
 			p.LastVal = v
 			break
 		}
@@ -98,7 +98,9 @@ func vmwareHostSystem(ctx context.Context, c *vim25.Client, target string) (map[
 	if err != nil {
 		return r, err
 	}
-	defer v.Destroy(ctx)
+	defer func() {
+		_ = v.Destroy(ctx)
+	}()
 	var hss []mo.HostSystem
 	err = v.Retrieve(ctx, []string{"HostSystem"}, []string{"summary"}, &hss)
 	if err != nil {
@@ -140,7 +142,9 @@ func vmwareDatastore(ctx context.Context, c *vim25.Client, target string) (map[s
 	if err != nil {
 		return r, err
 	}
-	defer v.Destroy(ctx)
+	defer func() {
+		_ = v.Destroy(ctx)
+	}()
 	var dss []mo.Datastore
 	err = v.Retrieve(ctx, []string{"Datastore"}, []string{"summary"}, &dss)
 	if err != nil {
@@ -172,7 +176,9 @@ func vmwareVirtualMachine(ctx context.Context, c *vim25.Client, target string) (
 	if err != nil {
 		return r, err
 	}
-	defer v.Destroy(ctx)
+	defer func() {
+		_ = v.Destroy(ctx)
+	}()
 	var vms []mo.VirtualMachine
 	err = v.Retrieve(ctx, []string{"VirtualMachine"}, []string{"summary"}, &vms)
 	if err != nil {

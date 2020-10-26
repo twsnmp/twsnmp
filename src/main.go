@@ -217,9 +217,9 @@ func main() {
 						setWindowsShowOrHide(aiWindow, *e.MenuItemOptions.Checked)
 						if *debug {
 							if *e.MenuItemOptions.Checked {
-								aiWindow.OpenDevTools()
+								_ = aiWindow.OpenDevTools()
 							} else {
-								aiWindow.CloseDevTools()
+								_ = aiWindow.CloseDevTools()
 							}
 						}
 						return false
@@ -232,35 +232,35 @@ func main() {
 				Label: astikit.StrPtr("マニュアル"),
 				Type:  astilectron.MenuItemTypeNormal,
 				OnClick: func(e astilectron.Event) bool {
-					openStrURL("https://note.com/twsnmp/m/m15c9aeae6e6d")
+					_ = openStrURL("https://note.com/twsnmp/m/m15c9aeae6e6d")
 					return false
 				},
 			}, {
 				Label: astikit.StrPtr("メールで質問"),
 				Type:  astilectron.MenuItemTypeNormal,
 				OnClick: func(e astilectron.Event) bool {
-					openStrURL("mailto:twsnmp@gmail.com?subject=TWSNMP%20Bug%20Report")
+					_ = openStrURL("mailto:twsnmp@gmail.com?subject=TWSNMP%20Bug%20Report")
 					return false
 				},
 			}, {
 				Label: astikit.StrPtr("フィードバック"),
 				Type:  astilectron.MenuItemTypeNormal,
 				OnClick: func(e astilectron.Event) bool {
-					feedbackWindow.Show()
+					_ = feedbackWindow.Show()
 					return false
 				},
 			}, {
 				Label: astikit.StrPtr("公式ページ"),
 				Type:  astilectron.MenuItemTypeNormal,
 				OnClick: func(e astilectron.Event) bool {
-					openStrURL("https://lhx98.linkclub.jp/twise.co.jp/")
+					_ = openStrURL("https://lhx98.linkclub.jp/twise.co.jp/")
 					return false
 				},
 			}, {
 				Label: astikit.StrPtr("最新版ダウンロード"),
 				Type:  astilectron.MenuItemTypeNormal,
 				OnClick: func(e astilectron.Event) bool {
-					openStrURL("https://github.com/twsnmp/twsnmp/releases")
+					_ = openStrURL("https://github.com/twsnmp/twsnmp/releases")
 					return false
 				},
 			},
@@ -286,10 +286,12 @@ func main() {
 			path = filepath.Join(app.Paths().DataDirectory(), "resources", "tlsparams.csv")
 			loadTLSParamsMap(path)
 			path = filepath.Join(app.Paths().DataDirectory(), "resources", "oui.txt")
-			oui.Open(path)
+			if err := oui.Open(path); err != nil {
+				astiLogger.Errorf("OUI Open err=%v", err)
+			}
 			path = filepath.Join(app.Paths().DataDirectory(), "resources", "services.txt")
 			resAppPath = filepath.Join(app.Paths().DataDirectory(), "resources", "app")
-			loadServiceMap(path)
+			_ = loadServiceMap(path)
 			startBackend(ctx)
 			mainWindow.On(astilectron.EventNameWindowEventClosed, func(e astilectron.Event) (deleteListener bool) {
 				astiLogger.Debug("Main Window Closed")
@@ -305,19 +307,19 @@ func main() {
 					continue
 				}
 				if w[i] != aiWindow {
-					mi.SetVisible(false)
+					_ = mi.SetVisible(false)
 				}
 				w[i].On(astilectron.EventNameWindowEventHide, func(e astilectron.Event) (deleteListener bool) {
-					mi.SetChecked(false)
+					_ = mi.SetChecked(false)
 					return
 				})
 				w[i].On(astilectron.EventNameWindowEventMinimize, func(e astilectron.Event) (deleteListener bool) {
-					mi.SetChecked(false)
+					_ = mi.SetChecked(false)
 					return
 				})
 				w[i].On(astilectron.EventNameWindowEventShow, func(e astilectron.Event) (deleteListener bool) {
-					mi.SetChecked(true)
-					mi.SetVisible(true)
+					_ = mi.SetChecked(true)
+					_ = mi.SetVisible(true)
 					return
 				})
 			}
@@ -503,14 +505,14 @@ func main() {
 	stopDiscover()
 	cancel()
 	closeDB()
-	astiLogger.Debug(fmt.Sprintf("End of main()"))
+	astiLogger.Debug("End of main()")
 }
 
 func setWindowsShowOrHide(w *astilectron.Window, show bool) {
 	if show {
-		w.Show()
+		_ = w.Show()
 	} else {
-		w.Hide()
+		_ = w.Hide()
 	}
 }
 
@@ -543,7 +545,7 @@ func startMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interfac
 func feedbackMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "exit":
-		feedbackWindow.Hide()
+		_ = feedbackWindow.Hide()
 		return "ok", nil
 	case "send":
 		if len(m.Payload) > 0 {
@@ -553,7 +555,7 @@ func feedbackMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (inter
 				return err.Error(), err
 			}
 			sendFeedback(msg)
-			feedbackWindow.Hide()
+			_ = feedbackWindow.Hide()
 		}
 	}
 	return "", nil
@@ -583,9 +585,9 @@ func startBackend(ctx context.Context) {
 		if err := openDB(dbPath); err != nil {
 			astiLogger.Fatal(fmt.Sprintf("running bootstrap failed err=%v", err))
 		}
-		setupInfluxdb()
-		setupRestAPI()
-		loadMIBDB()
+		_ = setupInfluxdb()
+		_ = setupRestAPI()
+		_ = loadMIBDB()
 		go mainWindowBackend(ctx)
 		go eventLogger(ctx)
 		addEventLog(eventLogEnt{
@@ -599,13 +601,13 @@ func startBackend(ctx context.Context) {
 		go arpWatcher(ctx)
 		go aiWindowBackend(ctx)
 		go reportBackend(ctx)
-		startWindow.Hide()
-		mainWindow.Show()
-		mainWindow.Resize(mainWindowInfo.Width, mainWindowInfo.Height)
+		_ = startWindow.Hide()
+		_ = mainWindow.Show()
+		_ = mainWindow.Resize(mainWindowInfo.Width, mainWindowInfo.Height)
 		if mainWindowInfo.Top < 0 {
-			mainWindow.Center()
+			_ = mainWindow.Center()
 		} else {
-			mainWindow.Move(mainWindowInfo.Left, mainWindowInfo.Top)
+			_ = mainWindow.Move(mainWindowInfo.Left, mainWindowInfo.Top)
 		}
 	}()
 }

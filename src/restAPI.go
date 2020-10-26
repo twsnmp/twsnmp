@@ -174,7 +174,7 @@ func restAPIGetMapStatus(w rest.ResponseWriter, req *rest.Request) {
 	}
 	ms.DBSize = dbStats.NSize
 	ms.DBSizeStr = dbStats.Size
-	w.WriteJson(ms)
+	_ = w.WriteJson(ms)
 }
 
 type restAPIMapDataEnt struct {
@@ -237,7 +237,7 @@ func makeRestAPIMapData() {
 
 func restAPIGetMapData(w rest.ResponseWriter, req *rest.Request) {
 	makeRestAPIMapData()
-	w.WriteJson(&restAPIMapData)
+	_ = w.WriteJson(&restAPIMapData)
 }
 
 // TWSNMPへのポーリング

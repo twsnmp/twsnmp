@@ -104,7 +104,7 @@ func doPollingSnmpSysUpTime(p *pollingEnt, agent *gosnmp.GoSNMP) {
 		return
 	}
 	lr := make(map[string]string)
-	json.Unmarshal([]byte(p.LastResult), &lr)
+	_ = json.Unmarshal([]byte(p.LastResult), &lr)
 	if lut, ok := lr["sysUpTime"]; ok {
 		lastUptime, err := strconv.ParseInt(lut, 10, 64)
 		if err != nil {
@@ -166,7 +166,6 @@ func doPollingSnmpIF(p *pollingEnt, ps string, agent *gosnmp.GoSNMP) {
 		return
 	}
 	setPollingState(p, "unknown")
-	return
 }
 
 func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) {
@@ -203,7 +202,7 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 	for _, variable := range result.Variables {
 		if variable.Name == mib.NameToOID("sysUpTime.0") {
 			sut := gosnmp.ToBigInt(variable.Value).Int64()
-			vm.Set("sysUpTime", sut)
+			_ = vm.Set("sysUpTime", sut)
 			lr["sysUpTime.0"] = fmt.Sprintf("%d", sut)
 			if mode == "ps" || mode == "delta" {
 				lr["sysUpTime.0_Last"] = fmt.Sprintf("%d", sut)
@@ -214,15 +213,15 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 		vn := getValueName(n)
 		if variable.Type == gosnmp.OctetString {
 			v := variable.Value.(string)
-			vm.Set(vn, v)
+			_ = vm.Set(vn, v)
 			lr[n] = v
 		} else if variable.Type == gosnmp.ObjectIdentifier {
 			v := mib.OIDToName(variable.Value.(string))
-			vm.Set(vn, v)
+			_ = vm.Set(vn, v)
 			lr[n] = v
 		} else {
 			v := gosnmp.ToBigInt(variable.Value).Int64()
-			vm.Set(vn, v)
+			_ = vm.Set(vn, v)
 			lr[n] = fmt.Sprintf("%d", v)
 			if mode == "ps" || mode == "delta" {
 				lr[n+"_Last"] = lr[n]
@@ -261,7 +260,7 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 		for k, v := range nvmap {
 			lr[k] = fmt.Sprintf("%f", float64(v)/sut)
 			vn := getValueName(k)
-			vm.Set(vn, float64(v)/sut)
+			_ = vm.Set(vn, float64(v)/sut)
 		}
 	}
 	value, err := vm.Run(script)
@@ -282,7 +281,6 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 		return
 	}
 	setPollingError("snmp", p, err)
-	return
 }
 
 func getValueName(n string) string {
@@ -335,7 +333,7 @@ func doPollingSnmpCount(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP
 	}
 	vm := otto.New()
 	lr := make(map[string]string)
-	vm.Set("count", count)
+	_ = vm.Set("count", count)
 	lr["count"] = fmt.Sprintf("%d", count)
 	value, err := vm.Run(script)
 	if err == nil {
@@ -349,5 +347,4 @@ func doPollingSnmpCount(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP
 		return
 	}
 	setPollingError("snmp", p, err)
-	return
 }
