@@ -812,6 +812,9 @@ function createMIBDBPane() {
 }
 
 function createExtConfPane() {
+  if(pane){
+    return;
+  }
   pane = new Tweakpane({
     title: "拡張設定"
   });

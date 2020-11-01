@@ -9,12 +9,14 @@ let resultChart;
 let aiLossChart;
 let aiHeatmap;
 let currentPage;
-let resultChartMode = "";
 let resultChartEnt = "";
-let numValEntList ={};
+let numValEntList = {};
 let pane;
 
 function showPage(mode) {
+  if(pane) {
+    return;
+  }
   const pages = ["log", "state", "result", "ai"];
   pages.forEach(p => {
     if (mode == p) {
@@ -36,7 +38,7 @@ function showPage(mode) {
     $('.toolbar-actions button.get').removeClass("hidden");
     $('.toolbar-actions button.clear').removeClass("hidden");
   }
-  if(mode == "result") {
+  if (mode == "result") {
     $('.toolbar-actions button.setting').removeClass("hidden");
   } else {
     $('.toolbar-actions button.setting').addClass("hidden");
@@ -620,7 +622,6 @@ function clearData() {
     }]
   });
   aiHeatmap.resize();
-  resultChartMode = "";
   resultChartEnt = "";
 }
 
@@ -679,6 +680,9 @@ document.addEventListener('astilectron-ready', function () {
     resultChart.resize();
   });
   $('#ai').click(() => {
+    if(pane){
+      return;
+    }
     showPage("ai");
     updateAIPage();
   });
@@ -687,15 +691,24 @@ document.addEventListener('astilectron-ready', function () {
     });
   });
   $('.toolbar-actions button.clear').click(() => {
+    if(pane){
+      return;
+    }
     if (!confirmDialog("ログクリア", "ポーリングログをクリアしますか?")) {
       return;
     }
     astilectron.sendMessage({ name: "clear", payload: polling.ID }, message => {
+      if(pane){
+        return;
+      }
       clearData();
       showPage("log");
     });
   });
   $('.toolbar-actions button.get').click(() => {
+    if(pane){
+      return;
+    }
     updateData();
   });
   $('.toolbar-actions button.setting').click(() => {
@@ -703,8 +716,8 @@ document.addEventListener('astilectron-ready', function () {
   });
   $('.toolbar-actions button.ai').click(() => {
     astilectron.sendMessage({ name: "doai", payload: polling.ID }, message => {
-      if(message && message.payload == "ok") {
-        dialog.showMessageBox({message: "再分析開始しました。", title: "AI分析"});
+      if (message && message.payload == "ok") {
+        dialog.showMessageBox({ message: "AI再分析開始しました。", title: "AI分析" });
       } else {
         dialog.showErrorBox("エラー", "AI再分析できません。");
       }
@@ -878,11 +891,11 @@ function setWindowTitle(n, p) {
 }
 
 function setDataList(s) {
-  numValEntList = {"数値データ":""};
+  numValEntList = { "数値データ": "" };
   try {
     JSON.parse(s, (k, v) => {
       if (k != "" && parseFloat(v) != NaN) {
-        numValEntList[k] = k
+        numValEntList[getChartModeName(k)] = k
       }
     });
   } catch (e) {
@@ -908,9 +921,15 @@ function getNumVal(ent, s) {
 }
 
 function getDispParams() {
-  if (resultChartMode == "") {
+  let resultChartMode = "";
+  if (resultChartEnt == "") {
+    // 数値の場合はポーリングの種類から選ぶ
     switch (polling.Type) {
       case "ping":
+        if (polling.Polling == "line") {
+          resultChartMode = "speed";
+          break;
+        }
       case "tcp":
       case "http":
       case "https":
@@ -925,24 +944,25 @@ function getDispParams() {
         resultChartMode = "none"
         break;
     }
+  } else {
+    resultChartMode = resultChartEnt;
   }
-  switch (resultChartMode) {
-    case "rtt":
-      return {
-        mul: 1.0 / (1000 * 1000 * 1000),
-        axis: "応答時間(秒)"
-      }
-    case "successRate":
-      return {
-        mul: 100.0,
-        axis: "成功率(%)"
-      }
-    default:
-      return {
-        mul: 1.0,
-        axis: ""
-      }
+  const r = chartDispInfo[resultChartMode];
+  if (r) {
+    return r;
   }
+  return {
+    mul: 1.0,
+    axis: ""
+  }
+}
+
+function getChartModeName(mode) {
+  const r = chartDispInfo[mode];
+  if (r) {
+    return r.axis;
+  }
+  return(mode);
 }
 
 function updateAIPage() {
@@ -996,26 +1016,17 @@ function updateAIPage() {
   });
 }
 
-function createChartSettingPane(){
-  if(pane){
+function createChartSettingPane() {
+  if (pane) {
     return;
   }
   const p = {
-    Mode: resultChartMode,
     Ent: resultChartEnt,
   };
   pane = new Tweakpane({
-    title: "グラフ設定" ,
+    title: "グラフ設定",
   });
-  pane.addInput(p, 'Mode', { 
-    label: "表示モード",
-    options: {
-      "無変換":"none",
-      "応答時間":"rtt",
-      "成功率":"successRate"
-    },
-  });
-  pane.addInput(p, 'Ent', { 
+  pane.addInput(p, 'Ent', {
     label: "表示項目",
     options: numValEntList,
   });
@@ -1029,9 +1040,9 @@ function createChartSettingPane(){
     title: '適用',
   }).on('click', (value) => {
     resultChartEnt = p.Ent;
-    resultChartMode = p.Mode;
     pane.dispose();
     pane = undefined;
     $('.toolbar-actions button.get').click();
   });
 }
+

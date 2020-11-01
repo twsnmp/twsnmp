@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"runtime"
 	"sort"
@@ -192,8 +193,8 @@ func doPolling(p *pollingEnt, startTime int64) {
 }
 
 func doPollingPing(p *pollingEnt) {
-	if p.Polling == "speed" {
-		doPollingCheckNetSpeed(p)
+	if p.Polling == "line" {
+		doPollingCheckLineCond(p)
 		return
 	}
 	n, ok := nodes[p.NodeID]
@@ -203,7 +204,7 @@ func doPollingPing(p *pollingEnt) {
 	}
 	size := 64
 	if p.Polling != "" {
-		if i, err := strconv.Atoi(p.Polling); err != nil {
+		if i, err := strconv.Atoi(p.Polling); err == nil {
 			size = i
 		}
 	}
@@ -220,23 +221,88 @@ func doPollingPing(p *pollingEnt) {
 	p.LastResult = makeLastResult(lr)
 }
 
-func doPollingCheckNetSpeed(p *pollingEnt) {
+func doPollingCheckLineCond(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
 		setPollingError("ping", p, fmt.Errorf("Node not found"))
 		return
 	}
-	lr := make(map[string]string)
-	r := doPing(n.IP, p.Timeout, p.Retry, 64)
-	p.LastVal = float64(r.Time)
-	if r.Stat == pingOK {
-		lr["rtt"] = fmt.Sprintf("%f", p.LastVal)
-		setPollingState(p, "normal")
-	} else {
-		lr["error"] = fmt.Sprintf("%v", r.Error)
-		setPollingState(p, p.Level)
+	lastError := ""
+	speed := []float64{}
+	rtt := []float64{}
+	fail := 0
+	for i := 0; i < 20; i++ {
+		r64 := doPing(n.IP, p.Timeout, p.Retry, 64)
+		if r64.Stat != pingOK {
+			lastError = fmt.Sprintf("%v", r64.Error)
+			fail += 1
+			continue
+		}
+		r1364 := doPing(n.IP, p.Timeout, p.Retry, 1364)
+		if r1364.Stat != pingOK {
+			lastError = fmt.Sprintf("%v", r1364.Error)
+			fail += 1
+			continue
+		}
+		if r64.Time == r1364.Time {
+			fail += 1
+			continue
+		}
+		a := float64(64.0-1364.0) / float64(r64.Time-r1364.Time)
+		b := float64(r64.Time) - a*float64(64.0)
+		s := a * (8.0 * 1000.0) //Mbps
+		if s > 0.0 && s < 1000.0 && b > 0.0 {
+			rtt = append(rtt, b)
+			speed = append(speed, s)
+			if len(speed) >= 5 {
+				break
+			}
+		} else {
+			fail += 1
+			astiLogger.Errorf("speed s=%f a=%f b=%f", s, a, b)
+		}
 	}
+	lr := make(map[string]string)
+	if len(speed) < 3 {
+		lr["error"] = lastError
+		p.LastVal = 0.0
+		setPollingState(p, p.Level)
+		p.LastResult = makeLastResult(lr)
+		return
+	}
+	// 5回の測定から平均値と変動係数を計算
+	rm, rcv := calcMeanCV(rtt)
+	lr["rtt"] = fmt.Sprintf("%f", rm)
+	lr["rtt_cv"] = fmt.Sprintf("%f", rcv)
+	sm, scv := calcMeanCV(speed)
+	p.LastVal = sm
+	lr["speed"] = fmt.Sprintf("%f", sm)
+	lr["speed_cv"] = fmt.Sprintf("%f", scv)
+	lr["fail"] = fmt.Sprintf("%d", fail)
+	setPollingState(p, "normal")
 	p.LastResult = makeLastResult(lr)
+}
+
+func calcMeanCV(a []float64) (float64, float64) {
+	if len(a) < 1 {
+		return 0.0, 0.0
+	}
+	n := float64(len(a))
+	m := float64(0.0)
+	for _, d := range a {
+		m += d
+	}
+	m /= n
+	if m == 0.0 {
+		return 0.0, 0.0
+	}
+	v := float64(0.0)
+	for _, d := range a {
+		v += (d - m) * (d - m)
+	}
+	v /= n
+	sigma := math.Sqrt(v)
+	return m, sigma / m
 }
 
 func doPollingDNS(p *pollingEnt) {

@@ -1,100 +1,100 @@
 'use strict';
 const { dialog } = require('electron').remote
 // ICONS
-const iconArray =[
-  ["desktop",0xf108],
-  ["tablet",0xf3fa],
-  ["server",0xf233],
-  ["hdd",0xf0a0],
-  ["laptop",0xf109],
-  ["network-wired",0xf6ff],
-  ["wifi",0xf1eb],
-  ["cloud",0xf0c2],
-  ["print",0xf02f],
-  ["sync",0xf021],
-  ["mobile-alt",0xf3cd],
-  ["tv",0xf26c],
-  ["database",0xf1c0],
-  ["clock",0xf017],
-  ["phone",0xf095],
-  ["video",0xf03d],
-  ["globe",0xf0ac],
+const iconArray = [
+  ["desktop", 0xf108],
+  ["tablet", 0xf3fa],
+  ["server", 0xf233],
+  ["hdd", 0xf0a0],
+  ["laptop", 0xf109],
+  ["network-wired", 0xf6ff],
+  ["wifi", 0xf1eb],
+  ["cloud", 0xf0c2],
+  ["print", 0xf02f],
+  ["sync", 0xf021],
+  ["mobile-alt", 0xf3cd],
+  ["tv", 0xf26c],
+  ["database", 0xf1c0],
+  ["clock", 0xf017],
+  ["phone", 0xf095],
+  ["video", 0xf03d],
+  ["globe", 0xf0ac],
 ];
 const iconMap = new Map(iconArray);
 
 // State Colors
 const stateColorArray = [
-    ["high","#e31a1c"],
-    ["low","#fb9a99"],
-    ["warn","#dfdf22"],
-    ["normal","#33a02c"],
-    ["info","#1f78b4"],
-    ["repair","#1f78b4"]
+  ["high", "#e31a1c"],
+  ["low", "#fb9a99"],
+  ["warn", "#dfdf22"],
+  ["normal", "#33a02c"],
+  ["info", "#1f78b4"],
+  ["repair", "#1f78b4"]
 ];
-const  stateColorMap = new Map(stateColorArray);
+const stateColorMap = new Map(stateColorArray);
 
 // State Html
 const stateHtmlArray = [
-  ["high",'<i class="fas fa-exclamation-circle state state_high"></i>重度'],
-  ["low",'<i class="fas fa-exclamation-circle state state_low"></i>軽度'],
-  ["warn",'<i class="fas fa-exclamation-triangle state state_warn"></i>注意'],
-  ["normal",'<i class="fas fa-check-circle state state_normal"></i>正常'],
-  ["info",'<i class="fas fa-info-circle state state_info"></i>情報'],
-  ["repair",'<i class="fas fa-check-circle state state_repair"></i>復帰']
+  ["high", '<i class="fas fa-exclamation-circle state state_high"></i>重度'],
+  ["low", '<i class="fas fa-exclamation-circle state state_low"></i>軽度'],
+  ["warn", '<i class="fas fa-exclamation-triangle state state_warn"></i>注意'],
+  ["normal", '<i class="fas fa-check-circle state state_normal"></i>正常'],
+  ["info", '<i class="fas fa-info-circle state state_info"></i>情報'],
+  ["repair", '<i class="fas fa-check-circle state state_repair"></i>復帰']
 ];
 
-const  stateHtmlMap = new Map(stateHtmlArray);
+const stateHtmlMap = new Map(stateHtmlArray);
 
 // Service Name Map
 const serviceNameArray = [
-  ["submission/tcp","SMTP"],
-  ["http/tcp","HTTP"],
-  ["https/tcp","HTTPS"],
-  ["ldap/tcp","LDAP"],
-  ["ldaps/tcp","LDAPS"],
-  ["domain/tcp","DNS"],
-  ["domain/udp","DNS"],
-  ["snmp/udp","SNMP"],
-  ["ntp/udp","NTP"],
-  ["smtp/tcp","SMTP"],
-  ["pop3/tcp","POP3"],
-  ["pop3s/tcp","POP3S"],
-  ["imap/tcp","IMAP"],
-  ["imaps/tcp","IMAPS"],
-  ["ssh/tcp","SSH"],
-  ["telnet/tcp","TELNET"],
-  ["ftp/tcp","FTP"],
-  ["bootps/udp","DHCP"],
-  ["syslog/udp","SYSLOG"],
-  ["microsoft-ds/tcp","CIFS"],
-  ["rfb/tcp","RFB"],
-  ["netbios-ns/udp","NETBIOS"],
-  ["netbios-dgm/udp","NETBIOS"],
-  ["icmp","ICMP"],
-  ["igmp","IGMP"]
+  ["submission/tcp", "SMTP"],
+  ["http/tcp", "HTTP"],
+  ["https/tcp", "HTTPS"],
+  ["ldap/tcp", "LDAP"],
+  ["ldaps/tcp", "LDAPS"],
+  ["domain/tcp", "DNS"],
+  ["domain/udp", "DNS"],
+  ["snmp/udp", "SNMP"],
+  ["ntp/udp", "NTP"],
+  ["smtp/tcp", "SMTP"],
+  ["pop3/tcp", "POP3"],
+  ["pop3s/tcp", "POP3S"],
+  ["imap/tcp", "IMAP"],
+  ["imaps/tcp", "IMAPS"],
+  ["ssh/tcp", "SSH"],
+  ["telnet/tcp", "TELNET"],
+  ["ftp/tcp", "FTP"],
+  ["bootps/udp", "DHCP"],
+  ["syslog/udp", "SYSLOG"],
+  ["microsoft-ds/tcp", "CIFS"],
+  ["rfb/tcp", "RFB"],
+  ["netbios-ns/udp", "NETBIOS"],
+  ["netbios-dgm/udp", "NETBIOS"],
+  ["icmp", "ICMP"],
+  ["igmp", "IGMP"]
 ];
 
-const  serviceNameMap = new Map(serviceNameArray);
+const serviceNameMap = new Map(serviceNameArray);
 
 
 function getIcon(icon) {
   const ret = iconMap.get(icon);
-  return  ret  ? char(ret) : char(0xf059);
- }
+  return ret ? char(ret) : char(0xf059);
+}
 
 function getStateColor(state) {
   const ret = stateColorMap.get(state);
-  return  ret ? color(ret) : color("#999");
+  return ret ? color(ret) : color("#999");
 }
 
 function getStateHtml(state) {
   const ret = stateHtmlMap.get(state);
-  return  ret ? ret : '<i class="fas fa-check-circle state state_unknown"></i>不明';
+  return ret ? ret : '<i class="fas fa-check-circle state state_unknown"></i>不明';
 }
 
 function getServiceName(s) {
   const ret = serviceNameMap.get(s);
-  return  ret ? ret : 'Other';
+  return ret ? ret : 'Other';
 }
 
 // severity Html
@@ -111,10 +111,10 @@ const severityHtml = [
 
 
 function getSeverityHtml(s) {
-  if( s >= 0 && s < severityHtml.length ){
+  if (s >= 0 && s < severityHtml.length) {
     return severityHtml[s];
   }
-  return  severityHtml[6];
+  return severityHtml[6];
 }
 
 // Facility Name List
@@ -146,10 +146,10 @@ const facilityNames = [
 ];
 
 function getFacilityName(f) {
-  if( f >=0 && f < facilityNames.length){
+  if (f >= 0 && f < facilityNames.length) {
     return facilityNames[f];
   }
-  return  "unknown";
+  return "unknown";
 }
 
 const trapGenericNames = [
@@ -163,10 +163,10 @@ const trapGenericNames = [
 ];
 
 function getTrapGenericName(g) {
-  if( g >=0 && g < trapGenericNames.length){
+  if (g >= 0 && g < trapGenericNames.length) {
     return trapGenericNames[g];
   }
-  return  `unknown(${g})`;
+  return `unknown(${g})`;
 }
 
 const logModeHtml = [
@@ -177,10 +177,10 @@ const logModeHtml = [
 ];
 
 function getLogModeHtml(m) {
-  if( m >=0 && m < logModeHtml.length){
+  if (m >= 0 && m < logModeHtml.length) {
     return logModeHtml[m];
   }
-  return  logModeHtml[0];
+  return logModeHtml[0];
 }
 
 const logModeList = {
@@ -204,14 +204,41 @@ const pollingTypeList = {
   "SYSLOG Device": "syslogdevice",
   "SYSLOG User": "sysloguser",
   "SYSLOG Flow": "syslogflow",
-  "TRAP":   "trap",
+  "TRAP": "trap",
   "NetFlow": "netflow",
-  "IPFIX":  "ipfix",
-  "Command":  "cmd",
-  "SSH":  "ssh",
-  "TWSNMP":  "twsnmp",
-  "VMware":  "vmware",
+  "IPFIX": "ipfix",
+  "Command": "cmd",
+  "SSH": "ssh",
+  "TWSNMP": "twsnmp",
+  "VMware": "vmware",
 };
+
+const chartDispInfo = {
+  "rtt": {
+    mul: 1.0 / (1000 * 1000 * 1000),
+    axis: "応答時間(秒)"
+  },
+  "rtt_cv": {
+    mul: 1.0,
+    axis: "応答時間変動係数"
+  },
+  "successRate": {
+    mul: 100.0,
+    axis: "成功率(%)"
+  },
+  "speed": {
+    mul: 1.0,
+    axis: "回線速度(Mbps)"
+  },
+  "speed_cv": {
+    mul: 1.0,
+    axis: "回線速度変動係数"
+  },
+  "fail": {
+    mul: 1.0,
+    axis: "失敗回数"
+  }
+}
 
 const levelList = {
   "重度": "high",
@@ -221,9 +248,9 @@ const levelList = {
 };
 
 
-function confirmDialog(title,msg) {
+function confirmDialog(title, msg) {
   return dialog.showMessageBoxSync(
-   {type:"question",title:title,cancelId:1,message:msg,buttons:["OK","Cancel"]} 
+    { type: "question", title: title, cancelId: 1, message: msg, buttons: ["OK", "Cancel"] }
   ) == 0;
 }
 
@@ -231,7 +258,7 @@ function setPasswordInput(pos) {
   $('input.tp-txtiv_i').eq(pos).attr('type', 'password');
 }
 
-function setInputError(pos,msg) {
+function setInputError(pos, msg) {
   $('input.tp-txtiv_i').eq(pos).addClass('error');
   $('input.tp-txtiv_i').eq(pos).after(`<p class="error">${msg}</p>`);
 }
