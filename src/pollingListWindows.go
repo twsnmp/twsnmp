@@ -12,7 +12,7 @@ import (
 func pollingListMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "close":
-		_=pollingListWindow.Hide()
+		_ = pollingListWindow.Hide()
 		return "ok", nil
 	case "getPollings":
 		ret := struct {
@@ -101,8 +101,8 @@ func importPollingTemplate(m *bootstrap.MessageIn) (interface{}, error) {
 			astiLogger.Errorf("Unmarshal pollingTemplateEnt error=%v", err)
 			return "ng", err
 		}
-		for _, pt := range list {
-			if err := addPollingTemplate(&pt); err != nil {
+		for i := range list {
+			if err := addPollingTemplate(&list[i]); err != nil {
 				astiLogger.Errorf("addPollingTemplate  error=%v", err)
 			}
 		}
