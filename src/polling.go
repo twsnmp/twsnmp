@@ -259,7 +259,6 @@ func doPollingCheckLineCond(p *pollingEnt) {
 			}
 		} else {
 			fail += 1
-			astiLogger.Errorf("speed s=%f a=%f b=%f", s, a, b)
 		}
 	}
 	lr := make(map[string]string)

@@ -69,6 +69,8 @@ func doPollingSnmp(p *pollingEnt) {
 		doPollingSnmpIF(p, mode, agent)
 	} else if mode == "count" {
 		doPollingSnmpCount(p, mode, params, agent)
+	} else if mode == "process" {
+		doPollingSnmpProcess(p, mode, params, agent)
 	} else {
 		doPollingSnmpGet(p, mode, params, agent)
 	}
@@ -335,6 +337,82 @@ func doPollingSnmpCount(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP
 	lr := make(map[string]string)
 	_ = vm.Set("count", count)
 	lr["count"] = fmt.Sprintf("%d", count)
+	value, err := vm.Run(script)
+	if err == nil {
+		p.LastVal = float64(count)
+		p.LastResult = makeLastResult(lr)
+		if ok, _ := value.ToBoolean(); !ok {
+			setPollingState(p, p.Level)
+			return
+		}
+		setPollingState(p, "normal")
+		return
+	}
+	setPollingError("snmp", p, err)
+}
+
+func doPollingSnmpProcess(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) {
+	cmds := splitCmd(params)
+	if len(cmds) < 2 {
+		setPollingError("snmp", p, fmt.Errorf("doPollingSnmpProcess Invalid format"))
+		return
+	}
+	oid := mib.NameToOID("hrSWRunName")
+	filter := parseFilter(cmds[0])
+	script := cmds[1]
+	var regexFilter *regexp.Regexp
+	var err error
+	if filter != "" {
+		if regexFilter, err = regexp.Compile(filter); err != nil {
+			astiLogger.Errorf("doPollingSnmpProcess err=%v", err)
+			regexFilter = nil
+		}
+	}
+	lastPidSum := 0
+	lr := make(map[string]string)
+	if err := json.Unmarshal([]byte(p.LastResult), &lr); err == nil {
+		if s, ok := lr["pidSum"]; ok {
+			if n, err := strconv.Atoi(s); err == nil {
+				lastPidSum = n
+			}
+		}
+	}
+	pidSum := 0
+	count := 0
+	if err := agent.Walk(oid, func(variable gosnmp.SnmpPDU) error {
+		if variable.Type != gosnmp.OctetString {
+			return nil
+		}
+		n := mib.OIDToName(variable.Name)
+		a := strings.SplitN(n, ".", 2)
+		s := variable.Value.(string)
+		if len(a) != 2 || a[0] != "hrSWRunName" {
+			return nil
+		}
+		pid, err := strconv.Atoi(a[1])
+		if err != nil {
+			return nil
+		}
+		if regexFilter != nil && !regexFilter.Match([]byte(s)) {
+			return nil
+		}
+		pidSum += pid
+		count++
+		return nil
+	}); err != nil {
+		setPollingError("snmp", p, err)
+		return
+	}
+	changed := 0
+	if lastPidSum != 0 && pidSum != lastPidSum {
+		changed = 1
+	}
+	vm := otto.New()
+	_ = vm.Set("count", count)
+	_ = vm.Set("changed", changed)
+	lr["count"] = fmt.Sprintf("%d", count)
+	lr["pidSum"] = fmt.Sprintf("%d", pidSum)
+	lr["changed"] = fmt.Sprintf("%d", changed)
 	value, err := vm.Run(script)
 	if err == nil {
 		p.LastVal = float64(count)
