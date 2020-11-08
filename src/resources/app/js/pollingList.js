@@ -10,6 +10,9 @@ let templateList = {};
 let nodes = {};
 
 function showPage(mode) {
+  if(pane){
+    return;
+  }
   const pages = ["polling", "template"];
   pages.forEach(p => {
     if (mode == p) {
@@ -52,7 +55,6 @@ function setupPolling() {
   });
 }
 
-
 function setPollingBtns(show,bAn){
   const btns = ["edit","delete","poll","template"];
   btns.forEach( b =>{
@@ -79,7 +81,6 @@ function setTemplateBtns(show){
     }
   });
 }
-
 
 function makePollingTable() {
   polling = $('#polling_table').DataTable({

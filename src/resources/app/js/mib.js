@@ -74,20 +74,24 @@ function showTable(vbl) {
   const indexes = [];
   const rows = [];
   vbl.forEach(vb=>{
-    const a = vb.split("=",2)
-    if(a.length == 2){
-      const b = a[0].split(".",2)
-      if(b.length == 2 ){
-        if(!names.includes(b[0])){
-          names.push(b[0]);
+    let i = vb.indexOf("=");
+    if(i > 0){
+      const name = vb.substring(0,i);
+      const val  = vb.substring(i+1);
+      i = name.indexOf(".");
+      if(i > 0){
+        const base = name.substring(0,i);
+        const index = name.substring(i+1);
+        if(!names.includes(base)){
+          names.push(base);
         }
-        if(!indexes.includes(b[1])){
-          indexes.push(b[1]);
-          rows.push([b[1]])
+        if(!indexes.includes(index)){
+          indexes.push(index);
+          rows.push([index])
         }
-        const r =  indexes.indexOf(b[1]);
+        const r =  indexes.indexOf(index);
         if(r>=0){
-          rows[r].push(a[1]);
+          rows[r].push(val);
         }
       }
     }
