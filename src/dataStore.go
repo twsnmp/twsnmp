@@ -62,6 +62,7 @@ type nodeEnt struct {
 	PublicKey string
 	URL       string
 	Type      string
+	AddrMode  string
 }
 
 type lineEnt struct {

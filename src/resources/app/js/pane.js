@@ -573,6 +573,8 @@ function createEditNodePane(x,y,nodeID) {
       Community: "",
       Type: "",
       URL: "",
+      AddrMode: "",
+      MAC: "",
     };
   }
   pane = new Tweakpane({
@@ -601,6 +603,15 @@ function createEditNodePane(x,y,nodeID) {
       "電話": "phone",
       "ビデオカメラ": "video",
       "地球": "globe",
+    },
+  });
+  pane.addMonitor(node,"MAC");
+  pane.addInput(node, 'AddrMode', { 
+    label: "アドレスモード",
+    options: {
+      "IP固定": "",
+      "MAC固定": "mac",
+      "ホスト名固定" : "host",
     },
   });
   pane.addInput(node, 'SnmpMode', { 

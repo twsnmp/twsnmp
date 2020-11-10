@@ -213,12 +213,13 @@ func doPollingPing(p *pollingEnt) {
 	p.LastVal = float64(r.Time)
 	if r.Stat == pingOK {
 		lr["rtt"] = fmt.Sprintf("%f", p.LastVal)
+		p.LastResult = makeLastResult(lr)
 		setPollingState(p, "normal")
 	} else {
 		lr["error"] = fmt.Sprintf("%v", r.Error)
+		p.LastResult = makeLastResult(lr)
 		setPollingState(p, p.Level)
 	}
-	p.LastResult = makeLastResult(lr)
 }
 
 func doPollingCheckLineCond(p *pollingEnt) {
@@ -265,8 +266,8 @@ func doPollingCheckLineCond(p *pollingEnt) {
 	if len(speed) < 3 {
 		lr["error"] = lastError
 		p.LastVal = 0.0
-		setPollingState(p, p.Level)
 		p.LastResult = makeLastResult(lr)
+		setPollingState(p, p.Level)
 		return
 	}
 	// 5回の測定から平均値と変動係数を計算
@@ -278,8 +279,8 @@ func doPollingCheckLineCond(p *pollingEnt) {
 	lr["speed"] = fmt.Sprintf("%f", sm)
 	lr["speed_cv"] = fmt.Sprintf("%f", scv)
 	lr["fail"] = fmt.Sprintf("%d", fail)
-	setPollingState(p, "normal")
 	p.LastResult = makeLastResult(lr)
+	setPollingState(p, "normal")
 }
 
 func calcMeanCV(a []float64) (float64, float64) {

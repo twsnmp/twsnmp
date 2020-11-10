@@ -11,6 +11,7 @@ import (
 )
 
 var arpTable = make(map[string]string)
+var macToIPTable = make(map[string]string)
 var localCheckAddrs []string
 
 func arpWatcher(ctx context.Context) {
@@ -200,6 +201,15 @@ func updateArpTable(ip, mac string) {
 		return
 	}
 	// No Change
+	// Check MAC to IP Table
+	ipot, ok := macToIPTable[mac]
+	if !ok {
+		astiLogger.Infof("New MAC to IP %s %s", mac, ip)
+		macToIPTable[mac] = ip
+	} else if ip != ipot {
+		astiLogger.Infof("Change MAC to IP %s %s -> %s", mac, ipot, ip)
+		macToIPTable[mac] = ip
+	}
 }
 
 func normMACAddr(m string) string {
@@ -221,6 +231,14 @@ func normMACAddr(m string) string {
 // ノードリストのMACアドレスをチェックする
 func checkNodeMAC() {
 	for _, n := range nodes {
+		if n.AddrMode == "mac" {
+			checkFixMACMode(n)
+			continue
+		}
+		if n.AddrMode == "host" {
+			checkFixHostMode(n)
+			continue
+		}
 		if m, ok := arpTable[n.IP]; ok {
 			if !strings.Contains(n.MAC, m) {
 				new := m
@@ -241,5 +259,89 @@ func checkNodeMAC() {
 				}
 			}
 		}
+	}
+}
+
+func checkFixMACMode(n *nodeEnt) {
+	if n.MAC == "" {
+		if mac, ok := arpTable[n.IP]; ok {
+			v := oui.Find(mac)
+			if v != "" {
+				mac += fmt.Sprintf("(%s)", v)
+			}
+			n.MAC = mac
+			if err := updateNode(n); err != nil {
+				astiLogger.Errorf("checkFixMACMode err=%v", err)
+			} else {
+				addEventLog(eventLogEnt{
+					Type:     "system",
+					Level:    "info",
+					NodeID:   n.ID,
+					NodeName: n.Name,
+					Event:    fmt.Sprintf("MACアドレス固定ノードのアドレス取得 %s", n.MAC),
+				})
+			}
+		}
+		return
+	}
+	a := strings.Split(n.MAC, "(")
+	if len(a) < 1 {
+		return
+	}
+	key := strings.TrimSpace(a[0])
+	if ip, ok := macToIPTable[key]; ok {
+		if ip != n.IP {
+			oldIP := n.IP
+			n.IP = ip
+			if err := updateNode(n); err != nil {
+				astiLogger.Errorf("checkFixMACMode err=%v", err)
+			} else {
+				addEventLog(eventLogEnt{
+					Type:     "system",
+					Level:    "info",
+					NodeID:   n.ID,
+					NodeName: n.Name,
+					Event:    fmt.Sprintf("MACアドレス固定ノード'%s'のIPアドレスが'%s'から'%s'に変化", n.MAC, oldIP, ip),
+				})
+			}
+		}
+	}
+}
+
+func checkFixHostMode(n *nodeEnt) {
+	ips, err := net.LookupHost(n.Name)
+	if err != nil {
+		astiLogger.Errorf("checkFixHostMode err=%v", err)
+		return
+	}
+	hitIP := ""
+	for _, ip := range ips {
+		if n.IP == ip {
+			return
+		}
+		if strings.Contains(ip, ":") || hitIP != "" {
+			continue
+		}
+		nIP := net.ParseIP(ip)
+		if nIP.IsGlobalUnicast() {
+			hitIP = ip
+		}
+	}
+	if hitIP == "" {
+		astiLogger.Errorf("checkFixHostMode no ip found")
+		return
+	}
+	oldIP := n.IP
+	n.IP = hitIP
+	if err := updateNode(n); err != nil {
+		astiLogger.Errorf("checkFixMACMode err=%v", err)
+	} else {
+		addEventLog(eventLogEnt{
+			Type:     "system",
+			Level:    "info",
+			NodeID:   n.ID,
+			NodeName: n.Name,
+			Event:    fmt.Sprintf("ホスト名固定ノード'%s'のIPアドレスが'%s'から''%sに変化", n.Name, oldIP, hitIP),
+		})
 	}
 }
