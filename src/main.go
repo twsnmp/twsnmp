@@ -48,11 +48,11 @@ Copyright (c) 2019,2020 Masayuki Yamai`
 
 // Define errors
 var (
-	errNoPayload     = fmt.Errorf("No Payload")
-	errInvalidNode   = fmt.Errorf("Invalid Node")
-	errInvalidParams = fmt.Errorf("Invald Params")
-	errDBNotOpen     = fmt.Errorf("DB Not Open")
-	errInvalidID     = fmt.Errorf("Invalid ID")
+	errNoPayload     = fmt.Errorf("no payload")
+	errInvalidNode   = fmt.Errorf("invalid node")
+	errInvalidParams = fmt.Errorf("invald params")
+	errDBNotOpen     = fmt.Errorf("db not open")
+	errInvalidID     = fmt.Errorf("invalid id")
 )
 
 func main() {

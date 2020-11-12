@@ -60,7 +60,7 @@ func doPollingSnmp(p *pollingEnt) {
 	defer agent.Conn.Close()
 	mode, params := parseSnmpPolling(p.Polling)
 	if mode == "" {
-		setPollingError("snmp", p, fmt.Errorf("Invalid SNMP Polling"))
+		setPollingError("snmp", p, fmt.Errorf("invalid snmp polling"))
 		return
 	}
 	if mode == "sysUpTime" {
@@ -134,7 +134,7 @@ func doPollingSnmpSysUpTime(p *pollingEnt, agent *gosnmp.GoSNMP) {
 func doPollingSnmpIF(p *pollingEnt, ps string, agent *gosnmp.GoSNMP) {
 	a := strings.Split(ps, ".")
 	if len(a) < 2 {
-		setPollingError("snmpif", p, fmt.Errorf("Invalid format"))
+		setPollingError("snmpif", p, fmt.Errorf("invalid format"))
 		return
 	}
 	oids := []string{mib.NameToOID("ifOperStatus." + a[1]), mib.NameToOID("ifAdminState." + a[1])}
@@ -173,7 +173,7 @@ func doPollingSnmpIF(p *pollingEnt, ps string, agent *gosnmp.GoSNMP) {
 func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) {
 	a := strings.Split(params, "|")
 	if len(a) < 2 {
-		setPollingError("snmp", p, fmt.Errorf("Invalid format"))
+		setPollingError("snmp", p, fmt.Errorf("invalid format"))
 		return
 	}
 	names := strings.Split(a[0], ",")
@@ -188,7 +188,7 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 		}
 	}
 	if len(oids) < 1 {
-		setPollingError("snmp", p, fmt.Errorf("Invalid format"))
+		setPollingError("snmp", p, fmt.Errorf("invalid format"))
 		return
 	}
 	if mode == "ps" {
@@ -254,7 +254,7 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 		if mode == "ps" {
 			v, ok := nvmap["sysUpTime.0"]
 			if !ok || v == 0 {
-				setPollingError("snmp", p, fmt.Errorf("Invalid format %v", nvmap))
+				setPollingError("snmp", p, fmt.Errorf("invalid format %v", nvmap))
 				return
 			}
 			sut = float64(v)
@@ -293,7 +293,7 @@ func getValueName(n string) string {
 func doPollingSnmpCount(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) {
 	cmds := splitCmd(params)
 	if len(cmds) < 3 {
-		setPollingError("snmp", p, fmt.Errorf("Invalid format"))
+		setPollingError("snmp", p, fmt.Errorf("invalid format"))
 		return
 	}
 	oid := mib.NameToOID(cmds[0])

@@ -174,7 +174,7 @@ func doPolling(p *pollingEnt, startTime int64) {
 		doPollingSSH(p)
 		_ = updatePolling(p)
 	case "vmware":
-		doPollingVmWare(p)
+		doPollingVMWare(p)
 		_ = updatePolling(p)
 	case "twsnmp":
 		doPollingTWSNMP(p)
@@ -199,7 +199,7 @@ func doPollingPing(p *pollingEnt) {
 	}
 	n, ok := nodes[p.NodeID]
 	if !ok {
-		setPollingError("ping", p, fmt.Errorf("Node not found"))
+		setPollingError("ping", p, fmt.Errorf("node not found"))
 		return
 	}
 	size := 64
@@ -225,7 +225,7 @@ func doPollingPing(p *pollingEnt) {
 func doPollingCheckLineCond(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
-		setPollingError("ping", p, fmt.Errorf("Node not found"))
+		setPollingError("ping", p, fmt.Errorf("node not found"))
 		return
 	}
 	lastError := ""
@@ -308,7 +308,7 @@ func calcMeanCV(a []float64) (float64, float64) {
 func doPollingDNS(p *pollingEnt) {
 	_, ok := nodes[p.NodeID]
 	if !ok {
-		setPollingError("dns", p, fmt.Errorf("Node not dond"))
+		setPollingError("dns", p, fmt.Errorf("node not found"))
 		return
 	}
 	cmds := splitCmd(p.Polling)
@@ -444,7 +444,7 @@ func doLookup(mode, target string) ([]string, error) {
 func doPollingNTP(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
-		setPollingError("ntp", p, fmt.Errorf("Node not dond"))
+		setPollingError("ntp", p, fmt.Errorf("node not found"))
 		return
 	}
 	lr := make(map[string]string)

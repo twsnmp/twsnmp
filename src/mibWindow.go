@@ -135,7 +135,7 @@ func addMIBFile(m *bootstrap.MessageIn) error {
 	}
 	var path string
 	if err := json.Unmarshal(m.Payload, &path); err != nil {
-		return fmt.Errorf("Unmarshal %s error=%v", m.Name, err)
+		return fmt.Errorf("unmarshal %s error=%v", m.Name, err)
 	}
 	var nameList []string
 	var mapNameToOID = make(map[string]string)
@@ -161,15 +161,15 @@ func addMIBFile(m *bootstrap.MessageIn) error {
 	for _, name := range nameList {
 		oid, ok := mapNameToOID[name]
 		if !ok {
-			return fmt.Errorf("Can not find mib name %s", name)
+			return fmt.Errorf("can not find mib name %s", name)
 		}
 		a := strings.SplitN(oid, ".", 2)
 		if len(a) < 2 {
-			return fmt.Errorf("Can not split mib name=%s oid=%s", name, oid)
+			return fmt.Errorf("can not split mib name=%s oid=%s", name, oid)
 		}
 		noid, ok := mapNameToOID[a[0]]
 		if !ok {
-			return fmt.Errorf("Can not split mib name=%s oid=%s", name, a[0])
+			return fmt.Errorf("can not split mib name=%s oid=%s", name, a[0])
 		}
 		mapNameToOID[name] = noid + "." + a[1]
 	}
@@ -182,7 +182,7 @@ func delMIBModule(m *bootstrap.MessageIn) error {
 	}
 	var key string
 	if err := json.Unmarshal(m.Payload, &key); err != nil {
-		return fmt.Errorf("Unmarshal %s error=%v", m.Name, err)
+		return fmt.Errorf("unmarshal %s error=%v", m.Name, err)
 	}
 	return delMIBModuleFromDB(key)
 }

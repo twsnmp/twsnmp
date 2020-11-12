@@ -57,12 +57,12 @@ func doPollingHTTP(p *pollingEnt) {
 	var err error
 	_, ok = nodes[p.NodeID]
 	if !ok {
-		setPollingError("http", p, fmt.Errorf("Node not found"))
+		setPollingError("http", p, fmt.Errorf("node not found"))
 		return
 	}
 	cmd := splitCmd(p.Polling)
 	if len(cmd) < 1 {
-		setPollingError("http", p, fmt.Errorf("No URL"))
+		setPollingError("http", p, fmt.Errorf("no url"))
 		return
 	}
 	url := cmd[0]
@@ -126,11 +126,11 @@ func checkHTTPResp(p *pollingEnt, extractor, script, status, body string, code i
 	}
 	grokEnt, ok := grokMap[extractor]
 	if !ok {
-		return false, lr, fmt.Errorf("No grok pattern")
+		return false, lr, fmt.Errorf("no grok pattern")
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
 	if err := g.AddPattern(extractor, grokEnt.Pat); err != nil {
-		return false, lr, fmt.Errorf("No grok pattern err=%v", err)
+		return false, lr, fmt.Errorf("no grok pattern err=%v", err)
 	}
 	cap := fmt.Sprintf("%%{%s}", extractor)
 	values, err := g.Parse(cap, body)
@@ -192,7 +192,7 @@ func doHTTPGet(p *pollingEnt, url string) (string, string, int, error) {
 func doPollingTLS(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
-		setPollingError("tls", p, fmt.Errorf("Node not found"))
+		setPollingError("tls", p, fmt.Errorf("node not found"))
 		return
 	}
 	cmd := splitCmd(p.Polling)

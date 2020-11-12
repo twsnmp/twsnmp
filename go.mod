@@ -1,6 +1,6 @@
 module github.com/twsnmp/twsnmp
 
-go 1.13
+go 1.15
 
 require (
 	github.com/Songmu/timeout v0.4.0

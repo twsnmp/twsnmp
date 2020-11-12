@@ -162,6 +162,7 @@ type notifyConfEnt struct {
 	Subject            string
 	Interval           int
 	Level              string
+	Report             string
 	ExecCmd            string
 	CheckUpdate        bool
 }
@@ -435,7 +436,7 @@ func saveMapConfToDB() error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("config"))
 		if b == nil {
-			return fmt.Errorf("Bucket config is nil")
+			return fmt.Errorf("bucket config is nil")
 		}
 		return b.Put([]byte("mapConf"), s)
 	})
@@ -452,7 +453,7 @@ func saveNotifyConfToDB() error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("config"))
 		if b == nil {
-			return fmt.Errorf("Bucket config is nil")
+			return fmt.Errorf("bucket config is nil")
 		}
 		return b.Put([]byte("notifyConf"), s)
 	})
@@ -469,7 +470,7 @@ func saveInfluxdbConfToDB() error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("config"))
 		if b == nil {
-			return fmt.Errorf("Bucket config is nil")
+			return fmt.Errorf("bucket config is nil")
 		}
 		return b.Put([]byte("influxdbConf"), s)
 	})
@@ -486,7 +487,7 @@ func saveRestAPIConfToDB() error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("config"))
 		if b == nil {
-			return fmt.Errorf("Bucket config is nil")
+			return fmt.Errorf("bucket config is nil")
 		}
 		return b.Put([]byte("restAPIConf"), s)
 	})
@@ -503,7 +504,7 @@ func saveBackupParamToDB(p *dbBackupParamEnt) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("config"))
 		if b == nil {
-			return fmt.Errorf("Bucket config is nil")
+			return fmt.Errorf("bucket config is nil")
 		}
 		return b.Put([]byte("backup"), s)
 	})
@@ -520,7 +521,7 @@ func saveMainWindowInfoToDB() error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("config"))
 		if b == nil {
-			return fmt.Errorf("Bucket config is nil")
+			return fmt.Errorf("bucket config is nil")
 		}
 		return b.Put([]byte("mainWindowInfo"), s)
 	})
@@ -537,7 +538,7 @@ func saveDiscoverConfToDB() error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("config"))
 		if b == nil {
-			return fmt.Errorf("Bucket config is nil")
+			return fmt.Errorf("bucket config is nil")
 		}
 		return b.Put([]byte("discoverConf"), s)
 	})
@@ -1105,7 +1106,7 @@ func clearPollingLog(pollingID string) error {
 	return db.Batch(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("pollingLogs"))
 		if b == nil {
-			return fmt.Errorf("Bucket pollingLogs not found")
+			return fmt.Errorf("bucket pollingLogs not found")
 		}
 		c := b.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
@@ -1129,7 +1130,7 @@ func deleteOldLog(bucket string, days int) error {
 	return db.Batch(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
-			return fmt.Errorf("Bucket %s not found", bucket)
+			return fmt.Errorf("bucket %s not found", bucket)
 		}
 		c := b.Cursor()
 		for k, _ := c.First(); k != nil; k, _ = c.Next() {
@@ -1397,7 +1398,7 @@ func resetArpTable() error {
 	return db.Batch(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("arp"))
 		if b == nil {
-			return fmt.Errorf("Bucket arp not found")
+			return fmt.Errorf("bucket arp not found")
 		}
 		c := b.Cursor()
 		for k, _ := c.First(); k != nil; k, _ = c.Next() {
@@ -1418,7 +1419,7 @@ func saveAIResultToDB(res *aiResult) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("ai"))
 		if b == nil {
-			return fmt.Errorf("Bucket ai is nil")
+			return fmt.Errorf("bucket ai is nil")
 		}
 		return b.Put([]byte(res.PollingID), s)
 	})
@@ -1472,7 +1473,7 @@ func backupDB() error {
 		return errDBNotOpen
 	}
 	if dstDB != nil {
-		return fmt.Errorf("Backup in progress")
+		return fmt.Errorf("backup in progress")
 	}
 	os.Remove(dbStats.BackupFile)
 	var err error
@@ -1516,7 +1517,7 @@ var configBuckets = []string{"config", "nodes", "lines", "pollings", "mibdb"}
 
 func walkBucket(b *bbolt.Bucket, keypath [][]byte, k, v []byte, seq uint64) error {
 	if stopBackup {
-		return fmt.Errorf("Stop Backup")
+		return fmt.Errorf("stop backup")
 	}
 	if dbStats.BackupConfigOnly && v == nil {
 		c := false

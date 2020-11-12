@@ -25,8 +25,7 @@ import (
 	gosnmp "github.com/twsnmp/gosnmp"
 
 	"go.etcd.io/bbolt"
-	"gopkg.in/mcuadros/go-syslog.v2"
-	syslogv2 "gopkg.in/mcuadros/go-syslog.v2"
+	syslog "gopkg.in/mcuadros/go-syslog.v2"
 )
 
 var (
@@ -177,7 +176,7 @@ func saveLogBuffer(logBuffer []*logEnt) {
 
 func syslogd(stopCh chan bool) {
 	syslogCh := make(syslog.LogPartsChannel)
-	server := syslogv2.NewServer()
+	server := syslog.NewServer()
 	server.SetFormat(syslog.Automatic)
 	server.SetHandler(syslog.NewChannelHandler(syslogCh))
 	_ = server.ListenUDP("0.0.0.0:514")

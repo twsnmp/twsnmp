@@ -264,6 +264,13 @@ function createNotifyConfPane() {
       "重度": "high",
     },
   });
+  pane.addInput(notifyConfTmp, 'Report', { 
+    label: "定期レポート",
+    options: {
+      "送信しない": "",
+      "送信する": "send",
+    },
+  });
   pane.addInput(notifyConfTmp, 'ExecCmd', { label: "外部コマンド" });
   pane.addInput(notifyConfTmp, 'CheckUpdate', { 
     label: "更新版の確認",

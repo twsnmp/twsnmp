@@ -18,6 +18,7 @@ import (
 )
 
 func notifyBackend(ctx context.Context) {
+	lastSendReport := time.Now().Add(time.Hour * time.Duration(-24))
 	lastLog := ""
 	lastLog = checkNotify(lastLog)
 	timer := time.NewTicker(time.Second * 60)
@@ -34,6 +35,10 @@ func notifyBackend(ctx context.Context) {
 				lastLog = checkNotify(lastLog)
 			}
 			checkExecCmd()
+			if notifyConf.Report == "send" && lastSendReport.Day() != time.Now().Day() {
+				lastSendReport = time.Now()
+				sendReport()
+			}
 		}
 	}
 }
@@ -335,4 +340,124 @@ func calcHash(msg string) string {
 		return ""
 	}
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func sendReport() {
+	body := []string{}
+	logs := []string{}
+	body = append(body, "【現在のマップ情報】")
+	body = append(body, getMapInfo()...)
+	body = append(body, "")
+	list := getEventLogList("", 5000)
+	high := 0
+	low := 0
+	warn := 0
+	normal := 0
+	other := 0
+	if len(list) > 0 {
+		ti := time.Now().Add(time.Duration(-24) * time.Hour).UnixNano()
+		for _, l := range list {
+			if ti > l.Time {
+				continue
+			}
+			switch l.Level {
+			case "high":
+				high++
+			case "low":
+				low++
+			case "warn":
+				warn++
+			case "normal", "repair":
+				normal++
+			default:
+				other++
+			}
+			ts := time.Unix(0, l.Time).Local().Format(time.RFC3339Nano)
+			logs = append(logs, fmt.Sprintf("%s,%s,%s,%s,%s", l.Level, ts, l.Type, l.NodeName, l.Event))
+		}
+	}
+	body = append(body, "【48時間以内に新しく発見したデバイス】")
+	body = append(body, getNewDevice()...)
+	body = append(body, "")
+	body = append(body, "【48時間以内に新しく発見したユーザーID】")
+	body = append(body, getNewUser()...)
+	body = append(body, "")
+	body = append(body, "【24時間以内の状態別ログ件数】")
+	body = append(body, fmt.Sprintf("重度=%d,軽度=%d,注意=%d,正常=%d,その他=%d", high, low, warn, normal, other))
+	body = append(body, "")
+	body = append(body, "【最新24時間のログ】")
+	body = append(body, logs...)
+	if err := sendMail(fmt.Sprintf("TWSNMP定期レポート %s", time.Now().Format(time.RFC3339)), strings.Join(body, "\r\n")); err != nil {
+		astiLogger.Errorf("sendMail err=%v", err)
+	} else {
+		addEventLog(eventLogEnt{
+			Type:  "system",
+			Level: "info",
+			Event: "定期レポートメール送信",
+		})
+	}
+}
+
+func getMapInfo() []string {
+	high := 0
+	low := 0
+	warn := 0
+	normal := 0
+	repair := 0
+	unknown := 0
+	for _, n := range nodes {
+		switch n.State {
+		case "high":
+			high++
+		case "low":
+			low++
+		case "warn":
+			warn++
+		case "normal":
+			normal++
+		case "repair":
+			repair++
+		default:
+			unknown++
+		}
+	}
+	state := "unknown"
+	if high > 0 {
+		state = "high"
+	} else if low > 0 {
+		state = "low"
+	} else if warn > 0 {
+		state = "warn"
+	} else if normal+repair > 0 {
+		state = "normal"
+	}
+	return []string{
+		fmt.Sprintf("MAP状態=%s", state),
+		fmt.Sprintf("重度=%d,軽度=%d,注意=%d,復帰=%d,正常=%d,不明=%d", high, low, warn, repair, normal, unknown),
+		fmt.Sprintf("データベースサイズ=%s", dbStats.Size),
+	}
+}
+
+func getNewDevice() []string {
+	st := time.Now().Add(time.Duration(-48) * time.Hour).UnixNano()
+	ret := []string{}
+	for _, d := range devices {
+		if d.FirstTime < st {
+			continue
+		}
+		ret = append(ret, fmt.Sprintf("%s,%s,%s,%s", d.Name, d.IP, d.ID, d.Vendor))
+	}
+	return (ret)
+}
+
+func getNewUser() []string {
+	st := time.Now().Add(time.Duration(-48) * time.Hour).UnixNano()
+	ret := []string{}
+	for _, u := range users {
+		if u.FirstTime < st {
+			continue
+		}
+		ret = append(ret, fmt.Sprintf("%s,%s,%s", u.UserID, u.ServerName, u.Server))
+	}
+	return (ret)
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/vmware/govmomi/vim25/soap"
 )
 
-func doPollingVmWare(p *pollingEnt) {
+func doPollingVMWare(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
 		astiLogger.Errorf("node not found nodeID=%s", p.NodeID)
@@ -24,7 +24,7 @@ func doPollingVmWare(p *pollingEnt) {
 	}
 	cmds := splitCmd(p.Polling)
 	if len(cmds) != 3 {
-		setPollingError("vmware", p, fmt.Errorf("Invalid format"))
+		setPollingError("vmware", p, fmt.Errorf("invalid format"))
 		return
 	}
 	mode := cmds[0]
@@ -39,7 +39,7 @@ func doPollingVmWare(p *pollingEnt) {
 	}
 	u, err := soap.ParseURL(us)
 	if err != nil {
-		setPollingError("vmware", p, fmt.Errorf("Invalid url"))
+		setPollingError("vmware", p, fmt.Errorf("invalid url"))
 		return
 	}
 	if u.User == nil || u.User.String() == ":" {

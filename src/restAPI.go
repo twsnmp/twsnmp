@@ -244,7 +244,7 @@ func restAPIGetMapData(w rest.ResponseWriter, req *rest.Request) {
 func doPollingTWSNMP(p *pollingEnt) {
 	n, ok := nodes[p.NodeID]
 	if !ok {
-		setPollingError("twsnmp", p, fmt.Errorf("Node not found"))
+		setPollingError("twsnmp", p, fmt.Errorf("node not found"))
 		return
 	}
 	ok = false

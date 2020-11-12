@@ -91,7 +91,7 @@ func makeLastResult(lr map[string]string) string {
 func doPollingLog(p *pollingEnt) {
 	cmds := splitCmd(p.Polling)
 	if len(cmds) != 3 {
-		setPollingError("log", p, fmt.Errorf("Invalid log watch format"))
+		setPollingError("log", p, fmt.Errorf("invalid log watch format"))
 		return
 	}
 	astiLogger.Debugf("%q", cmds)
@@ -99,7 +99,7 @@ func doPollingLog(p *pollingEnt) {
 	extractor := cmds[1]
 	script := cmds[2]
 	if _, err := regexp.Compile(filter); err != nil {
-		setPollingError("log", p, fmt.Errorf("Invalid log watch format"))
+		setPollingError("log", p, fmt.Errorf("invalid log watch format"))
 		return
 	}
 	vm := otto.New()
@@ -136,17 +136,17 @@ func doPollingLog(p *pollingEnt) {
 			}
 			return
 		}
-		setPollingError("log", p, fmt.Errorf("Invalid log watch format"))
+		setPollingError("log", p, fmt.Errorf("invalid log watch format"))
 		return
 	}
 	grokEnt, ok := grokMap[extractor]
 	if !ok {
-		setPollingError("log", p, fmt.Errorf("No grok pattern"))
+		setPollingError("log", p, fmt.Errorf("no grok pattern"))
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
 	if err := g.AddPattern(extractor, grokEnt.Pat); err != nil {
-		setPollingError("log", p, fmt.Errorf("No grok pattern"))
+		setPollingError("log", p, fmt.Errorf("no grok pattern"))
 		return
 	}
 	cap := fmt.Sprintf("%%{%s}", extractor)
@@ -167,7 +167,7 @@ func doPollingLog(p *pollingEnt) {
 				return
 			}
 		} else {
-			setPollingError("log", p, fmt.Errorf("Invalid log watch format"))
+			setPollingError("log", p, fmt.Errorf("invalid log watch format"))
 			return
 		}
 	}
@@ -180,7 +180,7 @@ var syslogPriFilter = regexp.MustCompile(`"priority":(\d+),`)
 func doPollingSyslogPri(p *pollingEnt) bool {
 	_, err := regexp.Compile(p.Polling)
 	if err != nil {
-		setPollingError("log", p, fmt.Errorf("Invalid syslogpri watch format"))
+		setPollingError("log", p, fmt.Errorf("invalid syslogpri watch format"))
 		_ = updatePolling(p)
 		return false
 	}
@@ -224,23 +224,23 @@ func doPollingSyslogPri(p *pollingEnt) bool {
 func doPollingSyslogDevice(p *pollingEnt) {
 	cmds := splitCmd(p.Polling)
 	if len(cmds) != 2 {
-		setPollingError("log", p, fmt.Errorf("Invalid syslogDevice watch format"))
+		setPollingError("log", p, fmt.Errorf("invalid syslog device watch format"))
 		return
 	}
 	filter := cmds[0]
 	mode := cmds[1]
 	if _, err := regexp.Compile(filter); err != nil {
-		setPollingError("log", p, fmt.Errorf("Invalid syslogDevice watch format"))
+		setPollingError("log", p, fmt.Errorf("invalid syslog device watch format"))
 		return
 	}
 	grokEnt, ok := grokMap[mode]
 	if !ok {
-		setPollingError("log", p, fmt.Errorf("Invalid syslogDevice watch format"))
+		setPollingError("log", p, fmt.Errorf("invalid syslog device watch format"))
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
 	if err := g.AddPattern(mode, grokEnt.Pat); err != nil {
-		setPollingError("log", p, fmt.Errorf("Invalid syslogDevice watch format err=%v", err))
+		setPollingError("log", p, fmt.Errorf("invalid syslog device watch format err=%v", err))
 		return
 	}
 	lr := make(map[string]string)
@@ -299,18 +299,18 @@ func doPollingSyslogUser(p *pollingEnt) {
 	}
 	cmds := splitCmd(p.Polling)
 	if len(cmds) != 2 {
-		setPollingError("log", p, fmt.Errorf("Invalid syslogUser watch format"))
+		setPollingError("log", p, fmt.Errorf("invalid syslog user watch format"))
 		return
 	}
 	filter := cmds[0]
 	mode := cmds[1]
 	if _, err := regexp.Compile(filter); err != nil {
-		setPollingError("log", p, fmt.Errorf("Invalid filter for syslogUser"))
+		setPollingError("log", p, fmt.Errorf("invalid filter for syslog user"))
 		return
 	}
 	grokEnt, ok := grokMap[mode]
 	if !ok {
-		setPollingError("log", p, fmt.Errorf("Invalid  grok for syslogUser"))
+		setPollingError("log", p, fmt.Errorf("invalid grok for syslog user"))
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
@@ -381,23 +381,23 @@ func doPollingSyslogUser(p *pollingEnt) {
 func doPollingSyslogFlow(p *pollingEnt) {
 	cmds := splitCmd(p.Polling)
 	if len(cmds) != 2 {
-		setPollingError("syslogFlow", p, fmt.Errorf("Invalid watch format"))
+		setPollingError("syslogFlow", p, fmt.Errorf("invalid watch format"))
 		return
 	}
 	filter := cmds[0]
 	mode := cmds[1]
 	if _, err := regexp.Compile(filter); err != nil {
-		setPollingError("syslogFlow", p, fmt.Errorf("Invalid filter"))
+		setPollingError("syslogFlow", p, fmt.Errorf("invalid filter"))
 		return
 	}
 	grokEnt, ok := grokMap[mode]
 	if !ok {
-		setPollingError("syslogFlow", p, fmt.Errorf("Invalid grok"))
+		setPollingError("syslogFlow", p, fmt.Errorf("invalid grok"))
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
 	if err := g.AddPattern(mode, grokEnt.Pat); err != nil {
-		setPollingError("syslogFlow", p, fmt.Errorf("Invalid grok"))
+		setPollingError("syslogFlow", p, fmt.Errorf("invalid grok"))
 		return
 	}
 	lr := make(map[string]string)

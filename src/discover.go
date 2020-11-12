@@ -53,18 +53,18 @@ const GRID = 90
 
 func startDiscover() error {
 	if discoverStat.Running {
-		return fmt.Errorf("Discover already runnning")
+		return fmt.Errorf("discover already runnning")
 	}
 	sip, err := ipv4.FromDots(discoverConf.StartIP)
 	if err != nil {
-		return fmt.Errorf("Discover StartIP err=%v", err)
+		return fmt.Errorf("discover start ip err=%v", err)
 	}
 	eip, err := ipv4.FromDots(discoverConf.EndIP)
 	if err != nil {
-		return fmt.Errorf("Discover EndIP err=%v", err)
+		return fmt.Errorf("discover end ip err=%v", err)
 	}
 	if sip > eip {
-		return fmt.Errorf("Discover StartIP > EndIP")
+		return fmt.Errorf("discover start ip > end ip")
 	}
 	addEventLog(eventLogEnt{
 		Type:  "system",

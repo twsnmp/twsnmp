@@ -219,7 +219,7 @@ func genSelfSignCert(key string) (string, error) {
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &keyBytes.PublicKey, keyBytes)
 	if err != nil {
-		return "", fmt.Errorf("Failed to create certificate: %s", err)
+		return "", fmt.Errorf("failed to create certificate: %s", err)
 	}
 	cert := string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes}))
 	return cert, nil
@@ -234,7 +234,7 @@ func getSSHPublicKey(key string) (string, error) {
 	comment := fmt.Sprintf("twsnmp@%s", host)
 	priv, err := getRSAKeyFromPEM(key)
 	if err != nil {
-		return "", fmt.Errorf("Key Not Found")
+		return "", fmt.Errorf("key not found")
 	}
 	rsaKey := priv.PublicKey
 	pubkey, _ := ssh.NewPublicKey(&rsaKey)

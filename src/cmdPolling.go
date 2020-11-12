@@ -20,7 +20,7 @@ import (
 func doPollingCmd(p *pollingEnt) {
 	cmds := splitCmd(p.Polling)
 	if len(cmds) < 3 {
-		setPollingError("cmd", p, fmt.Errorf("No Cmd"))
+		setPollingError("cmd", p, fmt.Errorf("no cmd"))
 		return
 	}
 	astiLogger.Debugf("%q", cmds)
@@ -31,7 +31,7 @@ func doPollingCmd(p *pollingEnt) {
 	lr := make(map[string]string)
 	cl := strings.Split(cmd, " ")
 	if len(cl) < 1 {
-		setPollingError("cmd", p, fmt.Errorf("No Cmd"))
+		setPollingError("cmd", p, fmt.Errorf("no cmd"))
 		return
 	}
 	tio := &timeout.Timeout{
@@ -58,7 +58,7 @@ func doPollingCmd(p *pollingEnt) {
 		grokEnt, ok := grokMap[extractor]
 		if !ok {
 			astiLogger.Errorf("No grok pattern Polling=%s", p.Polling)
-			setPollingError("cmd", p, fmt.Errorf("No grok pattern"))
+			setPollingError("cmd", p, fmt.Errorf("no grok pattern"))
 			return
 		}
 		g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
@@ -103,7 +103,7 @@ func doPollingCmd(p *pollingEnt) {
 func doPollingSSH(p *pollingEnt) {
 	cmds := splitCmd(p.Polling)
 	if len(cmds) < 3 {
-		setPollingError("ssh", p, fmt.Errorf("No Cmd"))
+		setPollingError("ssh", p, fmt.Errorf("no cmd"))
 		return
 	}
 	cmd := cmds[0]
@@ -117,7 +117,7 @@ func doPollingSSH(p *pollingEnt) {
 	lr := make(map[string]string)
 	cl := strings.Split(cmd, " ")
 	if len(cl) < 1 {
-		setPollingError("ssh", p, fmt.Errorf("No Cmd"))
+		setPollingError("ssh", p, fmt.Errorf("no cmd"))
 		return
 	}
 	client, session, err := sshConnectToHost(p, port)
@@ -156,7 +156,7 @@ func doPollingSSH(p *pollingEnt) {
 		grokEnt, ok := grokMap[extractor]
 		if !ok {
 			astiLogger.Errorf("No grok pattern Polling=%s", p.Polling)
-			setPollingError("ssh", p, fmt.Errorf("No grok pattern"))
+			setPollingError("ssh", p, fmt.Errorf("no grok pattern"))
 			return
 		}
 		g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
@@ -203,7 +203,7 @@ func sshConnectToHost(p *pollingEnt, port string) (*ssh.Client, *ssh.Session, er
 	signer, err := ssh.ParsePrivateKey([]byte(getRawKeyPem(mapConf.PrivateKey)))
 	if err != nil {
 		astiLogger.Errorf("sshConnectToHost err=%v", err)
-		return nil, nil, fmt.Errorf("No PrivateKey for SSH")
+		return nil, nil, fmt.Errorf("no private key for ssh")
 	}
 	sshConfig := &ssh.ClientConfig{
 		User:    n.User,
@@ -217,7 +217,7 @@ func sshConnectToHost(p *pollingEnt, port string) (*ssh.Client, *ssh.Session, er
 	if n.PublicKey != "" {
 		pubkey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(n.PublicKey))
 		if err != nil {
-			return nil, nil, fmt.Errorf("Invalid PublicKey=%s", n.PublicKey)
+			return nil, nil, fmt.Errorf("invalid public key=%s", n.PublicKey)
 		}
 		sshConfig.HostKeyCallback = ssh.FixedHostKey(pubkey)
 	} else {
