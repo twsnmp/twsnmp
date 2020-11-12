@@ -509,7 +509,7 @@ function createEditPollingPane(id,tid){
     for(let k in nodes){
       const e = nodes[k];
       if(e){
-        opts[e.Name] = e.NodeID;
+        opts[e.Name] = e.ID;
       }
     }
     pane.addInput(p, 'NodeID', { 
