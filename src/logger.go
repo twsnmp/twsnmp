@@ -429,7 +429,7 @@ func trapd(stopCh chan bool) {
 			case gosnmp.OctetString:
 				val = vb.Value.(string)
 			default:
-				val = fmt.Sprintf("%d", gosnmp.ToBigInt(vb.Value).Int64())
+				val = fmt.Sprintf("%d", gosnmp.ToBigInt(vb.Value).Uint64())
 			}
 			vbs += fmt.Sprintf("%s=%s\n", key, val)
 		}

@@ -121,7 +121,7 @@ func snmpWalk(nodeID, mibName string) ([]string, error) {
 		} else if variable.Type == gosnmp.ObjectIdentifier {
 			s += mib.OIDToName(variable.Value.(string))
 		} else {
-			s += fmt.Sprintf("%d", gosnmp.ToBigInt(variable.Value).Int64())
+			s += fmt.Sprintf("%d", gosnmp.ToBigInt(variable.Value).Uint64())
 		}
 		ret = append(ret, s)
 		return nil

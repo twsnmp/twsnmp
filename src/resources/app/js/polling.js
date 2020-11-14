@@ -940,6 +940,11 @@ function getDispParams() {
       case "sysloguser":
         resultChartMode = "successRate"
         break;
+      case "snmp":
+        const r = snmpChartDispInfo();
+        if (r) {
+          return r;
+        }
       default:
         resultChartMode = "none"
         break;
@@ -963,6 +968,21 @@ function getChartModeName(mode) {
     return r.axis;
   }
   return(mode);
+}
+
+function snmpChartDispInfo(){
+  const a = polling.Polling.split("|");
+  if(a.length < 4 ) {
+    return undefined;
+  }
+  let p = a[3].split(",");
+  if (p.length != 2){
+    return undefined;
+  }
+  return {
+    mul: 1.0 * p[0],
+    axis: p[1]
+  }
 }
 
 function updateAIPage() {

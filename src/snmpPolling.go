@@ -97,7 +97,7 @@ func doPollingSnmpSysUpTime(p *pollingEnt, agent *gosnmp.GoSNMP) {
 	var uptime int64
 	for _, variable := range result.Variables {
 		if variable.Name == mib.NameToOID("sysUpTime.0") {
-			uptime = gosnmp.ToBigInt(variable.Value).Int64()
+			uptime = gosnmp.ToBigInt(variable.Value).Uint64()
 			break
 		}
 	}
@@ -137,7 +137,7 @@ func doPollingSnmpIF(p *pollingEnt, ps string, agent *gosnmp.GoSNMP) {
 		setPollingError("snmpif", p, fmt.Errorf("invalid format"))
 		return
 	}
-	oids := []string{mib.NameToOID("ifOperStatus." + a[1]), mib.NameToOID("ifAdminState." + a[1])}
+	oids := []string{mib.NameToOID("ifOperStatus." + a[1]), mib.NameToOID("ifAdminStatus." + a[1])}
 	result, err := agent.Get(oids)
 	if err != nil {
 		setPollingError("snmpif", p, err)
@@ -203,7 +203,7 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 	lr := make(map[string]string)
 	for _, variable := range result.Variables {
 		if variable.Name == mib.NameToOID("sysUpTime.0") {
-			sut := gosnmp.ToBigInt(variable.Value).Int64()
+			sut := gosnmp.ToBigInt(variable.Value).Uint64()
 			_ = vm.Set("sysUpTime", sut)
 			lr["sysUpTime.0"] = fmt.Sprintf("%d", sut)
 			if mode == "ps" || mode == "delta" {
@@ -222,7 +222,7 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 			_ = vm.Set(vn, v)
 			lr[n] = v
 		} else {
-			v := gosnmp.ToBigInt(variable.Value).Int64()
+			v := gosnmp.ToBigInt(variable.Value).Uint64()
 			_ = vm.Set(vn, v)
 			lr[n] = fmt.Sprintf("%d", v)
 			if mode == "ps" || mode == "delta" {
@@ -322,7 +322,7 @@ func doPollingSnmpCount(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP
 		} else if variable.Type == gosnmp.ObjectIdentifier {
 			s = mib.OIDToName(variable.Value.(string))
 		} else {
-			s = fmt.Sprintf("%d", gosnmp.ToBigInt(variable.Value).Int64())
+			s = fmt.Sprintf("%d", gosnmp.ToBigInt(variable.Value).Uint64())
 		}
 		if regexFilter != nil && !regexFilter.Match([]byte(s)) {
 			return nil
