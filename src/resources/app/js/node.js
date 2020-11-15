@@ -326,21 +326,21 @@ document.addEventListener('astilectron-ready', function () {
     });
   });
   $('#basic').click(() => {
-    if(pane){
+    if(pane || templateShown){
       return true;
     }
     setupBasicPage();
     showPage("basic");
   });
   $('#polling').click(() => {
-    if(pane){
+    if(pane || templateShown){
       return true;
     }
     setupPollingPage();
     showPage("polling");
   });
   $('#log').click(() => {
-    if(pane){
+    if(pane || templateShown){
       return true;
     }
     setupLogPage();
@@ -516,6 +516,7 @@ function getSelectedTemplateID() {
   return id
 }
 
+let templateShown = false;
 function showTemplate() {
   astilectron.sendMessage({ name: "getTemplates", payload: "" }, message => {
     if (!message.payload || message.payload == "ng" ) {
@@ -531,10 +532,13 @@ function showTemplate() {
     }
     template.draw();
     $("#template_win").addClass("show").fadeIn().css('display', 'flex');
+    templateShown = true;
     $("#cancel_template").on("click", function () {
       $("#template_win").fadeOut();
+      templateShown = false;
     });
     $("#select_template").on("click", function () {
+      templateShown = false;
       $("#template_win").fadeOut();
       const tid = getSelectedTemplateID();
       createEditPollingPane("",tid);

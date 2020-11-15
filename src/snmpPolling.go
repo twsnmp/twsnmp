@@ -97,7 +97,7 @@ func doPollingSnmpSysUpTime(p *pollingEnt, agent *gosnmp.GoSNMP) {
 	var uptime int64
 	for _, variable := range result.Variables {
 		if variable.Name == mib.NameToOID("sysUpTime.0") {
-			uptime = gosnmp.ToBigInt(variable.Value).Uint64()
+			uptime = int64(gosnmp.ToBigInt(variable.Value).Uint64())
 			break
 		}
 	}
@@ -260,9 +260,9 @@ func doPollingSnmpGet(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) 
 			sut = float64(v)
 		}
 		for k, v := range nvmap {
-			lr[k] = fmt.Sprintf("%f", float64(v)/sut)
+			lr[k] = fmt.Sprintf("%f", float64(v*100.0)/sut)
 			vn := getValueName(k)
-			_ = vm.Set(vn, float64(v)/sut)
+			_ = vm.Set(vn, float64(v*100.0)/sut)
 		}
 	}
 	value, err := vm.Run(script)

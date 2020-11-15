@@ -1656,12 +1656,14 @@ func updatePollingTemplate(pt *pollingTemplateEnt) error {
 	if _, ok := pollingTemplates[pt.ID]; !ok {
 		return errInvalidID
 	}
-	// 更新後に同じ内容のテンプレートがないか確認する
 	newID := getSha1Key(pt.Name + ":" + pt.Type + ":" + pt.NodeType + ":" + pt.Polling)
-	if _, ok := pollingTemplates[newID]; ok {
-		return fmt.Errorf("duplicate template")
+	if newID != pt.ID {
+		// 更新後に同じ内容のテンプレートがないか確認する
+		if _, ok := pollingTemplates[newID]; ok {
+			return fmt.Errorf("duplicate template")
+		}
 	}
-	// なければ、削除してから追加する
+	// 削除してから追加する
 	_ = deletePollingTemplate(pt.ID)
 	pt.ID = newID
 	return addPollingTemplate(pt)
