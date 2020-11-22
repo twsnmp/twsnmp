@@ -68,9 +68,11 @@ func doPollingSnmp(p *pollingEnt) {
 	} else if strings.HasPrefix(mode, "ifOperStatus.") {
 		doPollingSnmpIF(p, mode, agent)
 	} else if mode == "count" {
-		doPollingSnmpCount(p, mode, params, agent)
+		doPollingSnmpCount(p, params, agent)
 	} else if mode == "process" {
-		doPollingSnmpProcess(p, mode, params, agent)
+		doPollingSnmpProcess(p, params, agent)
+	} else if mode == "stats" {
+		doPollingSnmpStats(p, params, agent)
 	} else {
 		doPollingSnmpGet(p, mode, params, agent)
 	}
@@ -290,7 +292,7 @@ func getValueName(n string) string {
 	return (a[0])
 }
 
-func doPollingSnmpCount(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) {
+func doPollingSnmpCount(p *pollingEnt, params string, agent *gosnmp.GoSNMP) {
 	cmds := splitCmd(params)
 	if len(cmds) < 3 {
 		setPollingError("snmp", p, fmt.Errorf("invalid format"))
@@ -340,6 +342,13 @@ func doPollingSnmpCount(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP
 	value, err := vm.Run(script)
 	if err == nil {
 		p.LastVal = float64(count)
+		if v, err := vm.Get("numVal"); err == nil {
+			if v.IsNumber() {
+				if vf, err := v.ToFloat(); err == nil {
+					p.LastVal = vf
+				}
+			}
+		}
 		p.LastResult = makeLastResult(lr)
 		if ok, _ := value.ToBoolean(); !ok {
 			setPollingState(p, p.Level)
@@ -351,7 +360,7 @@ func doPollingSnmpCount(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP
 	setPollingError("snmp", p, err)
 }
 
-func doPollingSnmpProcess(p *pollingEnt, mode, params string, agent *gosnmp.GoSNMP) {
+func doPollingSnmpProcess(p *pollingEnt, params string, agent *gosnmp.GoSNMP) {
 	cmds := splitCmd(params)
 	if len(cmds) < 2 {
 		setPollingError("snmp", p, fmt.Errorf("doPollingSnmpProcess Invalid format"))
@@ -416,6 +425,72 @@ func doPollingSnmpProcess(p *pollingEnt, mode, params string, agent *gosnmp.GoSN
 	value, err := vm.Run(script)
 	if err == nil {
 		p.LastVal = float64(count)
+		if v, err := vm.Get("numVal"); err == nil {
+			if v.IsNumber() {
+				if vf, err := v.ToFloat(); err == nil {
+					p.LastVal = vf
+				}
+			}
+		}
+		p.LastResult = makeLastResult(lr)
+		if ok, _ := value.ToBoolean(); !ok {
+			setPollingState(p, p.Level)
+			return
+		}
+		setPollingState(p, "normal")
+		return
+	}
+	setPollingError("snmp", p, err)
+}
+
+func doPollingSnmpStats(p *pollingEnt, params string, agent *gosnmp.GoSNMP) {
+	cmds := splitCmd(params)
+	if len(cmds) < 2 {
+		setPollingError("snmp", p, fmt.Errorf("invalid format"))
+		return
+	}
+	oid := mib.NameToOID(cmds[0])
+	script := cmds[1]
+	count := uint64(0)
+	sum := uint64(0)
+	if err := agent.Walk(oid, func(variable gosnmp.SnmpPDU) error {
+		if variable.Type != gosnmp.Counter32 &&
+			variable.Type != gosnmp.Counter64 &&
+			variable.Type != gosnmp.Integer &&
+			variable.Type != gosnmp.Uinteger32 &&
+			variable.Type != gosnmp.Gauge32 {
+			return fmt.Errorf("mib is not number %#v", variable)
+		}
+		sum += gosnmp.ToBigInt(variable.Value).Uint64()
+		count++
+		return nil
+	}); err != nil {
+		setPollingError("snmp", p, err)
+		return
+	}
+	if count < 1 {
+		setPollingError("snmp", p, fmt.Errorf("no data"))
+		return
+	}
+	avg := float64(sum) / float64(count)
+	vm := otto.New()
+	lr := make(map[string]string)
+	_ = vm.Set("count", count)
+	_ = vm.Set("sum", sum)
+	_ = vm.Set("avg", avg)
+	lr["count"] = fmt.Sprintf("%d", count)
+	lr["sum"] = fmt.Sprintf("%d", sum)
+	lr["avg"] = fmt.Sprintf("%f", avg)
+	value, err := vm.Run(script)
+	if err == nil {
+		p.LastVal = float64(avg)
+		if v, err := vm.Get("numVal"); err == nil {
+			if v.IsNumber() {
+				if vf, err := v.ToFloat(); err == nil {
+					p.LastVal = vf
+				}
+			}
+		}
 		p.LastResult = makeLastResult(lr)
 		if ok, _ := value.ToBoolean(); !ok {
 			setPollingState(p, p.Level)

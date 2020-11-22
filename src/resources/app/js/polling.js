@@ -975,7 +975,7 @@ function snmpChartDispInfo(){
   if(a.length < 4 ) {
     return undefined;
   }
-  let p = a[3].split(",");
+  let p = a[a.length-1].split(",");
   if (p.length != 2){
     return undefined;
   }
