@@ -88,6 +88,7 @@ func pollingBackend(ctx context.Context) {
 
 func setPollingState(p *pollingEnt, newState string) {
 	sendEvent := false
+	oldState := p.State
 	if newState == "normal" {
 		if p.State != "normal" && p.State != "repair" {
 			if p.State == "unknown" {
@@ -119,7 +120,7 @@ func setPollingState(p *pollingEnt, newState string) {
 			Level:    p.State,
 			NodeID:   p.NodeID,
 			NodeName: nodeName,
-			Event:    fmt.Sprintf("ポーリング状態変化:%s(%s):%f:%s", p.Name, p.Type, p.LastVal, p.LastResult),
+			Event:    fmt.Sprintf("ポーリング状態変化:%s(%s):%s:%f:%s", p.Name, p.Type, oldState, p.LastVal, p.LastResult),
 		})
 	}
 }

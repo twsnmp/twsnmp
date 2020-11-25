@@ -165,6 +165,7 @@ type notifyConfEnt struct {
 	Report             string
 	ExecCmd            string
 	CheckUpdate        bool
+	NotifyRepair       bool
 }
 
 type discoverConfEnt struct {

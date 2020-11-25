@@ -112,9 +112,24 @@ func checkNotify(lastLog string) string {
 			return fmt.Sprintf("%016x", list[0].Time)
 		}
 		body := []string{}
+		repair := []string{}
 		ti := time.Now().Add(time.Duration(-notifyConf.Interval) * time.Minute).UnixNano()
 		for _, l := range list {
 			if ti > l.Time {
+				continue
+			}
+			if notifyConf.NotifyRepair && l.Level == "repair" {
+				a := strings.Split(l.Event, ":")
+				if len(a) < 5 {
+					continue
+				}
+				// 復帰前の状態を確認する
+				n := getLevelNum(a[2])
+				if n > nl {
+					continue
+				}
+				ts := time.Unix(0, l.Time).Local().Format(time.RFC3339Nano)
+				repair = append(repair, fmt.Sprintf("%s,%s,%s,%s,%s", l.Level, ts, l.Type, l.NodeName, l.Event))
 				continue
 			}
 			n := getLevelNum(l.Level)
@@ -135,6 +150,19 @@ func checkNotify(lastLog string) string {
 				Type:  "system",
 				Level: "info",
 				Event: fmt.Sprintf("通知メール送信 %s", r),
+			})
+		}
+		if len(repair) > 0 {
+			err := sendMail(notifyConf.Subject+"(復帰)", strings.Join(repair, "\r\n"))
+			r := ""
+			if err != nil {
+				astiLogger.Errorf("sendMail err=%v", err)
+				r = fmt.Sprintf("失敗 エラー=%v", err)
+			}
+			addEventLog(eventLogEnt{
+				Type:  "system",
+				Level: "info",
+				Event: fmt.Sprintf("復帰通知メール送信 %s", r),
 			})
 		}
 		lastLog = fmt.Sprintf("%016x", list[0].Time)

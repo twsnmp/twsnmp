@@ -259,9 +259,16 @@ function createNotifyConfPane() {
     label: "レベル",
     options: {
       "通知しない": "none",
-      "注意以上": "warn",
-      "軽度以上": "low",
-      "重度": "high",
+      "注意以上"  : "warn",
+      "軽度以上"  : "low",
+      "重度"      : "high",
+    },
+  });
+  pane.addInput(notifyConfTmp, 'NotifyRepair', { 
+    label: "復帰時",
+    options: {
+      "通知しない": false,
+      "通知する"  : true,
     },
   });
   pane.addInput(notifyConfTmp, 'Report', { 
