@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -90,6 +91,11 @@ func doPollingHTTP(p *pollingEnt) {
 		if err != nil {
 			setPollingError("http", p, err)
 			return
+		}
+		if v, ok := lr["numVal"]; ok {
+			if f, err := strconv.ParseFloat(v, 64); err == nil {
+				p.LastVal = f
+			}
 		}
 	} else {
 		lr["rtt"] = fmt.Sprintf("%f", p.LastVal)

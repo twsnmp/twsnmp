@@ -234,6 +234,34 @@ const chartDispInfo = {
     mul: 1.0,
     axis: "回線速度変動係数"
   },
+  "feels_like": {
+    mul: 1.0,
+    axis: "体感温度(℃）"
+  },
+  "humidity": {
+    mul: 1.0,
+    axis: "湿度(%)"
+  },
+  "pressure": {
+    mul: 1.0,
+    axis: "気圧(hPa)"
+  },
+  "temp": {
+    mul: 1.0,
+    axis: "温度(℃）"
+  },
+  "temp_max": {
+    mul: 1.0,
+    axis: "最高温度(℃）"
+  },
+  "temp_min": {
+    mul: 1.0,
+    axis: "最低温度(℃）"
+  },
+  "wind": {
+    mul: 1.0,
+    axis: "風速(m/sec)"
+  },
   "fail": {
     mul: 1.0,
     axis: "失敗回数"
