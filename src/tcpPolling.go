@@ -202,8 +202,8 @@ func doPollingTLS(p *pollingEnt) {
 		return
 	}
 	cmd := splitCmd(p.Polling)
-	mode := ""
-	target := n.Name + ":443"
+	mode := "verify"
+	target := n.IP + ":443"
 	script := ""
 	if len(cmd) > 2 {
 		mode = cmd[0]
@@ -259,10 +259,14 @@ func doPollingTLS(p *pollingEnt) {
 		lr["rtt"] = fmt.Sprintf("%f", p.LastVal)
 		if mode == "expire" {
 			var d int
-			if _, err := fmt.Sscanf(script, "%d", &d); err != nil && d > 0 {
-				cert := getServerCert(n.Name, &cs)
+			if _, err := fmt.Sscanf(script, "%d", &d); err == nil && d > 0 {
+				a := strings.SplitN(target, ":", 2)
+				cert := getServerCert(a[0], &cs)
 				if cert != nil {
 					na := cert.NotAfter.Unix()
+					lr["notafter"] = cert.NotAfter.Format("2006/01/02")
+					lr["issuer"] = cert.Issuer.String()
+					lr["subject"] = cert.Subject.String()
 					ct := time.Now().AddDate(0, 0, d).Unix()
 					if ct > na {
 						ok = false
