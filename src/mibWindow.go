@@ -154,6 +154,9 @@ func addMIBFile(m *bootstrap.MessageIn) error {
 		nameList = append(nameList, name)
 	}
 	for _, n := range module.Body.Nodes {
+		if n.Name.String() == "" || n.Oid == nil {
+			continue
+		}
 		name := n.Name.String()
 		mapNameToOID[name] = getOid(n.Oid)
 		nameList = append(nameList, name)
@@ -219,6 +222,9 @@ func loadMIBDB() error {
 			nameList = append(nameList, name)
 		}
 		for _, n := range module.Body.Nodes {
+			if n.Name.String() == "" || n.Oid == nil {
+				continue
+			}
 			name := n.Name.String()
 			mapNameToOID[name] = getOid(n.Oid)
 			nameList = append(nameList, name)
@@ -321,7 +327,6 @@ func makeMibTreeJSON() string {
 		addToMibTree(oid, name, poid)
 	}
 	if mibTreeRoot == nil {
-		fmt.Printf("show: mibTreeRoot node not found\n")
 		return ""
 	}
 	return "{\n" + strings.Join(mibTreeJSONEnt(mibTreeRoot, ""), "\n") + "}\n"
