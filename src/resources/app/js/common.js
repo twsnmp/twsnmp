@@ -262,6 +262,14 @@ const chartDispInfo = {
     mul: 1.0,
     axis: "風速(m/sec)"
   },
+  "offset": {
+    mul: 1.0 / (1000 * 1000 * 1000),
+    axis: "時刻差(秒)"
+  },
+  "stratum": {
+    mul: 1,
+    axis: "階層"
+  },
   "fail": {
     mul: 1.0,
     axis: "失敗回数"
