@@ -270,6 +270,18 @@ const chartDispInfo = {
     mul: 1,
     axis: "階層"
   },
+  "load1m": {
+    mul: 1.0,
+    axis: "１分間負荷"
+  },
+  "load5m": {
+    mul: 1.0,
+    axis: "５分間負荷"
+  },
+  "load15m": {
+    mul: 1.0,
+    axis: "１５分間負荷"
+  },
   "fail": {
     mul: 1.0,
     axis: "失敗回数"
