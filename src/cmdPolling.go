@@ -23,7 +23,6 @@ func doPollingCmd(p *pollingEnt) {
 		setPollingError("cmd", p, fmt.Errorf("no cmd"))
 		return
 	}
-	astiLogger.Debugf("%q", cmds)
 	cmd := cmds[0]
 	extractor := cmds[1]
 	script := cmds[2]
