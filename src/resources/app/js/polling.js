@@ -744,7 +744,12 @@ function updateData() {
       return;
     }
     if (logs.length > 0) {
-      setDataList(logs[0].StrVal);
+      for(let i=0;i < logs.length ;i++){
+        if(logs[i].State == "normal" || logs[i].State == "repair" ){
+          setDataList(logs[i].StrVal);
+          break;
+        }
+      }
     }
     const dataTimeLine = [];
     const dataResult = [];

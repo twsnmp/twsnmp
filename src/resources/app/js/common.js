@@ -282,6 +282,58 @@ const chartDispInfo = {
     mul: 1.0,
     axis: "１５分間負荷"
   },
+  "up": {
+    mul: 1.0,
+    axis: "稼働数"
+  },
+  "total": {
+    mul: 1.0,
+    axis: "総数"
+  },
+  "rate": {
+    mul: 1.0,
+    axis: "稼働率"
+  },
+  "capacity": {
+    mul: 0.000000001,
+    axis: "総容量(GB)"
+  },
+  "freeSpace": {
+    mul: 0.000000001,
+    axis: "空き容量(GB)"
+  },
+  "usage": {
+    mul: 1.0,
+    axis: "使用率(%)"
+  },
+  "totalCPU": {
+    mul: 0.001,
+    axis: "総CPUクロック(GHz)"
+  },
+  "usedCPU": {
+    mul: 0.001,
+    axis: "使用中のCPUクロック(GHz)"
+  },
+  "usageCPU": {
+    mul: 1.0,
+    axis: "CPU使用率(%)"
+  },
+  "totalMEM": {
+    mul: 0.000001,
+    axis: "総メモリー(MB)"
+  },
+  "usedMEM": {
+    mul: 0.000001,
+    axis: "使用中メモリー(MB)"
+  },
+  "usageMEM": {
+    mul: 1.0,
+    axis: "メモリー使用率(%)"
+  },
+  "totalHost": {
+    mul: 1.0,
+    axis: "ホスト数"
+  },
   "fail": {
     mul: 1.0,
     axis: "失敗回数"
