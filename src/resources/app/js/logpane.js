@@ -118,6 +118,7 @@ function createLogPane() {
     pane = undefined;
     doSearchLog(f);
   });
+  setupPanePosAndSize();
   return;
 }
 
@@ -180,7 +181,7 @@ function createSyslogPane() {
     },
   });
   pane.addInput(syslogFilter, 'hostname', { label: "送信元" });
-  pane.addInput(syslogFilter, 'tag', { label: "TAG" });
+  pane.addInput(syslogFilter, 'tag', { label: "タグ" });
   pane.addInput(syslogFilter, 'content', { label: "ログ" });
   pane.addButton({
     title: 'Cancel',
@@ -223,6 +224,7 @@ function createSyslogPane() {
     pane = undefined;
     doSearchLog(f);
   });
+  setupPanePosAndSize();
   return;
 }
 
@@ -246,7 +248,7 @@ function createTrapPane() {
   });
   pane.addInput(trapFilter, 'fromAddress', { label: "送信元" });
   pane.addInput(trapFilter, 'genericTrap', { 
-    label: "GenericTrap",
+    label: "TRAP番号",
     options: {
       "指定しない": "",
       "coldStart": "0",
@@ -258,8 +260,8 @@ function createTrapPane() {
       "enterpriseSpecific": "6",
     },
   });
-  pane.addInput(trapFilter, 'snmpTrapOID', { label: "SNMP TRAP OID" });
-  pane.addInput(trapFilter, 'variables', { label: "Variables" });
+  pane.addInput(trapFilter, 'snmpTrapOID', { label: "TRAPのOID" });
+  pane.addInput(trapFilter, 'variables', { label: "変数" });
   pane.addButton({
     title: 'Cancel',
   }).on('click', (value) => {
@@ -290,6 +292,7 @@ function createTrapPane() {
     pane = undefined;
     doSearchLog(f);
   });
+  setupPanePosAndSize();
   return;
 }
 
@@ -310,7 +313,7 @@ function createNetflowPane() {
     return;
   }
   pane = new Tweakpane({
-    title: "Netflow検索条件"
+    title: "NetFlow検索条件"
   });
   pane.addInput(netflowFilter, 'srcAddr', { label: "送信元IP" });
   pane.addInput(netflowFilter, 'srcPort', { label: "送信元Port" });
@@ -360,6 +363,7 @@ function createNetflowPane() {
     pane = undefined;
     doSearchLog(f);
   });
+  setupPanePosAndSize();
   return;
 }
 
@@ -431,6 +435,7 @@ function createIpfixPane() {
     pane = undefined;
     doSearchLog(f);
   });
+  setupPanePosAndSize();
   return;
 }
 
@@ -500,6 +505,7 @@ function createArpLogPane() {
     pane = undefined;
     doSearchLog(f);
   });
+  setupPanePosAndSize();
   return;
 }
 

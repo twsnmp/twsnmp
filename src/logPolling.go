@@ -95,8 +95,7 @@ func doPollingLog(p *pollingEnt) {
 		setPollingError("log", p, fmt.Errorf("invalid log watch format"))
 		return
 	}
-	astiLogger.Debugf("%q", cmds)
-	filter := cmds[0]
+	filter := "`" + cmds[0] + "`"
 	extractor := cmds[1]
 	script := cmds[2]
 	if _, err := regexp.Compile(filter); err != nil {

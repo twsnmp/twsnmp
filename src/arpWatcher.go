@@ -47,6 +47,8 @@ func arpWatcher(ctx context.Context) {
 	}
 }
 
+var lastLocalAddressUsage = 0.0
+
 func makeLoacalCheckAddrs() {
 	ifs, err := net.Interfaces()
 	if err != nil {
@@ -66,6 +68,7 @@ func makeLoacalCheckAddrs() {
 		if err != nil {
 			continue
 		}
+		ipMap := make(map[string]bool)
 		for _, a := range addrs {
 			cidr := a.String()
 			ipTmp, ipnet, err := net.ParseCIDR(cidr)
@@ -87,10 +90,16 @@ func makeLoacalCheckAddrs() {
 					ip.Equal(ip.Mask(ipnet.Mask)) || ip.Equal(broadcast) {
 					continue
 				}
-				localIPCount++
 				sa := ip.String()
+				if _, ok := ipMap[sa]; ok {
+					// 同じIPアドレスを追加しない。
+					continue
+				}
+				ipMap[sa] = true
+				localIPCount++
 				if _, ok := arpTable[sa]; ok {
 					localHitCount++
+					continue
 				}
 				localCheckAddrs = append(localCheckAddrs, sa)
 			}
@@ -100,6 +109,10 @@ func makeLoacalCheckAddrs() {
 	if localIPCount > 0 {
 		lau = 100.0 * float64(localHitCount) / float64(localIPCount)
 	}
+	if lastLocalAddressUsage == lau {
+		return
+	}
+	lastLocalAddressUsage = lau
 	addEventLog(eventLogEnt{
 		Type:  "system",
 		Level: "info",
