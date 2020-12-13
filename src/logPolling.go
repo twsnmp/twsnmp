@@ -26,10 +26,12 @@ var (
 		"EPSLOGIN":    {Pat: `Login %{GREEDYDATA:stat}: \[%{USER:user}\].+cli %{MAC:client}`, Ok: "OK"},
 		"FZLOGIN":     {Pat: `FileZen: %{IP:client} %{USER:user} "Authentication %{GREEDYDATA:stat}`, Ok: "succeeded."},
 		"NAOSLOGIN":   {Pat: `Login %{GREEDYDATA:stat}: \[.+\] %{USER:user}`, Ok: "Success"},
-		"LAPDEVICE":   {Pat: `mac=%{MAC:mac} ip=%{IP:ip}`},
-		"WELFFLOW":    {Pat: `src=%{IP:src}:%{:sport}:.+ dst=%{IP:dst}:%{BASE10NUM:dport}:.+proto=%{WORD:prot}/.+ sent=%{BASE10NUM:sent} .+rcvd=%{BASE10NUM:rcvd}`},
+		"DEVICE":      {Pat: `mac=%{MAC:mac}.+ip=%{IP:ip}`},
+		"DEVICER":     {Pat: `ip=%{IP:ip}.+mac=%{MAC:mac}`},
+		"WELFFLOW":    {Pat: `src=%{IP:src}:%{BASE10NUM:sport}:.+dst=%{IP:dst}:%{BASE10NUM:dport}:.+proto=%{WORD:prot}.+sent=%{BASE10NUM:sent}.+rcvd=%{BASE10NUM:rcvd}`},
 		"OPENWEATHER": {Pat: `"weather":.+"main":\s*"%{WORD:weather}".+"main":.+"temp":\s*%{BASE10NUM:temp}.+"feels_like":\s*%{BASE10NUM:feels_like}.+"temp_min":\s*%{BASE10NUM:temp_min}.+"temp_max":\s*%{BASE10NUM:temp_max}.+"pressure":\s*%{BASE10NUM:pressure}.+"humidity":\s*%{BASE10NUM:humidity}.+"wind":\s*{"speed":\s*%{BASE10NUM:wind}`},
 		"UPTIME":      {Pat: `load average: %{BASE10NUM:load1m}, %{BASE10NUM:load5m}, %{BASE10NUM:load15m}`},
+		"SSHLOGIN":    {Pat: `%{GREEDYDATA:stat} (password|publickey) for( invalid user | )%{USER:user} from %{IP:client}`, Ok: "Accepted"},
 	}
 )
 
@@ -89,6 +91,19 @@ func makeLastResult(lr map[string]string) string {
 	return ""
 }
 
+func getLogContent(log string) string {
+	sm := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(log), &sm); err != nil {
+		astiLogger.Errorf("getLogContent err=%v", err)
+		return ""
+	}
+	if s, ok := sm["content"]; ok {
+		return s.(string)
+	}
+	astiLogger.Error("getLogContent no content")
+	return ""
+}
+
 func doPollingLog(p *pollingEnt) {
 	cmds := splitCmd(p.Polling)
 	if len(cmds) != 3 {
@@ -141,17 +156,18 @@ func doPollingLog(p *pollingEnt) {
 	}
 	grokEnt, ok := grokMap[extractor]
 	if !ok {
-		setPollingError("log", p, fmt.Errorf("no grok pattern"))
+		setPollingError("log", p, fmt.Errorf("no extractor pattern"))
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
 	if err := g.AddPattern(extractor, grokEnt.Pat); err != nil {
-		setPollingError("log", p, fmt.Errorf("no grok pattern"))
+		setPollingError("log", p, fmt.Errorf("no extractor pattern"))
 		return
 	}
 	cap := fmt.Sprintf("%%{%s}", extractor)
 	for _, l := range logs {
-		values, err := g.Parse(cap, string(l.Log))
+		cont := getLogContent(l.Log)
+		values, err := g.Parse(cap, cont)
 		if err != nil {
 			continue
 		}
@@ -178,7 +194,13 @@ func doPollingLog(p *pollingEnt) {
 var syslogPriFilter = regexp.MustCompile(`"priority":(\d+),`)
 
 func doPollingSyslogPri(p *pollingEnt) bool {
-	_, err := regexp.Compile(p.Polling)
+	cmds := splitCmd(p.Polling)
+	if len(cmds) < 1 {
+		setPollingError("log", p, fmt.Errorf("invalid syslog pri watch format"))
+		return false
+	}
+	filter := cmds[0]
+	_, err := regexp.Compile(filter)
 	if err != nil {
 		setPollingError("log", p, fmt.Errorf("invalid syslogpri watch format"))
 		_ = updatePolling(p)
@@ -186,7 +208,7 @@ func doPollingSyslogPri(p *pollingEnt) bool {
 	}
 	endTime := time.Unix((time.Now().Unix()/3600)*3600, 0)
 	startTime := endTime.Add(-time.Hour * 1)
-	if int64(p.LastVal) >= startTime.UnixNano() {
+	if int64(p.LastVal) >= startTime.UnixNano() && p.LastResult != "" {
 		// Skip
 		return false
 	}
@@ -194,7 +216,7 @@ func doPollingSyslogPri(p *pollingEnt) bool {
 	st := startTime.Format("2006-01-02T15:04")
 	et := endTime.Format("2006-01-02T15:04")
 	logs := getLogs(&filterEnt{
-		Filter:    p.Polling,
+		Filter:    "`" + filter + "`",
 		StartTime: st,
 		EndTime:   et,
 		LogType:   "syslog",
@@ -228,18 +250,18 @@ func doPollingSyslogDevice(p *pollingEnt) {
 		return
 	}
 	filter := cmds[0]
-	mode := cmds[1]
+	extractor := cmds[1]
 	if _, err := regexp.Compile(filter); err != nil {
 		setPollingError("log", p, fmt.Errorf("invalid syslog device watch format"))
 		return
 	}
-	grokEnt, ok := grokMap[mode]
+	grokEnt, ok := grokMap[extractor]
 	if !ok {
 		setPollingError("log", p, fmt.Errorf("invalid syslog device watch format"))
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-	if err := g.AddPattern(mode, grokEnt.Pat); err != nil {
+	if err := g.AddPattern(extractor, grokEnt.Pat); err != nil {
 		setPollingError("log", p, fmt.Errorf("invalid syslog device watch format err=%v", err))
 		return
 	}
@@ -255,7 +277,7 @@ func doPollingSyslogDevice(p *pollingEnt) {
 	}
 	et := time.Now().Format("2006-01-02T15:04")
 	logs := getLogs(&filterEnt{
-		Filter:    filter,
+		Filter:    "`" + filter + "`",
 		StartTime: st,
 		EndTime:   et,
 		LogType:   "syslog",
@@ -263,9 +285,10 @@ func doPollingSyslogDevice(p *pollingEnt) {
 	lr["lastTime"] = et
 	lr["count"] = fmt.Sprintf("%d", len(logs))
 	count := 0
-	cap := fmt.Sprintf("%%{%s}", mode)
+	cap := fmt.Sprintf("%%{%s}", extractor)
 	for _, l := range logs {
-		values, err := g.Parse(cap, string(l.Log))
+		cont := getLogContent(l.Log)
+		values, err := g.Parse(cap, cont)
 		if err != nil {
 			astiLogger.Errorf("err=%v", err)
 			continue
@@ -286,6 +309,7 @@ func doPollingSyslogDevice(p *pollingEnt) {
 			IP:   ip,
 		}
 	}
+	lr["hit"] = fmt.Sprintf("%d", count)
 	p.LastVal = float64(count)
 	p.LastResult = makeLastResult(lr)
 	setPollingState(p, "normal")
@@ -303,18 +327,18 @@ func doPollingSyslogUser(p *pollingEnt) {
 		return
 	}
 	filter := cmds[0]
-	mode := cmds[1]
+	extractor := cmds[1]
 	if _, err := regexp.Compile(filter); err != nil {
 		setPollingError("log", p, fmt.Errorf("invalid filter for syslog user"))
 		return
 	}
-	grokEnt, ok := grokMap[mode]
+	grokEnt, ok := grokMap[extractor]
 	if !ok {
-		setPollingError("log", p, fmt.Errorf("invalid grok for syslog user"))
+		setPollingError("log", p, fmt.Errorf("invalid extractor for syslog user"))
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-	if err := g.AddPattern(mode, grokEnt.Pat); err != nil {
+	if err := g.AddPattern(extractor, grokEnt.Pat); err != nil {
 		astiLogger.Errorf("doPollingSyslogUser err=%v", err)
 	}
 	lr := make(map[string]string)
@@ -329,7 +353,7 @@ func doPollingSyslogUser(p *pollingEnt) {
 	}
 	et := time.Now().Format("2006-01-02T15:04")
 	logs := getLogs(&filterEnt{
-		Filter:    filter,
+		Filter:    "`" + filter + "`",
 		StartTime: st,
 		EndTime:   et,
 		LogType:   "syslog",
@@ -338,9 +362,10 @@ func doPollingSyslogUser(p *pollingEnt) {
 	lr["count"] = fmt.Sprintf("%d", len(logs))
 	okCount := 0
 	totalCount := 0
-	cap := fmt.Sprintf("%%{%s}", mode)
+	cap := fmt.Sprintf("%%{%s}", extractor)
 	for _, l := range logs {
-		values, err := g.Parse(cap, string(l.Log))
+		cont := getLogContent(l.Log)
+		values, err := g.Parse(cap, cont)
 		if err != nil {
 			astiLogger.Errorf("err=%v", err)
 			continue
@@ -374,6 +399,7 @@ func doPollingSyslogUser(p *pollingEnt) {
 	}
 	lr["total"] = fmt.Sprintf("%d", totalCount)
 	lr["ok"] = fmt.Sprintf("%d", okCount)
+	lr["rate"] = fmt.Sprintf("%f", p.LastVal*100.0)
 	p.LastResult = makeLastResult(lr)
 	setPollingState(p, "normal")
 }
@@ -385,19 +411,19 @@ func doPollingSyslogFlow(p *pollingEnt) {
 		return
 	}
 	filter := cmds[0]
-	mode := cmds[1]
+	extractor := cmds[1]
 	if _, err := regexp.Compile(filter); err != nil {
 		setPollingError("syslogFlow", p, fmt.Errorf("invalid filter"))
 		return
 	}
-	grokEnt, ok := grokMap[mode]
+	grokEnt, ok := grokMap[extractor]
 	if !ok {
-		setPollingError("syslogFlow", p, fmt.Errorf("invalid grok"))
+		setPollingError("syslogFlow", p, fmt.Errorf("invalid extractor"))
 		return
 	}
 	g, _ := grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})
-	if err := g.AddPattern(mode, grokEnt.Pat); err != nil {
-		setPollingError("syslogFlow", p, fmt.Errorf("invalid grok"))
+	if err := g.AddPattern(extractor, grokEnt.Pat); err != nil {
+		setPollingError("syslogFlow", p, fmt.Errorf("invalid extractor"))
 		return
 	}
 	lr := make(map[string]string)
@@ -412,7 +438,7 @@ func doPollingSyslogFlow(p *pollingEnt) {
 	}
 	et := time.Now().Format("2006-01-02T15:04")
 	logs := getLogs(&filterEnt{
-		Filter:    filter,
+		Filter:    "`" + filter + "`",
 		StartTime: st,
 		EndTime:   et,
 		LogType:   "syslog",
@@ -420,9 +446,10 @@ func doPollingSyslogFlow(p *pollingEnt) {
 	lr["lastTime"] = et
 	lr["count"] = fmt.Sprintf("%d", len(logs))
 	count := 0
-	cap := fmt.Sprintf("%%{%s}", mode)
+	cap := fmt.Sprintf("%%{%s}", extractor)
 	for _, l := range logs {
-		values, err := g.Parse(cap, string(l.Log))
+		cont := getLogContent(l.Log)
+		values, err := g.Parse(cap, cont)
 		if err != nil {
 			continue
 		}
@@ -466,7 +493,9 @@ func doPollingSyslogFlow(p *pollingEnt) {
 			Prot:    nProt,
 			Bytes:   int64(nBytes),
 		}
+		count++
 	}
+	lr["hit"] = fmt.Sprintf("%d", count)
 	p.LastVal = float64(count)
 	p.LastResult = makeLastResult(lr)
 	setPollingState(p, "normal")
