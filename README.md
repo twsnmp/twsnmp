@@ -43,6 +43,8 @@ This project is to revive the TWSNMP Manager that was developed in 1999 and is s
 * TWSNMP間の連携、Webブラウザーでマップ表示
 * Influxdb経由でGrafana連携
 * ローカル、SSH経由のコマンド実行監視
+* 定期レポート、復帰通知メール(v5.0.1)
+* 更新版の確認、フィードバック機能(v5.0.1)
 
 以下の動作環境に対応しました。
 
