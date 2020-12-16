@@ -11,6 +11,9 @@ let lines = {};
 let backimg;
 let dbStats;
 
+const MAP_SIZE_X = 2500;
+const MAP_SIZE_Y = 5000;
+
 const status = {
   High: 0,
   Low: 0,
@@ -25,7 +28,7 @@ function preload() {
 }
 
 function setup() {
-  var canvas = createCanvas(2500, 5000);
+  var canvas = createCanvas(MAP_SIZE_X, MAP_SIZE_Y);
   canvas.parent('mapDiv');
   noLoop();
 }
@@ -114,6 +117,12 @@ function mouseDragged() {
     }
     if (nodes[selectNode].Y < 16) {
       nodes[selectNode].Y = 16;
+    }
+    if (nodes[selectNode].X > MAP_SIZE_X) {
+      nodes[selectNode].X = MAP_SIZE_X - 16;
+    }
+    if (nodes[selectNode].Y > MAP_SIZE_Y) {
+      nodes[selectNode].Y =  MAP_SIZE_Y - 16;
     }
     draggedNode = selectNode;
     redraw();
@@ -583,6 +592,18 @@ document.addEventListener('astilectron-ready', function () {
         nodes = message.payload;
         setTimeout(() => {
           for (let k in nodes) {
+            if(nodes[k].X < 16) {
+              nodes[k].X = 16;
+            }
+            if (nodes[k].Y < 16){
+              nodes[k].Y = 16;
+            }
+            if(nodes[k].X > MAP_SIZE_X) {
+              nodes[k].X = MAP_SIZE_X - 16;
+            }
+            if (nodes[k].Y > MAP_SIZE_Y){
+              nodes[k].Y = MAP_SIZE_Y - 16;
+            }
             addOrUpdateNode(nodes[k]);
           }
           updateNodeList();
