@@ -306,7 +306,7 @@ func main() {
 				if err != nil {
 					continue
 				}
-				if w[i] != aiWindow {
+				if w[i] != aiWindow || !*debug {
 					_ = mi.SetVisible(false)
 				}
 				w[i].On(astilectron.EventNameWindowEventHide, func(e astilectron.Event) (deleteListener bool) {
