@@ -73,6 +73,14 @@
         const msg = $("#msg").val()
         if (msg) {
           astilectron.sendMessage({ name: "send", payload: msg }, message => {
+            if(message.payload !== "ok") {
+              dialog.showErrorBox("フィードバック", "送信できませんでした。err="+message.payload);
+              return;
+            } else {
+              dialog.showMessageBox({message: "送信しました。", title: "フィードバック"});
+              $("#msg").val("");
+              astilectron.sendMessage({ name: "exit", payload: "" }, message => { });
+            }
           });
         }
       });

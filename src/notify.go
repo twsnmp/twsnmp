@@ -327,7 +327,7 @@ func encodeSubject(subject string) string {
 	return buffer.String()
 }
 
-func sendFeedback(msg string) {
+func sendFeedback(msg string) error {
 	msg += fmt.Sprintf("\n-----\n%s:%s\n", runtime.GOOS, runtime.GOARCH)
 	values := url.Values{}
 	values.Set("msg", msg)
@@ -340,7 +340,7 @@ func sendFeedback(msg string) {
 	)
 	if err != nil {
 		astiLogger.Errorf("sendFeedback  err=%v", err)
-		return
+		return err
 	}
 
 	// Content-Type 設定
@@ -350,15 +350,18 @@ func sendFeedback(msg string) {
 	resp, err := client.Do(req)
 	if err != nil {
 		astiLogger.Errorf("sendFeedback  err=%v", err)
-		return
+		return err
 	}
 	defer resp.Body.Close()
 	r, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		astiLogger.Errorf("sendFeedback  err=%v", err)
-		return
+		return err
 	}
-	astiLogger.Infof("sendFeedback  %s", string(r))
+	if string(r) != "OK" {
+		return fmt.Errorf("resp is '%s'", r)
+	}
+	return nil
 }
 
 func calcHash(msg string) string {

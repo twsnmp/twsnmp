@@ -554,11 +554,12 @@ func feedbackMessageHandler(w *astilectron.Window, m bootstrap.MessageIn) (inter
 				astiLogger.Error(fmt.Sprintf("Unmarshal %s error=%v", m.Name, err))
 				return err.Error(), err
 			}
-			sendFeedback(msg)
-			_ = feedbackWindow.Hide()
+			if err := sendFeedback(msg); err != nil {
+				return err.Error(), err
+			}
 		}
 	}
-	return "", nil
+	return "ok", nil
 }
 
 // Backen Process
