@@ -648,9 +648,21 @@ func applyMapData() {
 	}
 }
 
+func clearPollingState() {
+	pollings.Range(func(_, v interface{}) bool {
+		p := v.(*pollingEnt)
+		if p.State == "repair" {
+			p.State = "unknown"
+			p.NextTime = 0
+		}
+		return true
+	})
+}
+
 func mainWindowBackend(ctx context.Context) {
 	stateCheckNodes := make(map[string]bool)
 	lastLog := sendLogs("")
+	clearPollingState()
 	for k := range nodes {
 		updateNodeState(k)
 	}
