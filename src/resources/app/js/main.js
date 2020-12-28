@@ -434,6 +434,69 @@ function dupNode() {
 
 let log;
 
+function cmpNodeIP(a,b) {
+  const pa = a.split('.').map(function(s) {
+    return parseInt(s); 
+  });
+  const pb = b.split('.').map(function(s) {
+    return parseInt(s); 
+  });
+  for(let i =0;i < pa.length;i++){
+    if (i >= pb.length){
+      return -1;
+    }
+    if (pa[i] == pb[i]){
+      continue;
+    }
+    if (pa[i] < pb[i]){
+      return -1;
+    }
+    return 1;
+  }
+  return 0;
+}
+
+function createNodeList() {
+  const nodeIDs = [];
+  for (let k in nodes) {
+    if(nodes[k].X < 16) {
+      nodes[k].X = 16;
+    }
+    if (nodes[k].Y < 16){
+      nodes[k].Y = 16;
+    }
+    if(nodes[k].X > MAP_SIZE_X) {
+      nodes[k].X = MAP_SIZE_X - 16;
+    }
+    if (nodes[k].Y > MAP_SIZE_Y){
+      nodes[k].Y = MAP_SIZE_Y - 16;
+    }
+    nodeIDs.push(k);
+  }
+  $('#nodeList li.list-group-item').each((i, e) => {
+    $(e).remove();
+  });
+  nodeIDs.sort((a, b) => {
+    const na = nodes[a];
+    const nb = nodes[b];
+    if(mapConf.NodeSort == "ip"){
+      return cmpNodeIP(na.IP,nb.IP);
+    } else if (mapConf.NodeSort == "state"){
+      return getStateLevel(na.State) - getStateLevel(nb.State);
+    } else {
+      if (na.Name < nb.Name){
+        return -1;
+      } else if (na.Name > nb.Name){
+        return 1;
+      }
+      return 0;
+    }
+  });
+  nodeIDs.forEach(k => {
+    addOrUpdateNode(nodes[k]);
+  });
+}
+
 function addOrUpdateNode(n) {
   const node = $(`li.list-group-item[data-id=${n.ID}]`);
   const keyword = `${n.State}:${n.Name}:${n.IP}`.replace(`"`, ``);
@@ -591,21 +654,7 @@ document.addEventListener('astilectron-ready', function () {
       case "nodes": {
         nodes = message.payload;
         setTimeout(() => {
-          for (let k in nodes) {
-            if(nodes[k].X < 16) {
-              nodes[k].X = 16;
-            }
-            if (nodes[k].Y < 16){
-              nodes[k].Y = 16;
-            }
-            if(nodes[k].X > MAP_SIZE_X) {
-              nodes[k].X = MAP_SIZE_X - 16;
-            }
-            if (nodes[k].Y > MAP_SIZE_Y){
-              nodes[k].Y = MAP_SIZE_Y - 16;
-            }
-            addOrUpdateNode(nodes[k]);
-          }
+          createNodeList();
           updateNodeList();
         }, 100);
         return { name: "nodes", payload: "ok" };

@@ -134,6 +134,7 @@ type mapConfEnt struct {
 	Retry          int
 	LogDays        int
 	LogDispSize    int
+	NodeSort       string
 	SnmpMode       string
 	Community      string
 	User           string

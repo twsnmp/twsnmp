@@ -13,6 +13,14 @@ function createMapConfPane() {
     title: 'マップ設定',
   });
   f1.addInput(mapConfTmp, 'MapName', { label: "名前" });
+  f1.addInput(mapConf, 'NodeSort', { 
+    label: "ノードリスト順序",
+    options: {
+      "名前": "",
+      "状態": "state",
+      "IPアドレス" : "ip",
+    },
+  });
   f1.addInput(mapConfTmp, 'BackImg', { label: "背景画像" });
   f1.addButton({
     title: '背景画像ファイル選択',
@@ -200,6 +208,7 @@ function createMapConfPane() {
       }
       mapConf = mapConfTmp;
       setWindowTitle();
+      createNodeList();
       if(mapConf.BackImg ){
         loadImage("./images/backimg",img => {
           backimg =  img;

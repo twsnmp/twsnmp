@@ -33,6 +33,17 @@ const stateColorArray = [
 ];
 const stateColorMap = new Map(stateColorArray);
 
+// State level
+const stateLevelArray = [
+  ["high", 0],
+  ["low", 1],
+  ["warn", 2],
+  ["normal", 3],
+  ["info", 4],
+  ["repair", 5]
+];
+const stateLevelMap = new Map(stateLevelArray);
+
 // State Html
 const stateHtmlArray = [
   ["high", '<i class="fas fa-exclamation-circle state state_high"></i>重度'],
@@ -85,6 +96,11 @@ function getIcon(icon) {
 function getStateColor(state) {
   const ret = stateColorMap.get(state);
   return ret ? color(ret) : color("#999");
+}
+
+function getStateLevel(state) {
+  const ret = stateLevelMap.get(state);
+  return ret ? ret : stateLevelArray.length;
 }
 
 function getStateHtml(state) {
