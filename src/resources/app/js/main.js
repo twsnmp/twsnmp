@@ -1,7 +1,7 @@
 'use strict';
 
 let myFont;
-let selectNode = "";
+const selectedNodes = [];
 let mapConf;
 let notifyConf;
 let influxdbConf;
@@ -33,6 +33,7 @@ function setup() {
   noLoop();
 }
 
+
 function draw() {
   background(250);
   if(backimg){
@@ -60,7 +61,7 @@ function draw() {
     const icon = getIcon(nodes[k].Icon);
     push();
     translate(nodes[k].X, nodes[k].Y);
-    if (selectNode == nodes[k].ID) {
+    if (selectedNodes.includes(nodes[k].ID)) {
       fill('rgba(240,248,255,0.9)');
       stroke(getStateColor(nodes[k].State));
       rect(-24, -24, 48, 48);
@@ -84,24 +85,33 @@ function draw() {
   }
 }
 
-function setSelectNode() {
+function setSelectNode(bMulti) {
+  const l = selectedNodes.length;
   for (let k in nodes) {
     if (nodes[k].X + 32 > mouseX &&
       nodes[k].X - 32 < mouseX &&
       nodes[k].Y + 32 > mouseY &&
       nodes[k].Y - 32 < mouseY
     ) {
-      selectNode = nodes[k].ID;
-      return;
+      if( selectedNodes.includes(nodes[k].ID)){
+        return false;
+      }
+      if(!bMulti){
+        selectedNodes.length = 0;
+      }
+      selectedNodes.push(nodes[k].ID);
+      return true;
     }
   }
-  selectNode = "";
-  return;
+  if(!bMulti){
+    selectedNodes.length = 0;
+  }
+  return l != selectedNodes.length;
 }
 
 let lastMouseX;
 let lastMouseY;
-let draggedNode = "";
+const draggedNodes = [];
 
 function mouseDragged() {
   if (winMouseX < 200 ||
@@ -109,22 +119,28 @@ function mouseDragged() {
     winMouseY > windowHeight * 0.75) {
     return true;
   }
-  if (nodes[selectNode] && lastMouseX) {
-    nodes[selectNode].X += mouseX - lastMouseX;
-    nodes[selectNode].Y += mouseY - lastMouseY;
-    if (nodes[selectNode].X < 16) {
-      nodes[selectNode].X = 16;
-    }
-    if (nodes[selectNode].Y < 16) {
-      nodes[selectNode].Y = 16;
-    }
-    if (nodes[selectNode].X > MAP_SIZE_X) {
-      nodes[selectNode].X = MAP_SIZE_X - 16;
-    }
-    if (nodes[selectNode].Y > MAP_SIZE_Y) {
-      nodes[selectNode].Y =  MAP_SIZE_Y - 16;
-    }
-    draggedNode = selectNode;
+  if(lastMouseX){
+    selectedNodes.forEach(id =>{
+      if (nodes[id]) {
+        nodes[id].X += mouseX - lastMouseX;
+        nodes[id].Y += mouseY - lastMouseY;
+        if (nodes[id].X < 16) {
+          nodes[id].X = 16;
+        }
+        if (nodes[id].Y < 16) {
+          nodes[id].Y = 16;
+        }
+        if (nodes[id].X > MAP_SIZE_X) {
+          nodes[id].X = MAP_SIZE_X - 16;
+        }
+        if (nodes[id].Y > MAP_SIZE_Y) {
+          nodes[id].Y =  MAP_SIZE_Y - 16;
+        }
+        if(!draggedNodes.includes(id) ){
+          draggedNodes.push(id);
+        }
+      }
+    });
     redraw();
   }
   lastMouseX = mouseX;
@@ -154,24 +170,28 @@ function mousePressed() {
   if (ctxMenu) {
     return true;
   }
-  const selectNodeBack = selectNode;
-  setSelectNode();
   if (keyIsDown(SHIFT) &&
-    selectNodeBack != "" &&
-    selectNode != "" &&
-    selectNodeBack != selectNode) {
-    createEditLinePane(selectNodeBack, selectNode);
-    selectNode = "";
+    selectedNodes.length > 0 &&
+    setSelectNode(true)) {
+    createEditLinePane(selectedNodes[0], selectedNodes[1]);
+    selectedNodes.length = 0;
     return true;
+  } else if(keyIsDown(CONTROL)) {
+    if(setSelectNode(true) ){
+      updateNodeList();
+      redraw();
+    }
+  } else {
+   if (setSelectNode(false)) {
+      updateNodeList();
+   }
   }
-  if (selectNodeBack != selectNode) {
-    updateNodeList();
-  }
-  if (mouseButton === RIGHT) {
+  if (mouseButton === RIGHT && selectedNodes.length == 1) {
     let urls;
     let div;
-    if (nodes[selectNode]) {
-      urls = nodes[selectNode].URL.split(",",5);
+    const id = selectedNodes[0];
+    if (nodes[id]) {
+      urls = nodes[id].URL.split(",",5);
       let urlMenu = "";
       for(let i=0;i < urls.length;i++){
         if( urls[i] == ""){
@@ -272,34 +292,34 @@ function mousePressed() {
       showNodeInfo();
     });
     $("#ctxMenu span.showPolling").on("click", () => {
-      if (selectNode != "") {
-        astilectron.sendMessage({ name: "showPolling", payload: selectNode }, function (message) {
+      if (selectedNodes.length == 1) {
+        astilectron.sendMessage({ name: "showPolling", payload: selectedNodes[0] }, function (message) {
         });
       }
     });
     $("#ctxMenu span.showNodeLog").on("click", () => {
-      if (selectNode != "") {
-        astilectron.sendMessage({ name: "showNodeLog", payload: selectNode }, function (message) {
+      if (selectedNodes.length == 1) {
+        astilectron.sendMessage({ name: "showNodeLog", payload: selectedNodes[0] }, function (message) {
         });
       }
     });
     $("#ctxMenu span.pollNow").on("click", () => {
-      if (selectNode != "") {
-        astilectron.sendMessage({ name: "pollNow", payload: selectNode }, function (message) {
-          nodes[selectNode].State = "unknown";
+      if (selectedNodes.length == 1) {
+        astilectron.sendMessage({ name: "pollNow", payload: selectedNodes[0] }, function (message) {
+          nodes[selectedNodes[0]].State = "unknown";
           redraw();
         });
       }
     });
     $("#ctxMenu span.showMIB").on("click", () => {
-      if (selectNode != "" ) {
-        astilectron.sendMessage({ name: "showMIB", payload: selectNode }, function (message) {
+      if (selectedNodes.length == 1 ) {
+        astilectron.sendMessage({ name: "showMIB", payload: selectedNodes[0] }, function (message) {
         });
       }
     });
     $("#ctxMenu span.editNode").on("click", () => {
-      if (selectNode != "") {
-        createEditNodePane(lastMouseX, lastMouseY, selectNode);
+      if (selectedNodes.length == 1) {
+        createEditNodePane(lastMouseX, lastMouseY, selectedNodes[0]);
       }
     });
     $("#ctxMenu span.startDiscover").on("click", () => {
@@ -354,13 +374,16 @@ function mouseClicked() {
 }
 
 function mouseReleased() {
-  if (draggedNode == "" || !nodes[draggedNode]) {
-    draggedNode = "";
+  if (draggedNodes.length == 0) {
     return
   }
-  astilectron.sendMessage({ name: "updateNode", payload: nodes[draggedNode] }, function (message) {
+  draggedNodes.forEach(id =>{
+    if (nodes[id] ){
+      astilectron.sendMessage({ name: "updateNode", payload: nodes[id] }, function (message) {
+      });
+    }
   });
-  draggedNode = "";
+  draggedNodes.length = 0;
 }
 
 function keyReleased() {
@@ -385,10 +408,10 @@ function doubleClicked() {
 }
 
 function showNodeInfo(){
-  if (selectNode == "" || pane) {
+  if (selectedNodes.length != 1 || pane) {
     return;
   }
-  astilectron.sendMessage({ name: "showNodeInfo", payload: selectNode }, function (message) {
+  astilectron.sendMessage({ name: "showNodeInfo", payload: selectedNodes[0] }, function (message) {
   });
 }
 
@@ -398,32 +421,32 @@ function openUrl(url) {
 }
 
 function deleteNode() {
-  if (!selectNode || !nodes[selectNode] || pane) {
+  if ( selectedNodes.length != 1 || !nodes[selectedNodes[0]] || pane) {
     return;
   }
-  if (!confirmDialog("ノード削除",`${nodes[selectNode].Name}を削除しますか?`)) {
+  if (!confirmDialog("ノード削除",`${nodes[selectedNodes[0]].Name}を削除しますか?`)) {
     return;
   }
-  astilectron.sendMessage({ name: "deleteNode", payload: selectNode }, function (message) {
+  astilectron.sendMessage({ name: "deleteNode", payload: selectedNodes[0] }, function (message) {
     if (message.payload != "ok") {
       return;
     }
   });
   for (let k in lines) {
-    if (lines[k].Node1 == selectNode || lines[k].Node2 == selectNode) {
+    if (lines[k].Node1 == selectedNodes[0] || lines[k].Node2 == selectedNodes[0]) {
       delete lines[k];
     }
   }
-  delete nodes[selectNode];
-  selectNode = "";
+  delete nodes[selectedNodes[0]];
+  selectedNodes.length = 0;
   updateNodeList();
 }
 
 function dupNode() {
-  if (!selectNode) {
+  if (selectedNodes.length != 1) {
     return;
   }
-  astilectron.sendMessage({ name: "dupNode", payload: selectNode }, function (message) {
+  astilectron.sendMessage({ name: "dupNode", payload: selectedNodes[0] }, function (message) {
     if (message.payload == "ng") {
       return;
     }
@@ -525,14 +548,15 @@ function updateNodeList() {
     const id = $(e).data('id') + '';
     if (!nodes[id]) {
       $(e).remove();
-    } else if (id == selectNode) {
+    } else if (selectedNodes.includes(id)) {
       $(e).addClass("selected");
     } else {
       $(e).removeClass("selected");
       $(e).click(id, (e) => {
         const id = e.data;
-        if (id != selectNode) {
-          selectNode = id;
+        if (!selectedNodes.includes(id)) {
+          selectedNodes.length = 0;
+          selectedNodes.push(id);
           updateNodeList();
         }
       });
@@ -614,8 +638,8 @@ document.addEventListener('astilectron-ready', function () {
     }
     if(data[2] == "polling") {
       selectNodeFromName(data[3]);
-      if (selectNode != "") {
-        astilectron.sendMessage({ name: "showPolling", payload: selectNode }, function (message) {
+      if (selectedNodes.length == 1) {
+        astilectron.sendMessage({ name: "showPolling", payload: selectedNodes[0] }, function (message) {
         });
       }
       redraw();
@@ -726,9 +750,10 @@ document.addEventListener('astilectron-ready', function () {
 });
 
 function selectNodeFromName(name) {
+  selectedNodes.length  = 0;
   for (let [key, val] of Object.entries(nodes)) {
     if(val.Name == name) {
-      selectNode = key;
+      selectedNodes.push(key);
       break
     }
   }
