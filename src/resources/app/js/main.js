@@ -186,7 +186,7 @@ function mousePressed() {
       updateNodeList();
    }
   }
-  if (mouseButton === RIGHT && selectedNodes.length == 1) {
+  if (mouseButton === RIGHT && selectedNodes.length <= 1) {
     let urls;
     let div;
     const id = selectedNodes[0];
