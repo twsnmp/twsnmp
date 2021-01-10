@@ -766,9 +766,9 @@ func updateLineState() {
 }
 
 func pollNowNode(nodeID string) {
-	nodeName := "Unknown"
-	if n, ok := nodes[nodeID]; ok {
-		nodeName = n.Name
+	n, ok := nodes[nodeID]
+	if !ok {
+		return
 	}
 	updateList := []*pollingEnt{}
 	pollings.Range(func(_, v interface{}) bool {
@@ -781,7 +781,7 @@ func pollNowNode(nodeID string) {
 				Type:     "user",
 				Level:    p.State,
 				NodeID:   p.NodeID,
-				NodeName: nodeName,
+				NodeName: n.Name,
 				Event:    "ポーリング再確認:" + p.Name,
 			})
 			updateList = append(updateList, p)
@@ -801,16 +801,16 @@ func checkAllPoll() {
 		if p.State != "normal" {
 			p.State = "unknown"
 			p.NextTime = 0
-			nodeName := "unknown"
-			if n, ok := nodes[p.NodeID]; ok {
-				nodeName = n.Name
+			n, ok := nodes[p.NodeID]
+			if !ok {
+				return true
 			}
 			pollingStateChangeCh <- p
 			addEventLog(eventLogEnt{
 				Type:     "user",
 				Level:    p.State,
 				NodeID:   p.NodeID,
-				NodeName: nodeName,
+				NodeName: n.Name,
 				Event:    "ポーリング再確認:" + p.Name,
 			})
 			updateList = append(updateList, p)
