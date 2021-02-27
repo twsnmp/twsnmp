@@ -945,7 +945,7 @@ function createExtConfPane() {
       "1ヶ月": "30d",
       "3ヶ月": "90d",
       "6ヶ月": "180d",
-      "1年": "30d",
+      "1年": "365d",
     },
   });
   f2.addInput(influxdbConf, 'PollingLog', { 
