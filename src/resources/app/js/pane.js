@@ -347,10 +347,13 @@ function checkNotifyConf(p) {
     setInputError(3,"メールアドレス形式です。")
     r = false;
   }
-  if(!validator.isEmail(p.MailTo)){
-    setInputError(4,"メールアドレス形式です。")
-    r = false;
-  }
+  const a = p.MailTo.split(',')
+  a.forEach((m) => {
+    if(!validator.isEmail(m)){
+      setInputError(4,"メールアドレス形式です。")
+      r = false;
+    }
+  })
   if( p.Subject == "") {
     setInputError(5,"件名を指定してください。")
     r = false;
