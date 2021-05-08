@@ -40,9 +40,9 @@ var (
 	oui               = &OUIMap{}
 	app               *astilectron.Astilectron
 	aboutText         = `TWSNMP Manager
-Version 5.0.2
-Copyright (c) 2019,2020 Masayuki Yamai`
-	versionNum = "050002"
+Version 5.0.3
+Copyright (c) 2019-2021 Masayuki Yamai`
+	versionNum = "050003"
 	astiLogger *astilog.Logger
 )
 
@@ -158,7 +158,9 @@ func main() {
 					Checked: astikit.BoolPtr(true), Label: astikit.StrPtr("マップ"),
 					Type: astilectron.MenuItemTypeCheckbox,
 					OnClick: func(e astilectron.Event) bool {
-						setWindowsShowOrHide(mainWindow, *e.MenuItemOptions.Checked)
+						if runtime.GOOS != "windows" {
+							setWindowsShowOrHide(mainWindow, *e.MenuItemOptions.Checked)
+						}
 						return false
 					},
 				},
