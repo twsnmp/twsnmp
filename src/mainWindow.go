@@ -743,6 +743,13 @@ func updateNodeState(nodeID string) {
 		if n.State == "low" {
 			return true
 		}
+		if s == "warn" {
+			n.State = "warn"
+			return true
+		}
+		if n.State == "warn" {
+			return true
+		}
 		if s == "repair" {
 			n.State = "repair"
 		}
