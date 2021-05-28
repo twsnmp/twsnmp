@@ -100,7 +100,7 @@ function getStateColor(state) {
 
 function getStateLevel(state) {
   const ret = stateLevelMap.get(state);
-  return ret ? ret : stateLevelArray.length;
+  return ret >= 0 ? ret : stateLevelArray.length;
 }
 
 function getStateHtml(state) {
