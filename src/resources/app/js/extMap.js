@@ -148,9 +148,27 @@ function setMapData(r) {
   updateLogTable(r.Logs);
   updatePollingTable(r.Pollings);
   $('#nodeList').html('');
+  const ns = [];
   for (let k in nodes) {
-    addNodeToList(nodes[k]);
+    ns.push(nodes[k]);
   }
+  ns.sort((a,b) => {
+    if( a.State === b.State) return 0
+    if (a.State === "high") return -1;
+    if (b.State === "high") return 1;
+    if (a.State === "low") return -1;
+    if (b.State === "low") return 1;
+    if (a.State === "warn") return -1;
+    if (b.State === "warn") return 1;
+    if (a.State === "repair") return -1;
+    if (b.State === "repair") return 1;
+    if (a.State === "normal") return -1;
+    if (b.State === "normal") return 1;
+    return 0;
+  });
+  ns.forEach(n => {
+    addNodeToList(n);
+  });
   redraw();
 }
 
