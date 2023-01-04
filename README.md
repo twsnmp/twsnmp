@@ -2,6 +2,9 @@
 TWSNMPマネージャ 復刻版
 (TWSNMP Manager Returns)
 
+2020年以降に開発は中止しました。
+2023年にリポジトリをアーカイブしました。
+
 [![Godoc Reference](https://godoc.org/github.com/twsnmp/twsnmp/src?status.svg)](http://godoc.org/github.com/twsnmp/twsnmp/src)
 [![Build Status](https://travis-ci.org/twsnmp/twsnmp.svg?branch=master)](https://travis-ci.org/twsnmp/twsnmp)
 [![Go Report Card](https://goreportcard.com/badge/twsnmp/twsnmp)](https://goreportcard.com/report/twsnmp/twsnmp)
@@ -16,7 +19,8 @@ This project is to revive the TWSNMP Manager that was developed in 1999 and is s
 
 ## Status
 
-以下の機能を実装しました。
+
+以下の機能を実装しましたが、開発は中止しました。
 
 * マップ表示、編集
 * 自動発見
