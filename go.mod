@@ -27,8 +27,8 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/vmware/govmomi v0.23.1
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
+	golang.org/x/crypto v0.21.0
+	golang.org/x/net v0.23.0
 	gopkg.in/mcuadros/go-syslog.v2 v2.3.0
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
